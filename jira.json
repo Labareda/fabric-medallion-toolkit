@@ -1,0 +1,66 @@
+{
+  "source_name": "jira",
+  "base_url": "https://yourcompany.atlassian.net",
+  "auth": {
+    "kind": "basic",
+    "username": "ana@yourcompany.com",
+    "secret_akv_name": "your-keyvault-name",
+    "secret_akv_secret_name": "jira-api-token"
+  },
+  "request_timeout_seconds": 30,
+  "max_retries": 5,
+  "entities": [
+    {
+      "entity_name": "issues",
+      "endpoint_path": "/rest/api/3/search",
+      "http_method": "POST",
+      "pagination_style": "offset_limit",
+      "page_size": 100,
+      "records_json_path": "issues",
+      "total_json_path": "total",
+      "natural_key_field": "key",
+      "extra_body": { "jql": "project = PROJ ORDER BY updated" },
+      "incremental_column": "fields.updated",
+      "watermark_body_template": { "jql": "project = PROJ AND updated >= '{watermark}' ORDER BY updated" },
+      "initial_watermark_value": "2026-01-01 00:00",
+      "silver": {
+        "natural_key_columns": ["ticket_key"],
+        "dedup_order_column": "_extracted_at",
+        "column_mappings": [
+          { "target_column": "ticket_key", "json_path": "key", "data_type": "string" },
+          { "target_column": "summary", "json_path": "fields.summary", "data_type": "string" },
+          { "target_column": "status", "json_path": "fields.status.name", "data_type": "string" },
+          { "target_column": "assignee", "json_path": "fields.assignee.displayName", "data_type": "string" },
+          { "target_column": "issue_type", "json_path": "fields.issuetype.name", "data_type": "string" },
+          { "target_column": "project_key", "json_path": "fields.project.key", "data_type": "string" },
+          { "target_column": "created_at", "json_path": "fields.created", "data_type": "timestamp",
+            "date_format": "yyyy-MM-dd'T'HH:mm:ss.SSSZ" },
+          { "target_column": "updated_at", "json_path": "fields.updated", "data_type": "timestamp",
+            "date_format": "yyyy-MM-dd'T'HH:mm:ss.SSSZ" },
+          { "target_column": "due_date", "json_path": "fields.duedate", "data_type": "date" },
+          { "target_column": "start_date", "json_path": "fields.customfield_10015", "data_type": "date" },
+          { "target_column": "priority", "json_path": "fields.priority.name", "data_type": "string" },
+          { "target_column": "parent_key", "json_path": "fields.parent.key", "data_type": "string" },
+          { "target_column": "original_estimate_seconds", "json_path": "fields.timeoriginalestimate", "data_type": "long" },
+          { "target_column": "time_spent_seconds", "json_path": "fields.timespent", "data_type": "long" }
+        ]
+      }
+    },
+    {
+      "entity_name": "projects",
+      "endpoint_path": "/rest/api/3/project/search",
+      "http_method": "GET",
+      "pagination_style": "page_number",
+      "page_size": 50,
+      "records_json_path": "values",
+      "natural_key_field": "key",
+      "silver": {
+        "natural_key_columns": ["project_key"],
+        "column_mappings": [
+          { "target_column": "project_key", "json_path": "key", "data_type": "string" },
+          { "target_column": "project_name", "json_path": "name", "data_type": "string" }
+        ]
+      }
+    }
+  ]
+}

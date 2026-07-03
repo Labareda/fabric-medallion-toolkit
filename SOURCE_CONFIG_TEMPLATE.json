@@ -1,0 +1,44 @@
+{
+  "_comment": "Copy to sources/<name>/<name>.json, delete this key, fill in the rest. One file per source. Only needed for a REST API source -- for anything else (ODBC, SFTP...), skip this and just write extraction code directly in that source's B2S notebook.",
+
+  "source_name": "REPLACE_WITH_SOURCE_SLUG",
+  "base_url": "https://REPLACE_WITH_API_BASE_URL",
+  "auth": {
+    "kind": "basic",
+    "username": "REPLACE_OR_DELETE_IF_NOT_BASIC_AUTH",
+    "secret_akv_name": "REPLACE_WITH_KEYVAULT_NAME",
+    "secret_akv_secret_name": "REPLACE_WITH_SECRET_NAME"
+  },
+  "request_timeout_seconds": 30,
+  "max_retries": 5,
+  "entities": [
+    {
+      "entity_name": "REPLACE_WITH_ENTITY_SLUG",
+      "endpoint_path": "/REPLACE/WITH/ENDPOINT/PATH",
+      "http_method": "GET",
+      "pagination_style": "offset_limit",
+      "page_size": 100,
+      "records_json_path": "REPLACE_WITH_DOT_PATH_TO_RECORD_LIST_OR_EMPTY_STRING_IF_ROOT_IS_THE_LIST",
+      "total_json_path": "REPLACE_OR_DELETE_IF_NO_TOTAL_COUNT_FIELD",
+      "natural_key_field": "REPLACE_WITH_DOT_PATH_TO_ID_FIELD",
+      "extra_params": {},
+      "extra_body": {},
+
+      "incremental_column": "REPLACE_OR_DELETE_IF_FULL_LOAD_ONLY",
+      "watermark_params_template": { "REPLACE_WITH_QUERY_PARAM_NAME": "{watermark}" },
+      "initial_watermark_value": "2020-01-01T00:00:00",
+
+      "silver": {
+        "natural_key_columns": ["REPLACE_WITH_TARGET_COLUMN_NAME_OF_THE_KEY"],
+        "dedup_order_column": "_extracted_at",
+        "column_mappings": [
+          { "target_column": "REPLACE_COLUMN_1", "json_path": "REPLACE.DOT.PATH", "data_type": "string" },
+          { "target_column": "REPLACE_COLUMN_2", "json_path": "REPLACE.DOT.PATH", "data_type": "date" },
+          { "target_column": "REPLACE_COLUMN_3_TIMESTAMP", "json_path": "REPLACE.DOT.PATH", "data_type": "timestamp",
+            "date_format": "yyyy-MM-dd'T'HH:mm:ss.SSSZ" },
+          { "target_column": "REPLACE_COLUMN_4_NUMBER", "json_path": "REPLACE.DOT.PATH", "data_type": "long" }
+        ]
+      }
+    }
+  ]
+}

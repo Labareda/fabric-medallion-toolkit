@@ -1,0 +1,152 @@
+"""
+Configuration objects for the whole toolkit. Everything is data, not code —
+onboarding a new source is (in the common case) writing one SourceConfig +
+EntityConfig + a SilverEntityConfig + some GoldTableConfigs, no new Python.
+
+Keep credentials OUT of these objects at rest — build AuthConfig from a Key
+Vault secret inside the notebook:
+
+    from notebookutils import mssparkutils
+    token = mssparkutils.credentials.getSecret("<akv-name>", "<secret-name>")
+    auth = AuthConfig(kind="basic", username="...", secret=token)
+"""
+
+from dataclasses import dataclass, field
+from typing import Optional, Dict, Any, List
+
+
+@dataclass
+class AuthConfig:
+    kind: str  # "basic" | "bearer" | "api_key" | "none"
+    username: Optional[str] = None
+    secret: Optional[str] = None
+    api_key_header: Optional[str] = None
+
+    def as_requests_auth(self):
+        if self.kind == "basic":
+            return (self.username, self.secret)
+        return None
+
+    def as_headers(self) -> Dict[str, str]:
+        if self.kind == "bearer":
+            return {"Authorization": f"Bearer {self.secret}"}
+        if self.kind == "api_key" and self.api_key_header:
+            return {self.api_key_header: self.secret}
+        return {}
+
+
+@dataclass
+class LakehouseConfig:
+    bronze_schema: str = "bronze"   # Lakehouse schema/prefix for bronze tables
+    silver_schema: str = "silver"
+    gold_schema: str = "gold"
+
+
+@dataclass
+class EntityConfig:
+    """
+    One config per entity (endpoint) within a source. Written so most REST
+    APIs need ONLY this config, no new extractor subclass — see
+    GenericRestExtractor for how each field is used.
+    """
+    entity_name: str                          # short slug, e.g. "issues", "customers"
+    endpoint_path: str                        # e.g. "/rest/api/3/search"
+    http_method: str = "GET"                  # "GET" | "POST"
+    pagination_style: str = "offset_limit"    # "offset_limit" | "page_number" | "cursor" | "none"
+    page_size: int = 100
+    records_json_path: str = ""               # dot path to the list of records in the response; "" = root is the list
+    total_json_path: Optional[str] = None     # dot path to a total-count field, if the API returns one
+    next_cursor_json_path: Optional[str] = None  # dot path to a next-page cursor/token, if cursor-paginated
+    natural_key_field: str = "id"             # dot path WITHIN each record for its natural/business key
+    extra_params: Dict[str, Any] = field(default_factory=dict)   # extra query params (GET) merged in every call
+    extra_body: Dict[str, Any] = field(default_factory=dict)     # extra JSON body fields (POST) merged in every call
+
+    # --- High-watermark incremental extraction (optional; leave defaults for a full-load entity) ---
+    incremental_column: Optional[str] = None
+        # dot path WITHIN each record to the source's own "last modified" field,
+        # e.g. "fields.updated" for Jira. Used to compute the NEXT watermark
+        # after a successful run (max of this field across the batch).
+    watermark_params_template: Dict[str, str] = field(default_factory=dict)
+        # For GET entities: extra_params entries containing a "{watermark}"
+        # placeholder, merged in (and overriding extra_params) only when a
+        # watermark value is supplied, e.g. {"modified_since": "{watermark}"}
+    watermark_body_template: Dict[str, str] = field(default_factory=dict)
+        # Same idea for POST entities, e.g.
+        # {"jql": "updated >= '{watermark}' ORDER BY updated"}
+    initial_watermark_value: str = "1900-01-01T00:00:00"
+        # Used on the very first run for this entity, before any watermark
+        # has been recorded.
+
+
+@dataclass
+class SourceConfig:
+    source_name: str                # short slug, e.g. "jira", "navision", "salesforce"
+    base_url: str
+    auth: AuthConfig = None
+    entities: List[EntityConfig] = field(default_factory=list)
+    request_timeout_seconds: int = 30
+    max_retries: int = 5
+
+
+@dataclass
+class ColumnMapping:
+    """One Silver column: where it comes from in raw_data, and its target type."""
+    target_column: str
+    json_path: str                  # dot path into the parsed raw_data JSON, e.g. "fields.duedate"
+    data_type: str = "string"       # "string" | "int" | "long" | "double" | "boolean" | "date" | "timestamp"
+    date_format: Optional[str] = None  # e.g. "yyyy-MM-dd" or "yyyy-MM-dd'T'HH:mm:ss.SSSZ"; None = let Spark infer
+
+
+@dataclass
+class SilverEntityConfig:
+    """Drives the generic Silver standardize step for one Bronze entity."""
+    source_name: str
+    entity_name: str
+    natural_key_columns: List[str]         # standardized (target) column name(s) forming the business key
+    column_mappings: List[ColumnMapping]
+    dedup_order_column: str = "_extracted_at"  # which standardized/meta column decides "latest" on dedup
+
+
+@dataclass
+class GoldTableConfig:
+    """
+    Drives one Gold table build. `select_sql` is plain Spark SQL — reference
+    Silver tables directly (e.g. "SELECT ... FROM jira.issues"), join across
+    sources, whatever the model needs. The "schema" of a Gold table is
+    whatever select_sql returns, defined once, not duplicated as separate DDL.
+
+    table_type: "dim" | "scd2" | "fact"
+        dim  — stable key, current values only, overwritten in place.
+        scd2 — full version history; a changed record gets a NEW key rather
+               than being overwritten, so old fact rows keep pointing at the
+               attribute values that were true when they happened.
+        fact — grain-level data; MERGEs on merge_fields like a dim does, but
+               keeps every column select_sql returns rather than treating
+               anything as a "changing attribute".
+
+    merge_fields: the business/natural key column(s) select_sql returns —
+        used BOTH as the MERGE match columns AND as the input to the
+        table's auto-generated key column (see gold/keys.py). Composite
+        keys are fine, e.g. ["project_key", "fiscal_year"].
+
+    surrogate_key_column: name of the key column the toolkit generates for
+        you. It's a deterministic GUID derived from merge_fields (and, for
+        scd2, from the tracked-column change hash too) — same merge field
+        values always produce the same GUID, so there's no key registry to
+        maintain and no "what's the next available key" lookup needed.
+    """
+    table_name: str
+    select_sql: str
+    table_type: str = "fact"               # "dim" | "scd2" | "fact"
+    merge_fields: List[str] = field(default_factory=list)
+    surrogate_key_column: str = "row_key"
+    tracked_columns: Optional[List[str]] = None  # scd2 only; None = track every non-merge-field column
+
+
+@dataclass
+class DateDimensionConfig:
+    """A calendar dim is synthetic, not derived from Silver — its own tiny config."""
+    table_name: str = "dim_date"
+    start_date: str = "2020-01-01"
+    end_date: str = "2035-12-31"
+    fiscal_year_start_month: int = 1  # 1 = fiscal year == calendar year; e.g. 4 = FY starts in April
