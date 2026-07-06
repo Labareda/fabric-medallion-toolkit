@@ -13,7 +13,7 @@ submodule something lives in:
     ))
 """
 
-__version__ = "0.3.2"
+__version__ = "0.3.3"
 
 # --- config: the dataclasses used to describe sources, entities, columns, tables ---
 from fabric_medallion_toolkit.config import (
@@ -26,7 +26,7 @@ from fabric_medallion_toolkit.config_loader import (
 
 # --- bronze: extraction + landing ---
 from fabric_medallion_toolkit.bronze import (
-    RestExtractor, land_records, get_watermark, save_watermark, compute_new_watermark,
+    RestExtractor, land_records, get_watermark, save_watermark, compute_new_watermark, extract_per_parent,
 )
 
 # --- silver: standardization ---
@@ -49,7 +49,7 @@ __all__ = [
     "ColumnMapping", "SilverEntityConfig", "TableSchema", "GoldTableConfig", "DateDimensionConfig",
     "load_source_config", "load_gold_config", "load_date_dimension_config",
     # bronze
-    "RestExtractor", "land_records", "get_watermark", "save_watermark", "compute_new_watermark",
+    "RestExtractor", "land_records", "get_watermark", "save_watermark", "compute_new_watermark", "extract_per_parent",
     # silver
     "run_silver_standardize", "flatten_and_standardize", "dedup_latest",
     # gold

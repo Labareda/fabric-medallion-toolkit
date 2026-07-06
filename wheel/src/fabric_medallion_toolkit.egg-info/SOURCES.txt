@@ -10,6 +10,7 @@ src/fabric_medallion_toolkit.egg-info/top_level.txt
 src/fabric_medallion_toolkit/bronze/__init__.py
 src/fabric_medallion_toolkit/bronze/extractor.py
 src/fabric_medallion_toolkit/bronze/landing.py
+src/fabric_medallion_toolkit/bronze/per_parent.py
 src/fabric_medallion_toolkit/bronze/watermark.py
 src/fabric_medallion_toolkit/gold/__init__.py
 src/fabric_medallion_toolkit/gold/builder.py

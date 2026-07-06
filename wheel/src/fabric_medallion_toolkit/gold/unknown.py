@@ -38,4 +38,3 @@ def add_unknown_member(df: DataFrame, merge_fields: List[str], unknown_value: st
     )
     unknown_df = spark.createDataFrame([row_values], schema=df.schema)
     return df.unionByName(unknown_df)
-

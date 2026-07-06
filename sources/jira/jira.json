@@ -158,6 +158,76 @@
           { "target_column": "resolution_name", "json_path": "name", "data_type": "string" }
         ]
       }
+    },
+    {
+      "entity_name": "project_roles",
+      "endpoint_path": "/rest/api/3/role",
+      "http_method": "GET",
+      "pagination_style": "none",
+      "records_json_path": "",
+      "natural_key_field": "id",
+      "silver": {
+        "natural_key_columns": ["role_id"],
+        "column_mappings": [
+          { "target_column": "role_id", "json_path": "id", "data_type": "string" },
+          { "target_column": "role_name", "json_path": "name", "data_type": "string" },
+          { "target_column": "role_description", "json_path": "description", "data_type": "string" }
+        ]
+      }
+    },
+    {
+      "entity_name": "labels",
+      "endpoint_path": "/rest/api/3/label",
+      "http_method": "GET",
+      "pagination_style": "offset_limit",
+      "page_size": 200,
+      "total_json_path": "total",
+      "records_json_path": "values",
+      "natural_key_field": "",
+      "silver": {
+        "natural_key_columns": ["label_name"],
+        "column_mappings": [
+          { "target_column": "label_name", "json_path": "", "data_type": "string" }
+        ]
+      }
+    },
+    {
+      "entity_name": "audit_logs",
+      "endpoint_path": "/rest/api/3/auditing/record",
+      "http_method": "GET",
+      "pagination_style": "offset_limit",
+      "page_size": 1000,
+      "total_json_path": "total",
+      "records_json_path": "records",
+      "natural_key_field": "id",
+      "silver": {
+        "natural_key_columns": ["audit_id"],
+        "column_mappings": [
+          { "target_column": "audit_id", "json_path": "id", "data_type": "long" },
+          { "target_column": "summary", "json_path": "summary", "data_type": "string" },
+          { "target_column": "created", "json_path": "created", "data_type": "timestamp",
+            "date_format": "yyyy-MM-dd'T'HH:mm:ss.SSSZ" },
+          { "target_column": "category", "json_path": "category", "data_type": "string" }
+        ]
+      }
+    },
+    {
+      "entity_name": "boards",
+      "endpoint_path": "/rest/agile/1.0/board",
+      "http_method": "GET",
+      "pagination_style": "page_number",
+      "page_size": 50,
+      "records_json_path": "values",
+      "natural_key_field": "id",
+      "silver": {
+        "natural_key_columns": ["board_id"],
+        "column_mappings": [
+          { "target_column": "board_id", "json_path": "id", "data_type": "long" },
+          { "target_column": "board_name", "json_path": "name", "data_type": "string" },
+          { "target_column": "board_type", "json_path": "type", "data_type": "string" },
+          { "target_column": "project_key", "json_path": "location.projectKey", "data_type": "string" }
+        ]
+      }
     }
   ]
 }

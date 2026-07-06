@@ -54,6 +54,8 @@ class EntityConfig:
     http_method: str = "GET"                  # "GET" | "POST"
     pagination_style: str = "offset_limit"    # "offset_limit" | "page_number" | "cursor" | "none"
     page_size: int = 100
+    cursor_param_name: str = "cursor"          # cursor-style only: request field name for the token, e.g. Jira's "nextPageToken"
+    cursor_page_size_param_name: str = "limit" # cursor-style only: request field name for page size, e.g. Jira's "maxResults"
     records_json_path: str = ""               # dot path to the list of records in the response; "" = root is the list
     total_json_path: Optional[str] = None     # dot path to a total-count field, if the API returns one
     next_cursor_json_path: Optional[str] = None  # dot path to a next-page cursor/token, if cursor-paginated

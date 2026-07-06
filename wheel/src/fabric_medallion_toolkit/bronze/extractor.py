@@ -80,8 +80,8 @@ class RestExtractor:
         elif entity.pagination_style == "page_number":
             pag = {"page": page_num, "pageSize": entity.page_size}
         elif entity.pagination_style == "cursor":
-            pag = {"cursor": cursor} if cursor else {}
-            pag["limit"] = entity.page_size
+            pag = {entity.cursor_param_name: cursor} if cursor else {}
+            pag[entity.cursor_page_size_param_name] = entity.page_size
         elif entity.pagination_style == "none":
             pag = {}
         else:

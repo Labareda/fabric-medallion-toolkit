@@ -52,6 +52,8 @@ def _load_entity(entity_json: Dict[str, Any]) -> EntityConfig:
         http_method=entity_json.get("http_method", "GET"),
         pagination_style=entity_json.get("pagination_style", "offset_limit"),
         page_size=entity_json.get("page_size", 100),
+        cursor_param_name=entity_json.get("cursor_param_name", "cursor"),
+        cursor_page_size_param_name=entity_json.get("cursor_page_size_param_name", "limit"),
         records_json_path=entity_json.get("records_json_path", ""),
         total_json_path=entity_json.get("total_json_path"),
         next_cursor_json_path=entity_json.get("next_cursor_json_path"),
