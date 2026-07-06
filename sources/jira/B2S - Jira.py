@@ -20,26 +20,44 @@ silver_by_entity = {sc.entity_name: sc for sc in silver_configs}
 extractor = fmt.RestExtractor(source_config)
 
 # CELL ********************
+# CELL ********************
+failed_entities = []
+
 for entity in source_config.entities:
-    extraction_started_at = datetime.now(timezone.utc)
+    try:
+        extraction_started_at = datetime.now(timezone.utc)
 
-    use_watermark = bool(entity.incremental_column or entity.watermark_params_template or entity.watermark_body_template)
-    watermark_value = fmt.get_watermark(spark, SOURCE_NAME, entity, bronze_schema=SCHEMA) if use_watermark else None
-    print(f"[{entity.entity_name}] {'incremental, watermark >= ' + str(watermark_value) if use_watermark else 'full load'}")
+        use_watermark = bool(entity.incremental_column or entity.watermark_params_template or entity.watermark_body_template)
+        watermark_value = fmt.get_watermark(spark, SOURCE_NAME, entity, bronze_schema=SCHEMA) if use_watermark else None
+        print(f"[{entity.entity_name}] {'incremental, watermark >= ' + str(watermark_value) if use_watermark else 'full load'}")
 
-    records = list(extractor.extract_entity(entity, watermark_value=watermark_value))
-    count = fmt.land_records(spark, records, source_name=SOURCE_NAME, entity=entity, bronze_schema=SCHEMA)
-    print(f"[{entity.entity_name}] landed {count} records")
+        records = list(extractor.extract_entity(entity, watermark_value=watermark_value))
+        count = fmt.land_records(spark, records, source_name=SOURCE_NAME, entity=entity, bronze_schema=SCHEMA)
+        print(f"[{entity.entity_name}] landed {count} records")
 
-    if use_watermark and count > 0:
-        new_watermark = fmt.compute_new_watermark(records, entity, extraction_started_at)
-        fmt.save_watermark(spark, SOURCE_NAME, entity, new_watermark, bronze_schema=SCHEMA)
-        print(f"[{entity.entity_name}] watermark advanced to {new_watermark}")
+        if use_watermark and count > 0:
+            new_watermark = fmt.compute_new_watermark(records, entity, extraction_started_at)
+            fmt.save_watermark(spark, SOURCE_NAME, entity, new_watermark, bronze_schema=SCHEMA)
+            print(f"[{entity.entity_name}] watermark advanced to {new_watermark}")
+
+    except Exception as exc:
+        # One entity failing (permissions, a bad JQL, a transient API issue)
+        # shouldn't stop every other entity from landing. Logged clearly,
+        # then move on -- check failed_entities at the end of the run.
+        print(f"[{entity.entity_name}] FAILED, skipping: {exc}")
+        failed_entities.append(entity.entity_name)
 
 # CELL ********************
 for entity_name, silver_cfg in silver_by_entity.items():
-    fmt.run_silver_standardize(spark, silver_cfg, bronze_schema=SCHEMA, silver_schema=SCHEMA)
-    print(f"[{entity_name}] standardized -> {SCHEMA}.{entity_name} (Silver)")
+    if entity_name in failed_entities:
+        print(f"[{entity_name}] skipping Silver -- Bronze extraction failed for this entity")
+        continue
+    try:
+        fmt.run_silver_standardize(spark, silver_cfg, bronze_schema=SCHEMA, silver_schema=SCHEMA)
+        print(f"[{entity_name}] standardized -> {SCHEMA}.{entity_name} (Silver)")
+    except Exception as exc:
+        print(f"[{entity_name}] Silver standardization FAILED, skipping: {exc}")
+        failed_entities.append(entity_name)
 
 # CELL ********************
 # --- Per-project entities: Versions (not a single global list, one call per project) ---
@@ -70,32 +88,36 @@ print("[versions] standardized -> jira.versions (Silver)")
 
 # CELL ********************
 # --- Per-board entities: Sprints (Scrum boards only -- Kanban boards are skipped automatically) ---
-board_ids = [r["_natural_key"] for r in spark.table(f"{SCHEMA}.boards").select("_natural_key").distinct().collect()]
+if not spark.catalog.tableExists(f"{SCHEMA}.boards"):
+    print("[sprints] skipping -- jira.boards doesn't exist (Boards extraction failed or was never run, "
+          "likely a permissions issue: this Jira instance/account may not have Jira Software/Agile access)")
+else:
+    board_ids = [r["_natural_key"] for r in spark.table(f"{SCHEMA}.boards").select("_natural_key").distinct().collect()]
 
-sprints_template = fmt.EntityConfig(
-    entity_name="sprints", endpoint_path="/rest/agile/1.0/board/{parent_id}/sprint",
-    http_method="GET", pagination_style="page_number", page_size=50,
-    records_json_path="values", natural_key_field="id",
-)
-sprint_records = fmt.extract_per_parent(extractor, sprints_template, parent_ids=board_ids, parent_field_name="_board_id")
-count = fmt.land_records(spark, sprint_records, source_name=SOURCE_NAME, entity=sprints_template, bronze_schema=SCHEMA)
-print(f"[sprints] landed {count} records across {len(board_ids)} boards")
+    sprints_template = fmt.EntityConfig(
+        entity_name="sprints", endpoint_path="/rest/agile/1.0/board/{parent_id}/sprint",
+        http_method="GET", pagination_style="page_number", page_size=50,
+        records_json_path="values", natural_key_field="id",
+    )
+    sprint_records = fmt.extract_per_parent(extractor, sprints_template, parent_ids=board_ids, parent_field_name="_board_id")
+    count = fmt.land_records(spark, sprint_records, source_name=SOURCE_NAME, entity=sprints_template, bronze_schema=SCHEMA)
+    print(f"[sprints] landed {count} records across {len(board_ids)} boards")
 
-sprints_silver_cfg = fmt.SilverEntityConfig(
-    source_name=SOURCE_NAME, entity_name="sprints", natural_key_columns=["sprint_id"],
-    column_mappings=[
-        fmt.ColumnMapping("sprint_id", "id", "string"),
-        fmt.ColumnMapping("sprint_name", "name", "string"),
-        fmt.ColumnMapping("board_id", "_parent_id", "string"),
-        fmt.ColumnMapping("sprint_state", "state", "string"),
-        fmt.ColumnMapping("sprint_goal", "goal", "string"),
-        fmt.ColumnMapping("start_date", "startDate", "timestamp", date_format="yyyy-MM-dd'T'HH:mm:ss.SSSZ"),
-        fmt.ColumnMapping("end_date", "endDate", "timestamp", date_format="yyyy-MM-dd'T'HH:mm:ss.SSSZ"),
-        fmt.ColumnMapping("complete_date", "completeDate", "timestamp", date_format="yyyy-MM-dd'T'HH:mm:ss.SSSZ"),
-    ],
-)
-fmt.run_silver_standardize(spark, sprints_silver_cfg, bronze_schema=SCHEMA, silver_schema=SCHEMA)
-print("[sprints] standardized -> jira.sprints (Silver)")
+    sprints_silver_cfg = fmt.SilverEntityConfig(
+        source_name=SOURCE_NAME, entity_name="sprints", natural_key_columns=["sprint_id"],
+        column_mappings=[
+            fmt.ColumnMapping("sprint_id", "id", "string"),
+            fmt.ColumnMapping("sprint_name", "name", "string"),
+            fmt.ColumnMapping("board_id", "_parent_id", "string"),
+            fmt.ColumnMapping("sprint_state", "state", "string"),
+            fmt.ColumnMapping("sprint_goal", "goal", "string"),
+            fmt.ColumnMapping("start_date", "startDate", "timestamp", date_format="yyyy-MM-dd'T'HH:mm:ss.SSSZ"),
+            fmt.ColumnMapping("end_date", "endDate", "timestamp", date_format="yyyy-MM-dd'T'HH:mm:ss.SSSZ"),
+            fmt.ColumnMapping("complete_date", "completeDate", "timestamp", date_format="yyyy-MM-dd'T'HH:mm:ss.SSSZ"),
+        ],
+    )
+    fmt.run_silver_standardize(spark, sprints_silver_cfg, bronze_schema=SCHEMA, silver_schema=SCHEMA)
+    print("[sprints] standardized -> jira.sprints (Silver)")
 
 # CELL ********************
 # --- Per-project entities: Components (same pattern as Versions) ---
@@ -126,75 +148,83 @@ print("[components] standardized -> jira.components (Silver)")
 # issues' raw_data (fields.* / changelog.*), just need exploding into their
 # own tables. Reads directly from Bronze (not Silver) since raw_data is
 # what explode_nested_array needs.
-bronze_issues_df = spark.table(f"{SCHEMA}.issues")
+if not spark.catalog.tableExists(f"{SCHEMA}.issues"):
+    print("[issue_links/issue_components/issue_fix_version/issue_affects_version/histories] "
+          "skipping -- jira.issues doesn't exist yet (0 issues landed this run, and land_records "
+          "doesn't create a table for zero rows). Nothing to explode until issues has data.")
+else:
+    bronze_issues_df = spark.table(f"{SCHEMA}.issues")
 
-# IssueLinks
-issue_links_df = fmt.explode_nested_array(
-    bronze_issues_df, array_json_path="fields.issuelinks",
-    parent_key_column="issue_key", parent_key_json_path="key",
-    column_mappings=[
-        fmt.ColumnMapping("link_type", "type.name", "string"),
-        fmt.ColumnMapping("outward_issue_key", "outwardIssue.key", "string"),
-        fmt.ColumnMapping("inward_issue_key", "inwardIssue.key", "string"),
-    ],
-)
-issue_links_df.write.format("delta").mode("overwrite").saveAsTable(f"{SCHEMA}.issue_links")
-print(f"[issue_links] {issue_links_df.count()} rows -> jira.issue_links (Silver)")
+    # IssueLinks
+    issue_links_df = fmt.explode_nested_array(
+        bronze_issues_df, array_json_path="fields.issuelinks",
+        parent_key_column="issue_key", parent_key_json_path="key",
+        column_mappings=[
+            fmt.ColumnMapping("link_type", "type.name", "string"),
+            fmt.ColumnMapping("outward_issue_key", "outwardIssue.key", "string"),
+            fmt.ColumnMapping("inward_issue_key", "inwardIssue.key", "string"),
+        ],
+    )
+    issue_links_df.write.format("delta").mode("overwrite").saveAsTable(f"{SCHEMA}.issue_links")
+    print(f"[issue_links] {issue_links_df.count()} rows -> jira.issue_links (Silver)")
 
-# IssueComponents
-issue_components_df = fmt.explode_nested_array(
-    bronze_issues_df, array_json_path="fields.components",
-    parent_key_column="issue_key", parent_key_json_path="key",
-    column_mappings=[
-        fmt.ColumnMapping("component_id", "id", "string"),
-        fmt.ColumnMapping("component_name", "name", "string"),
-    ],
-)
-issue_components_df.write.format("delta").mode("overwrite").saveAsTable(f"{SCHEMA}.issue_components")
-print(f"[issue_components] {issue_components_df.count()} rows -> jira.issue_components (Silver)")
+    # IssueComponents
+    issue_components_df = fmt.explode_nested_array(
+        bronze_issues_df, array_json_path="fields.components",
+        parent_key_column="issue_key", parent_key_json_path="key",
+        column_mappings=[
+            fmt.ColumnMapping("component_id", "id", "string"),
+            fmt.ColumnMapping("component_name", "name", "string"),
+        ],
+    )
+    issue_components_df.write.format("delta").mode("overwrite").saveAsTable(f"{SCHEMA}.issue_components")
+    print(f"[issue_components] {issue_components_df.count()} rows -> jira.issue_components (Silver)")
 
-# IssueFixVersion
-issue_fix_version_df = fmt.explode_nested_array(
-    bronze_issues_df, array_json_path="fields.fixVersions",
-    parent_key_column="issue_key", parent_key_json_path="key",
-    column_mappings=[
-        fmt.ColumnMapping("version_id", "id", "string"),
-        fmt.ColumnMapping("version_name", "name", "string"),
-    ],
-)
-issue_fix_version_df.write.format("delta").mode("overwrite").saveAsTable(f"{SCHEMA}.issue_fix_version")
-print(f"[issue_fix_version] {issue_fix_version_df.count()} rows -> jira.issue_fix_version (Silver)")
+    # IssueFixVersion
+    issue_fix_version_df = fmt.explode_nested_array(
+        bronze_issues_df, array_json_path="fields.fixVersions",
+        parent_key_column="issue_key", parent_key_json_path="key",
+        column_mappings=[
+            fmt.ColumnMapping("version_id", "id", "string"),
+            fmt.ColumnMapping("version_name", "name", "string"),
+        ],
+    )
+    issue_fix_version_df.write.format("delta").mode("overwrite").saveAsTable(f"{SCHEMA}.issue_fix_version")
+    print(f"[issue_fix_version] {issue_fix_version_df.count()} rows -> jira.issue_fix_version (Silver)")
 
-# IssueAffectsVersions
-issue_affects_version_df = fmt.explode_nested_array(
-    bronze_issues_df, array_json_path="fields.versions",
-    parent_key_column="issue_key", parent_key_json_path="key",
-    column_mappings=[
-        fmt.ColumnMapping("version_id", "id", "string"),
-        fmt.ColumnMapping("version_name", "name", "string"),
-    ],
-)
-issue_affects_version_df.write.format("delta").mode("overwrite").saveAsTable(f"{SCHEMA}.issue_affects_version")
-print(f"[issue_affects_version] {issue_affects_version_df.count()} rows -> jira.issue_affects_version (Silver)")
+    # IssueAffectsVersions
+    issue_affects_version_df = fmt.explode_nested_array(
+        bronze_issues_df, array_json_path="fields.versions",
+        parent_key_column="issue_key", parent_key_json_path="key",
+        column_mappings=[
+            fmt.ColumnMapping("version_id", "id", "string"),
+            fmt.ColumnMapping("version_name", "name", "string"),
+        ],
+    )
+    issue_affects_version_df.write.format("delta").mode("overwrite").saveAsTable(f"{SCHEMA}.issue_affects_version")
+    print(f"[issue_affects_version] {issue_affects_version_df.count()} rows -> jira.issue_affects_version (Silver)")
 
-# Histories -- one row per changelog ENTRY (a single edit event, which can
-# itself contain several field changes). The individual field changes stay
-# as a JSON array in the "items" column rather than being exploded a second
-# level down -- ask if you want that broken out further, it's a small
-# extension of the same pattern.
-histories_df = fmt.explode_nested_array(
-    bronze_issues_df, array_json_path="changelog.histories",
-    parent_key_column="issue_key", parent_key_json_path="key",
-    column_mappings=[
-        fmt.ColumnMapping("history_id", "id", "string"),
-        fmt.ColumnMapping("author_account_id", "author.accountId", "string"),
-        fmt.ColumnMapping("author_name", "author.displayName", "string"),
-        fmt.ColumnMapping("created", "created", "timestamp", date_format="yyyy-MM-dd'T'HH:mm:ss.SSSZ"),
-        fmt.ColumnMapping("items", "items", "string"),
-    ],
-)
-histories_df.write.format("delta").mode("overwrite").saveAsTable(f"{SCHEMA}.histories")
-print(f"[histories] {histories_df.count()} rows -> jira.histories (Silver)")
+    # Histories -- one row per changelog ENTRY (a single edit event, which can
+    # itself contain several field changes). The individual field changes stay
+    # as a JSON array in the "items" column rather than being exploded a second
+    # level down -- ask if you want that broken out further, it's a small
+    # extension of the same pattern.
+    histories_df = fmt.explode_nested_array(
+        bronze_issues_df, array_json_path="changelog.histories",
+        parent_key_column="issue_key", parent_key_json_path="key",
+        column_mappings=[
+            fmt.ColumnMapping("history_id", "id", "string"),
+            fmt.ColumnMapping("author_account_id", "author.accountId", "string"),
+            fmt.ColumnMapping("author_name", "author.displayName", "string"),
+            fmt.ColumnMapping("created", "created", "timestamp", date_format="yyyy-MM-dd'T'HH:mm:ss.SSSZ"),
+            fmt.ColumnMapping("items", "items", "string"),
+        ],
+    )
+    histories_df.write.format("delta").mode("overwrite").saveAsTable(f"{SCHEMA}.histories")
+    print(f"[histories] {histories_df.count()} rows -> jira.histories (Silver)")
 
 # CELL ********************
-print("B2S - Jira complete.")
+if failed_entities:
+    print(f"B2S - Jira complete, WITH FAILURES in: {failed_entities} -- see messages above for why.")
+else:
+    print("B2S - Jira complete, all entities succeeded.")
