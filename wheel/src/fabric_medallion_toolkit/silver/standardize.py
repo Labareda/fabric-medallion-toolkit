@@ -131,4 +131,8 @@ def run_silver_standardize(spark, config: SilverEntityConfig, bronze_schema: str
                             order_by_col=config.dedup_order_column)
 
     logger.info(f"Silver standardize (overwrite): {bronze_table} -> {silver_table}")
-    deduped.write.format("delta").mode("overwrite").saveAsTable(silver_table)
+    # overwriteSchema=true because Silver is meant to be fully recomputed
+    # every run, not carefully preserved like Gold -- if column mappings
+    # changed (a type, an added/removed column), the new schema should just
+    # take effect, not be blocked by Delta's default schema-protection.
+    deduped.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(silver_table)

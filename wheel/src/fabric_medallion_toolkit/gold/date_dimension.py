@@ -56,4 +56,4 @@ def build_date_dimension(spark, config: DateDimensionConfig) -> None:
     )
 
     logger.info(f"Building {config.table_name}: {config.start_date} to {config.end_date}")
-    df.write.format("delta").mode("overwrite").saveAsTable(config.table_name)
+    df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(config.table_name)

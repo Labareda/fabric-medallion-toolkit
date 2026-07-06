@@ -165,7 +165,7 @@ else:
             fmt.ColumnMapping("inward_issue_key", "inwardIssue.key", "string"),
         ],
     )
-    issue_links_df.write.format("delta").mode("overwrite").saveAsTable(f"{SCHEMA}.issue_links")
+    issue_links_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SCHEMA}.issue_links")
     print(f"[issue_links] {issue_links_df.count()} rows -> jira.issue_links (Silver)")
 
     # IssueComponents
@@ -177,7 +177,7 @@ else:
             fmt.ColumnMapping("component_name", "name", "string"),
         ],
     )
-    issue_components_df.write.format("delta").mode("overwrite").saveAsTable(f"{SCHEMA}.issue_components")
+    issue_components_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SCHEMA}.issue_components")
     print(f"[issue_components] {issue_components_df.count()} rows -> jira.issue_components (Silver)")
 
     # IssueFixVersion
@@ -189,7 +189,7 @@ else:
             fmt.ColumnMapping("version_name", "name", "string"),
         ],
     )
-    issue_fix_version_df.write.format("delta").mode("overwrite").saveAsTable(f"{SCHEMA}.issue_fix_version")
+    issue_fix_version_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SCHEMA}.issue_fix_version")
     print(f"[issue_fix_version] {issue_fix_version_df.count()} rows -> jira.issue_fix_version (Silver)")
 
     # IssueAffectsVersions
@@ -201,7 +201,7 @@ else:
             fmt.ColumnMapping("version_name", "name", "string"),
         ],
     )
-    issue_affects_version_df.write.format("delta").mode("overwrite").saveAsTable(f"{SCHEMA}.issue_affects_version")
+    issue_affects_version_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SCHEMA}.issue_affects_version")
     print(f"[issue_affects_version] {issue_affects_version_df.count()} rows -> jira.issue_affects_version (Silver)")
 
     # Histories -- one row per changelog ENTRY (a single edit event, which can
@@ -220,7 +220,7 @@ else:
             fmt.ColumnMapping("items", "items", "string"),
         ],
     )
-    histories_df.write.format("delta").mode("overwrite").saveAsTable(f"{SCHEMA}.histories")
+    histories_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SCHEMA}.histories")
     print(f"[histories] {histories_df.count()} rows -> jira.histories (Silver)")
 
 # CELL ********************
