@@ -1,0 +1,10 @@
+# Build artifacts -- regenerated fresh every time from wheel/src/, never
+# need to be (and shouldn't be) tracked in git. This is also what was
+# putting the .whl at corruption risk in the first place -- the safest fix
+# for a binary file is to not put it through Git at all, not just mark it
+# binary and hope every tool in the chain respects that.
+wheel/dist/
+wheel/build/
+wheel/src/*.egg-info/
+__pycache__/
+*.pyc

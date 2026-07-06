@@ -1,0 +1,15 @@
+# Never let Git normalize line endings in these -- they're binary, and even
+# a single byte changed breaks them (a .whl is a ZIP archive; LF->CRLF
+# conversion corrupts the archive structure entirely).
+*.whl binary
+*.tar.gz binary
+*.zip binary
+
+# JSON/Python/Markdown are real text files -- keep line endings consistent
+# (LF) regardless of what OS/editor touches them, so `git diff` doesn't show
+# a wall of red/green for a file where nothing actually changed.
+*.json text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.toml text eol=lf
+*.sh text eol=lf
