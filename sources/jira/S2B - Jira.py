@@ -7,18 +7,34 @@
 
 # CELL ********************
 from datetime import datetime, timezone
+import json
 from notebookutils import mssparkutils
 import fabric_medallion_toolkit as fmt
 
 # CELL ********************
 SOURCE_NAME = "jira"
-CONFIG_PATH = "/lakehouse/default/Files/jira.json"   # in the Config lakehouse
-SCHEMA = SOURCE_NAME
+# Lakehouse-qualified, not just a schema name -- "jira.issues" alone is
+# ambiguous (it resolves inside whichever ONE lakehouse is currently pinned
+# "default" in this notebook; the schema name doesn't select a lakehouse).
+# "Bronze.jira" is an explicit 3-part reference (LakehouseName.schema.table
+# once the entity name is appended) that works correctly regardless of
+# which lakehouse is pinned default. Change "Bronze" if you named your
+# Bronze lakehouse something else.
+SCHEMA = "Bronze.jira"
+
+# Config's Files aren't a Spark table, and relative paths like
+# "/lakehouse/default/Files/..." only work for whichever lakehouse is
+# pinned default (Bronze usually is here, not Config) -- so read via the
+# real ABFS path instead. Get it from: Config lakehouse -> Files ->
+# right-click jira.json -> "Copy ABFS path", and paste it below.
+CONFIG_ABFS_PATH = "abfss://<workspace>@onelake.dfs.fabric.microsoft.com/Config.Lakehouse/Files/jira.json"
 
 def resolve_secret(akv_name: str, secret_name: str) -> str:
     return mssparkutils.credentials.getSecret(akv_name, secret_name)
 
-source_config, _silver_configs = fmt.load_source_config(CONFIG_PATH, secret_resolver=resolve_secret)
+config_json_text = mssparkutils.fs.head(CONFIG_ABFS_PATH, 10 * 1024 * 1024)  # 10MB is plenty for a config file
+config_dict = json.loads(config_json_text)
+source_config, _silver_configs = fmt.load_source_config(config_dict, secret_resolver=resolve_secret)
 extractor = fmt.RestExtractor(source_config)
 
 # CELL ********************
