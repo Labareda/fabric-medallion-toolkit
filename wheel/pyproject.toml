@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fabric-medallion-toolkit"
-version = "0.3.3"
+version = "0.3.4"
 description = "Reusable, source-agnostic Bronze/Silver/Gold ingestion toolkit for Microsoft Fabric"
 requires-python = ">=3.10"
 authors = [{ name = "Ana" }]

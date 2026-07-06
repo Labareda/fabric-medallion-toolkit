@@ -98,4 +98,103 @@ fmt.run_silver_standardize(spark, sprints_silver_cfg, bronze_schema=SCHEMA, silv
 print("[sprints] standardized -> jira.sprints (Silver)")
 
 # CELL ********************
+# --- Per-project entities: Components (same pattern as Versions) ---
+components_template = fmt.EntityConfig(
+    entity_name="components", endpoint_path="/rest/api/3/project/{parent_id}/components",
+    http_method="GET", pagination_style="none", records_json_path="", natural_key_field="id",
+)
+component_records = fmt.extract_per_parent(extractor, components_template, parent_ids=project_keys, parent_field_name="_project_key")
+count = fmt.land_records(spark, component_records, source_name=SOURCE_NAME, entity=components_template, bronze_schema=SCHEMA)
+print(f"[components] landed {count} records across {len(project_keys)} projects")
+
+components_silver_cfg = fmt.SilverEntityConfig(
+    source_name=SOURCE_NAME, entity_name="components", natural_key_columns=["component_id"],
+    column_mappings=[
+        fmt.ColumnMapping("component_id", "id", "string"),
+        fmt.ColumnMapping("component_name", "name", "string"),
+        fmt.ColumnMapping("description", "description", "string"),
+        fmt.ColumnMapping("project_key", "_parent_id", "string"),
+        fmt.ColumnMapping("lead_account_id", "lead.accountId", "string"),
+        fmt.ColumnMapping("lead_name", "lead.displayName", "string"),
+    ],
+)
+fmt.run_silver_standardize(spark, components_silver_cfg, bronze_schema=SCHEMA, silver_schema=SCHEMA)
+print("[components] standardized -> jira.components (Silver)")
+
+# CELL ********************
+# --- Nested-inside-Issues tables: NO new API calls -- already in Bronze via
+# issues' raw_data (fields.* / changelog.*), just need exploding into their
+# own tables. Reads directly from Bronze (not Silver) since raw_data is
+# what explode_nested_array needs.
+bronze_issues_df = spark.table(f"{SCHEMA}.issues")
+
+# IssueLinks
+issue_links_df = fmt.explode_nested_array(
+    bronze_issues_df, array_json_path="fields.issuelinks",
+    parent_key_column="issue_key", parent_key_json_path="key",
+    column_mappings=[
+        fmt.ColumnMapping("link_type", "type.name", "string"),
+        fmt.ColumnMapping("outward_issue_key", "outwardIssue.key", "string"),
+        fmt.ColumnMapping("inward_issue_key", "inwardIssue.key", "string"),
+    ],
+)
+issue_links_df.write.format("delta").mode("overwrite").saveAsTable(f"{SCHEMA}.issue_links")
+print(f"[issue_links] {issue_links_df.count()} rows -> jira.issue_links (Silver)")
+
+# IssueComponents
+issue_components_df = fmt.explode_nested_array(
+    bronze_issues_df, array_json_path="fields.components",
+    parent_key_column="issue_key", parent_key_json_path="key",
+    column_mappings=[
+        fmt.ColumnMapping("component_id", "id", "string"),
+        fmt.ColumnMapping("component_name", "name", "string"),
+    ],
+)
+issue_components_df.write.format("delta").mode("overwrite").saveAsTable(f"{SCHEMA}.issue_components")
+print(f"[issue_components] {issue_components_df.count()} rows -> jira.issue_components (Silver)")
+
+# IssueFixVersion
+issue_fix_version_df = fmt.explode_nested_array(
+    bronze_issues_df, array_json_path="fields.fixVersions",
+    parent_key_column="issue_key", parent_key_json_path="key",
+    column_mappings=[
+        fmt.ColumnMapping("version_id", "id", "string"),
+        fmt.ColumnMapping("version_name", "name", "string"),
+    ],
+)
+issue_fix_version_df.write.format("delta").mode("overwrite").saveAsTable(f"{SCHEMA}.issue_fix_version")
+print(f"[issue_fix_version] {issue_fix_version_df.count()} rows -> jira.issue_fix_version (Silver)")
+
+# IssueAffectsVersions
+issue_affects_version_df = fmt.explode_nested_array(
+    bronze_issues_df, array_json_path="fields.versions",
+    parent_key_column="issue_key", parent_key_json_path="key",
+    column_mappings=[
+        fmt.ColumnMapping("version_id", "id", "string"),
+        fmt.ColumnMapping("version_name", "name", "string"),
+    ],
+)
+issue_affects_version_df.write.format("delta").mode("overwrite").saveAsTable(f"{SCHEMA}.issue_affects_version")
+print(f"[issue_affects_version] {issue_affects_version_df.count()} rows -> jira.issue_affects_version (Silver)")
+
+# Histories -- one row per changelog ENTRY (a single edit event, which can
+# itself contain several field changes). The individual field changes stay
+# as a JSON array in the "items" column rather than being exploded a second
+# level down -- ask if you want that broken out further, it's a small
+# extension of the same pattern.
+histories_df = fmt.explode_nested_array(
+    bronze_issues_df, array_json_path="changelog.histories",
+    parent_key_column="issue_key", parent_key_json_path="key",
+    column_mappings=[
+        fmt.ColumnMapping("history_id", "id", "string"),
+        fmt.ColumnMapping("author_account_id", "author.accountId", "string"),
+        fmt.ColumnMapping("author_name", "author.displayName", "string"),
+        fmt.ColumnMapping("created", "created", "timestamp", date_format="yyyy-MM-dd'T'HH:mm:ss.SSSZ"),
+        fmt.ColumnMapping("items", "items", "string"),
+    ],
+)
+histories_df.write.format("delta").mode("overwrite").saveAsTable(f"{SCHEMA}.histories")
+print(f"[histories] {histories_df.count()} rows -> jira.histories (Silver)")
+
+# CELL ********************
 print("B2S - Jira complete.")
