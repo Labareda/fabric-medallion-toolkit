@@ -13,7 +13,7 @@
     {
       "entity_name": "issues",
       "endpoint_path": "/rest/api/3/search/jql",
-      "http_method": "POST",
+      "http_method": "GET",
       "pagination_style": "cursor",
       "page_size": 100,
       "cursor_param_name": "nextPageToken",
@@ -21,9 +21,9 @@
       "records_json_path": "issues",
       "next_cursor_json_path": "nextPageToken",
       "natural_key_field": "key",
-      "extra_body": { "jql": "project = PROJ ORDER BY updated", "fields": ["*all"], "expand": ["changelog"] },
+      "extra_params": { "jql": "project = PROJ ORDER BY updated", "fields": "*all", "expand": "changelog" },
       "incremental_column": "fields.updated",
-      "watermark_body_template": { "jql": "project = PROJ AND updated >= '{watermark}' ORDER BY updated" },
+      "watermark_params_template": { "jql": "project = PROJ AND updated >= '{watermark}' ORDER BY updated" },
       "initial_watermark_value": "2026-01-01 00:00",
       "silver": {
         "natural_key_columns": ["ticket_key"],

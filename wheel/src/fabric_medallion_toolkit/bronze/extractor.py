@@ -48,6 +48,19 @@ class RestExtractor:
                     self.logger.warning(f"Rate limited, sleeping {wait}s (attempt {attempt})")
                     time.sleep(wait)
                     continue
+
+                if resp.status_code in (400, 401, 403, 404):
+                    # Not transient -- retrying the identical malformed/unauthorized
+                    # request won't ever succeed. Fail fast and surface the API's
+                    # actual error message (usually far more specific than the
+                    # generic status text), rather than burning through all
+                    # retries first.
+                    body_snippet = resp.text[:1000] if resp.text else "(no response body)"
+                    raise RuntimeError(
+                        f"{method} {url} returned {resp.status_code}, not retrying "
+                        f"(non-transient client error). Response body: {body_snippet}"
+                    )
+
                 resp.raise_for_status()
                 return resp
             except requests.RequestException as exc:
