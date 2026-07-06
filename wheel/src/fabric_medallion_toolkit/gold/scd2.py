@@ -5,10 +5,10 @@ were at that point in time — not retroactively overwritten by whatever the
 attribute is today.
 
 Adds these columns to every SCD2 table:
-    {surrogate_key_column}   string      deterministic GUID -- see below
-    valid_from                timestamp   when this version became current
-    valid_to                  timestamp   when this version stopped being current (NULL = still current)
-    is_current                boolean     shortcut for "valid_to IS NULL"
+    key          string      deterministic GUID -- see below
+    valid_from   timestamp   when this version became current
+    valid_to     timestamp   when this version stopped being current (NULL = still current)
+    is_current   boolean     shortcut for "valid_to IS NULL"
 
 Key generation: deterministic GUID of (merge_fields..., tracked-column hash)
 -- NOT just merge_fields alone, since merge_fields identify the ENTITY, and
@@ -44,13 +44,14 @@ def _with_hash(df, tracked_columns: List[str]):
     return df.withColumn(_HASH_COL, F.sha2(F.concat_ws("||", *[F.col(c).cast("string") for c in tracked_columns]), 256))
 
 
-def build_scd2_dimension(spark, source_df, merge_fields: List[str], surrogate_key_column: str,
-                          table_name: str, tracked_columns: Optional[List[str]] = None) -> dict:
+def merge_scd2(spark, source_df, merge_fields: List[str], table_name: str, key_column: str = "key",
+               tracked_columns: Optional[List[str]] = None) -> dict:
     """
     source_df: current-state rows from Silver (one row per entity — same
     shape as what you'd feed a "dim" table).
     merge_fields: identifies the ENTITY (e.g. ["resource_name"]) -- used to
         match "is this the same person, a new version of them" across runs.
+    key_column: what to call the generated key column, e.g. "Resource_key".
     tracked_columns: which non-merge-field columns count as "a change".
         None = every column in source_df except merge_fields.
     """
@@ -62,7 +63,7 @@ def build_scd2_dimension(spark, source_df, merge_fields: List[str], surrogate_ke
 
     if not spark.catalog.tableExists(table_name):
         first_load = (
-            add_guid_key(incoming, merge_fields + [_HASH_COL], surrogate_key_column)
+            add_guid_key(incoming, merge_fields + [_HASH_COL], key_column)
             .withColumn("valid_from", F.lit(now))
             .withColumn("valid_to", F.lit(None).cast("timestamp"))
             .withColumn("is_current", F.lit(True))
@@ -74,7 +75,6 @@ def build_scd2_dimension(spark, source_df, merge_fields: List[str], surrogate_ke
 
     current = spark.table(table_name).filter("is_current = true")
 
-    join_cond = [incoming[c] == current[c] for c in merge_fields]
     joined = incoming.join(current.select(*merge_fields, _HASH_COL).withColumnRenamed(_HASH_COL, "_cur_hash"),
                             on=merge_fields, how="left")
     to_version = joined.filter((F.col("_cur_hash").isNull()) | (F.col(_HASH_COL) != F.col("_cur_hash"))).drop("_cur_hash")
@@ -84,8 +84,6 @@ def build_scd2_dimension(spark, source_df, merge_fields: List[str], surrogate_ke
     unchanged_count = total_incoming - len(changed_rows)
 
     if changed_rows:
-        # Step 1: close out old current versions for entities that changed
-        # (brand-new entities simply won't match anything here, which is correct).
         match_clauses = " OR ".join(
             "(" + " AND ".join(f"{c} = {repr(r[c])}" for c in merge_fields) + ")"
             for r in changed_rows
@@ -96,10 +94,8 @@ def build_scd2_dimension(spark, source_df, merge_fields: List[str], surrogate_ke
             WHERE is_current = true AND ({match_clauses})
         """)
 
-        # Step 2: insert fresh versions -- key is deterministic from
-        # (merge_fields + new attribute hash), no lookup needed.
         new_versions = (
-            add_guid_key(to_version, merge_fields + [_HASH_COL], surrogate_key_column)
+            add_guid_key(to_version, merge_fields + [_HASH_COL], key_column)
             .withColumn("valid_from", F.lit(now))
             .withColumn("valid_to", F.lit(None).cast("timestamp"))
             .withColumn("is_current", F.lit(True))

@@ -18,6 +18,7 @@ from typing import Callable, Dict, Any, List, Optional, Tuple
 
 from fabric_medallion_toolkit.config import (
     SourceConfig, EntityConfig, AuthConfig, SilverEntityConfig, ColumnMapping,
+    GoldTableConfig, DateDimensionConfig,
 )
 
 SecretResolver = Callable[[str, str], str]  # (akv_name, secret_name) -> secret value
@@ -122,3 +123,45 @@ def load_source_config(json_path_or_dict, secret_resolver: Optional[SecretResolv
             silver_configs.append(sc)
 
     return source_config, silver_configs
+
+
+def load_gold_config(json_path_or_dict) -> List[GoldTableConfig]:
+    """
+    Loads a list of GoldTableConfig from a JSON file with a "tables" array
+    -- the config-driven alternative to writing TableSchema + SQL directly
+    in a notebook. Each table's key column is always "key" (not configurable
+    -- see gold/keys.py), so there's no surrogate_key_column field to set.
+    """
+    raw = json_path_or_dict
+    if isinstance(raw, str):
+        with open(raw) as f:
+            raw = json.load(f)
+
+    return [
+        GoldTableConfig(
+            table_name=t["table_name"],
+            select_sql=t["select_sql"],
+            table_type=t.get("table_type", "fact"),
+            merge_fields=t["merge_fields"],
+            tracked_columns=t.get("tracked_columns"),
+        )
+        for t in raw["tables"]
+    ]
+
+
+def load_date_dimension_config(json_path_or_dict) -> Optional[DateDimensionConfig]:
+    """Returns None if the JSON has no "date_dimension" block -- it's optional."""
+    raw = json_path_or_dict
+    if isinstance(raw, str):
+        with open(raw) as f:
+            raw = json.load(f)
+
+    dd = raw.get("date_dimension")
+    if not dd:
+        return None
+    return DateDimensionConfig(
+        table_name=dd.get("table_name", "dim_date"),
+        start_date=dd.get("start_date", "2020-01-01"),
+        end_date=dd.get("end_date", "2035-12-31"),
+        fiscal_year_start_month=dd.get("fiscal_year_start_month", 1),
+    )

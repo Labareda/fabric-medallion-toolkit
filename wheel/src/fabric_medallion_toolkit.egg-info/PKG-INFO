@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: fabric-medallion-toolkit
+Version: 0.2.1
+Summary: Reusable, source-agnostic Bronze/Silver/Gold ingestion toolkit for Microsoft Fabric
+Author: Ana
+Requires-Python: >=3.10
+Requires-Dist: requests>=2.31
+Provides-Extra: spark
+Requires-Dist: pyspark>=3.4; extra == "spark"
+Requires-Dist: delta-spark>=2.4; extra == "spark"

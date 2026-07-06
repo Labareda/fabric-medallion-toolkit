@@ -6,11 +6,10 @@
 # the only thing likely to change.
 
 # CELL ********************
-from fabric_medallion_toolkit.config import DateDimensionConfig
-from fabric_medallion_toolkit.gold import build_date_dimension
+import fabric_medallion_toolkit as fmt
 
 # CELL ********************
-build_date_dimension(spark, DateDimensionConfig(
+fmt.build_date_dimension(spark, fmt.DateDimensionConfig(
     table_name="gold.dim_date",
     start_date="2023-01-01",
     end_date="2035-12-31",

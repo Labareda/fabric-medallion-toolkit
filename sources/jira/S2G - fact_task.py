@@ -1,13 +1,10 @@
 # Fabric notebook source
-# "S2G - fact_task" — the Gantt/resource-tracking fact table. Run this AFTER
-# dim_project and dim_resource (it looks their keys up). Attach Silver and
-# Gold lakehouses.
+# "S2G - fact_task" — the Gantt/resource-tracking fact table. Run AFTER
+# dim_project and dim_resource. Attach Silver + Gold lakehouses, plus
+# env_medallion_toolkit.
 
 # CELL ********************
-%pip install /lakehouse/default/Files/libs/fabric_medallion_toolkit-0.2.1-py3-none-any.whl
-
-# CELL ********************
-from fabric_medallion_toolkit.gold import merge_fact, lookup_dimension_key
+import fabric_medallion_toolkit as fmt
 
 # CELL ********************
 df_fact_task = spark.sql("""
@@ -34,33 +31,33 @@ df_fact_task = spark.sql("""
     FROM jira.issues
 """)
 
-# display(df_fact_task)
-
-# Resolve natural keys into the dimensions' GUID keys before merging.
-df_fact_task = lookup_dimension_key(
+df_fact_task = fmt.lookup_key(
     spark, df_fact_task,
     dim_table_name="gold.dim_project",
     dim_natural_key_column="project_key",
-    dim_key_column="project_key_sk",
+    dim_key_column="Project_sk",
     fact_join_column="project_key",
+    output_column="Project_sk",
+    default_to_unknown=True,
 )
-df_fact_task = lookup_dimension_key(
+df_fact_task = fmt.lookup_key(
     spark, df_fact_task,
     dim_table_name="gold.dim_resource",
     dim_natural_key_column="resource_name",
-    dim_key_column="resource_key",
+    dim_key_column="Resource_key",
     fact_join_column="assignee",
+    output_column="Resource_key",
+    default_to_unknown=True,
     # as_of_column="created_at",  # uncomment for point-in-time resolution
-    # once dim_resource has real tracked attributes worth being historically
-    # accurate about -- leaving it out always links to the CURRENT version.
+    # once dim_resource has real tracked attributes.
 )
 
-merge_fact(
-    spark, df_fact_task,
+fmt.merge(spark, df_fact_task, fmt.TableSchema(
     table_name="gold.fact_task",
+    table_type="fact",
     merge_fields=["ticket_key"],
-    surrogate_key_column="task_key",
-)
+    key_column="Task_key",
+))
 
 # CELL ********************
 print("S2G - fact_task complete.")

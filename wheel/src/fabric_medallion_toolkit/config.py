@@ -108,12 +108,39 @@ class SilverEntityConfig:
 
 
 @dataclass
+class TableSchema:
+    """
+    Declares one Gold table: its name, type, merge fields, and what to call
+    its key column, in one place. Used directly in notebooks -- build the
+    DataFrame yourself (however you like), then call merge(spark, df, schema)
+    as the last step.
+
+    key_column is yours to name meaningfully per table (e.g. "Project_key"
+    for dim_project, "Sales_key" for fact_sales) -- defining merge_fields
+    (and key_column) in the schema is what triggers the toolkit to generate
+    and merge that key; you never call the key-generation machinery directly.
+    """
+    table_name: str                        # schema-qualified, e.g. "gold.dim_project"
+    table_type: str                        # "dim" | "scd2" | "fact"
+    merge_fields: List[str]                # business/natural key column(s); also the key's hash input
+    key_column: str = "key"                # what to call the generated key column, e.g. "Project_key"
+    tracked_columns: Optional[List[str]] = None  # scd2 only; None = track every non-merge-field column
+    include_unknown_member: bool = False   # dim/scd2 only; adds a placeholder row so fact lookups never go NULL
+    unknown_value: str = "Unknown"         # the sentinel merge_fields get on that placeholder row
+
+
+@dataclass
 class GoldTableConfig:
     """
     Drives one Gold table build. `select_sql` is plain Spark SQL — reference
     Silver tables directly (e.g. "SELECT ... FROM jira.issues"), join across
     sources, whatever the model needs. The "schema" of a Gold table is
     whatever select_sql returns, defined once, not duplicated as separate DDL.
+
+    This is the JSON-config-driven equivalent of TableSchema, for cases
+    where you want a whole model defined in config rather than one notebook
+    cell per table (see config_loader.load_gold_config). Both ultimately
+    produce the same kind of table; use whichever fits how you're working.
 
     table_type: "dim" | "scd2" | "fact"
         dim  — stable key, current values only, overwritten in place.
@@ -123,23 +150,12 @@ class GoldTableConfig:
         fact — grain-level data; MERGEs on merge_fields like a dim does, but
                keeps every column select_sql returns rather than treating
                anything as a "changing attribute".
-
-    merge_fields: the business/natural key column(s) select_sql returns —
-        used BOTH as the MERGE match columns AND as the input to the
-        table's auto-generated key column (see gold/keys.py). Composite
-        keys are fine, e.g. ["project_key", "fiscal_year"].
-
-    surrogate_key_column: name of the key column the toolkit generates for
-        you. It's a deterministic GUID derived from merge_fields (and, for
-        scd2, from the tracked-column change hash too) — same merge field
-        values always produce the same GUID, so there's no key registry to
-        maintain and no "what's the next available key" lookup needed.
     """
     table_name: str
     select_sql: str
     table_type: str = "fact"               # "dim" | "scd2" | "fact"
     merge_fields: List[str] = field(default_factory=list)
-    surrogate_key_column: str = "row_key"
+    key_column: str = "key"                # what to call the generated key column, e.g. "Project_key"
     tracked_columns: Optional[List[str]] = None  # scd2 only; None = track every non-merge-field column
 
 
