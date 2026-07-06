@@ -12,14 +12,16 @@
   "entities": [
     {
       "entity_name": "issues",
-      "endpoint_path": "/rest/api/3/search",
+      "endpoint_path": "/rest/api/3/search/jql",
       "http_method": "POST",
-      "pagination_style": "offset_limit",
+      "pagination_style": "cursor",
       "page_size": 100,
+      "cursor_param_name": "nextPageToken",
+      "cursor_page_size_param_name": "maxResults",
       "records_json_path": "issues",
-      "total_json_path": "total",
+      "next_cursor_json_path": "nextPageToken",
       "natural_key_field": "key",
-      "extra_body": { "jql": "project = PROJ ORDER BY updated" },
+      "extra_body": { "jql": "project = PROJ ORDER BY updated", "fields": ["*all"] },
       "incremental_column": "fields.updated",
       "watermark_body_template": { "jql": "project = PROJ AND updated >= '{watermark}' ORDER BY updated" },
       "initial_watermark_value": "2026-01-01 00:00",
@@ -31,6 +33,9 @@
           { "target_column": "summary", "json_path": "fields.summary", "data_type": "string" },
           { "target_column": "status", "json_path": "fields.status.name", "data_type": "string" },
           { "target_column": "assignee", "json_path": "fields.assignee.displayName", "data_type": "string" },
+          { "target_column": "assignee_account_id", "json_path": "fields.assignee.accountId", "data_type": "string" },
+          { "target_column": "reporter", "json_path": "fields.reporter.displayName", "data_type": "string" },
+          { "target_column": "creator", "json_path": "fields.creator.displayName", "data_type": "string" },
           { "target_column": "issue_type", "json_path": "fields.issuetype.name", "data_type": "string" },
           { "target_column": "project_key", "json_path": "fields.project.key", "data_type": "string" },
           { "target_column": "created_at", "json_path": "fields.created", "data_type": "timestamp",
@@ -39,10 +44,17 @@
             "date_format": "yyyy-MM-dd'T'HH:mm:ss.SSSZ" },
           { "target_column": "due_date", "json_path": "fields.duedate", "data_type": "date" },
           { "target_column": "start_date", "json_path": "fields.customfield_10015", "data_type": "date" },
+          { "target_column": "resolution_date", "json_path": "fields.resolutiondate", "data_type": "timestamp",
+            "date_format": "yyyy-MM-dd'T'HH:mm:ss.SSSZ" },
+          { "target_column": "resolution", "json_path": "fields.resolution.name", "data_type": "string" },
           { "target_column": "priority", "json_path": "fields.priority.name", "data_type": "string" },
           { "target_column": "parent_key", "json_path": "fields.parent.key", "data_type": "string" },
+          { "target_column": "labels", "json_path": "fields.labels", "data_type": "string" },
           { "target_column": "original_estimate_seconds", "json_path": "fields.timeoriginalestimate", "data_type": "long" },
-          { "target_column": "time_spent_seconds", "json_path": "fields.timespent", "data_type": "long" }
+          { "target_column": "time_spent_seconds", "json_path": "fields.timespent", "data_type": "long" },
+          { "target_column": "remaining_estimate_seconds", "json_path": "fields.timeestimate", "data_type": "long" },
+          { "target_column": "votes", "json_path": "fields.votes.votes", "data_type": "int" },
+          { "target_column": "watch_count", "json_path": "fields.watches.watchCount", "data_type": "int" }
         ]
       }
     },
@@ -58,7 +70,92 @@
         "natural_key_columns": ["project_key"],
         "column_mappings": [
           { "target_column": "project_key", "json_path": "key", "data_type": "string" },
-          { "target_column": "project_name", "json_path": "name", "data_type": "string" }
+          { "target_column": "project_name", "json_path": "name", "data_type": "string" },
+          { "target_column": "project_type", "json_path": "projectTypeKey", "data_type": "string" },
+          { "target_column": "is_archived", "json_path": "archived", "data_type": "boolean" }
+        ]
+      }
+    },
+    {
+      "entity_name": "users",
+      "endpoint_path": "/rest/api/3/users/search",
+      "http_method": "GET",
+      "pagination_style": "offset_limit",
+      "page_size": 200,
+      "records_json_path": "",
+      "natural_key_field": "accountId",
+      "silver": {
+        "natural_key_columns": ["account_id"],
+        "column_mappings": [
+          { "target_column": "account_id", "json_path": "accountId", "data_type": "string" },
+          { "target_column": "display_name", "json_path": "displayName", "data_type": "string" },
+          { "target_column": "email_address", "json_path": "emailAddress", "data_type": "string" },
+          { "target_column": "is_active", "json_path": "active", "data_type": "boolean" },
+          { "target_column": "account_type", "json_path": "accountType", "data_type": "string" }
+        ]
+      }
+    },
+    {
+      "entity_name": "issuetypes",
+      "endpoint_path": "/rest/api/3/issuetype",
+      "http_method": "GET",
+      "pagination_style": "none",
+      "records_json_path": "",
+      "natural_key_field": "id",
+      "silver": {
+        "natural_key_columns": ["issue_type_id"],
+        "column_mappings": [
+          { "target_column": "issue_type_id", "json_path": "id", "data_type": "string" },
+          { "target_column": "issue_type_name", "json_path": "name", "data_type": "string" },
+          { "target_column": "is_subtask", "json_path": "subtask", "data_type": "boolean" }
+        ]
+      }
+    },
+    {
+      "entity_name": "statuses",
+      "endpoint_path": "/rest/api/3/status",
+      "http_method": "GET",
+      "pagination_style": "none",
+      "records_json_path": "",
+      "natural_key_field": "id",
+      "silver": {
+        "natural_key_columns": ["status_id"],
+        "column_mappings": [
+          { "target_column": "status_id", "json_path": "id", "data_type": "string" },
+          { "target_column": "status_name", "json_path": "name", "data_type": "string" },
+          { "target_column": "status_category", "json_path": "statusCategory.name", "data_type": "string" }
+        ]
+      }
+    },
+    {
+      "entity_name": "priorities",
+      "endpoint_path": "/rest/api/3/priority/search",
+      "http_method": "GET",
+      "pagination_style": "page_number",
+      "page_size": 50,
+      "records_json_path": "values",
+      "natural_key_field": "id",
+      "silver": {
+        "natural_key_columns": ["priority_id"],
+        "column_mappings": [
+          { "target_column": "priority_id", "json_path": "id", "data_type": "string" },
+          { "target_column": "priority_name", "json_path": "name", "data_type": "string" }
+        ]
+      }
+    },
+    {
+      "entity_name": "resolutions",
+      "endpoint_path": "/rest/api/3/resolution/search",
+      "http_method": "GET",
+      "pagination_style": "page_number",
+      "page_size": 50,
+      "records_json_path": "values",
+      "natural_key_field": "id",
+      "silver": {
+        "natural_key_columns": ["resolution_id"],
+        "column_mappings": [
+          { "target_column": "resolution_id", "json_path": "id", "data_type": "string" },
+          { "target_column": "resolution_name", "json_path": "name", "data_type": "string" }
         ]
       }
     }
