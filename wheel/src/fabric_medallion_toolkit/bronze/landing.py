@@ -3,20 +3,20 @@ Generic Bronze landing: every source/entity lands in the same shape, so
 nothing here is source-specific.
 
 Bronze table: {bronze_schema}.{source_name}_{entity_name}
-    _natural_key    string     natural key value pulled via EntityConfig.natural_key_field
+    primary_key    string     natural key value pulled via EntityConfig.natural_key_field
                                 (kept as string regardless of source type; Silver casts it properly)
     raw_data        string     the full record, as JSON — nothing is dropped or flattened here
-    _source_system  string
-    _entity         string
-    _load_id        string     one value per pipeline/notebook run, for traceability
-    _extracted_at   timestamp
-    _ingest_date    date       partition column
+    source_system  string
+    entity          string
+    load_id        string     one value per pipeline/notebook run, for traceability
+    extracted_at   timestamp
+    ingest_date    date       partition column
 
 APPEND-only, full history: Bronze is the source of truth you can always
 replay from, so nothing here is ever updated or deleted (a record extracted
 5 times over 5 days lands as 5 rows). "What was ingested on a given day" is
-just `WHERE _ingest_date = '...'`; "what a specific pipeline run pulled in"
-is `WHERE _load_id = '...'`.
+just `WHERE ingest_date = '...'`; "what a specific pipeline run pulled in"
+is `WHERE load_id = '...'`.
 
 Delta (not raw Parquet-in-Files) even in append mode, because: it's
 immediately queryable via the SQL endpoint, Fabric auto-compacts small
@@ -26,7 +26,7 @@ files gives you the append-only history too, just with none of the above.
 
 Bronze will grow unbounded over time — for very high-volume/high-frequency
 entities, consider a retention policy later (e.g. periodically archiving
-_ingest_date partitions older than N days to cheaper storage, or Delta
+ingest_date partitions older than N days to cheaper storage, or Delta
 VACUUM once you're confident you won't need to replay that far back). Not
 needed to get started.
 """
@@ -60,13 +60,13 @@ def land_records(spark, records: Iterable[Dict[str, Any]], source_name: str,
     for rec in records:
         natural_key = get_by_path(rec, entity.natural_key_field, default=None)
         rows.append({
-            "_natural_key": str(natural_key) if natural_key is not None else None,
+            "primary_key": str(natural_key) if natural_key is not None else None,
             "raw_data": json.dumps(rec, default=str),
-            "_source_system": source_name,
-            "_entity": entity.entity_name,
-            "_load_id": load_id,
-            "_extracted_at": now,
-            "_ingest_date": now.date(),
+            "source_system": source_name,
+            "entity": entity.entity_name,
+            "load_id": load_id,
+            "extracted_at": now,
+            "ingest_date": now.date(),
         })
 
     if not rows:
@@ -78,7 +78,7 @@ def land_records(spark, records: Iterable[Dict[str, Any]], source_name: str,
     (
         df.write.format("delta")
         .mode("append")
-        .partitionBy("_ingest_date")
+        .partitionBy("ingest_date")
         .option("mergeSchema", "true")   # tolerate the source adding fields over time
         .saveAsTable(table_name)
     )

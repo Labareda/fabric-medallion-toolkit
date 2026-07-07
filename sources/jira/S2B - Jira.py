@@ -66,7 +66,7 @@ for entity in source_config.entities:
 
 # CELL ********************
 # --- Per-project entities: Versions (one call per project, not a single global list) ---
-project_keys = [r["_natural_key"] for r in spark.table(f"{SCHEMA}.projects").select("_natural_key").distinct().collect()] \
+project_keys = [r["primary_key"] for r in spark.table(f"{SCHEMA}.projects").select("primary_key").distinct().collect()] \
     if spark.catalog.tableExists(f"{SCHEMA}.projects") else []
 
 versions_template = fmt.EntityConfig(
@@ -99,7 +99,7 @@ if not spark.catalog.tableExists(f"{SCHEMA}.boards"):
     print("[sprints] skipping -- jira.boards doesn't exist (Boards extraction failed or was never run, "
           "likely a permissions issue: this Jira instance/account may not have Jira Software/Agile access)")
 else:
-    board_ids = [r["_natural_key"] for r in spark.table(f"{SCHEMA}.boards").select("_natural_key").distinct().collect()]
+    board_ids = [r["primary_key"] for r in spark.table(f"{SCHEMA}.boards").select("primary_key").distinct().collect()]
 
     sprints_template = fmt.EntityConfig(
         entity_name="sprints", endpoint_path="/rest/agile/1.0/board/{parent_id}/sprint",

@@ -106,7 +106,7 @@ class SilverEntityConfig:
     entity_name: str
     natural_key_columns: List[str]         # standardized (target) column name(s) forming the business key
     column_mappings: List[ColumnMapping]
-    dedup_order_column: str = "_extracted_at"  # which standardized/meta column decides "latest" on dedup
+    dedup_order_column: str = "extracted_at"  # which standardized/meta column decides "latest" on dedup
 
 
 @dataclass

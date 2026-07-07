@@ -55,14 +55,14 @@ def _flatten_struct_columns(schema: StructType, prefix: str = "", depth: int = 0
 
 def auto_standardize(bronze_df: DataFrame, flatten_depth: int = 5) -> DataFrame:
     """
-    bronze_df: raw Bronze read (has raw_data, _extracted_at, etc.).
+    bronze_df: raw Bronze read (has raw_data, extracted_at, etc.).
     flatten_depth: how many levels of nested objects to flatten into
         dot-path column names before giving up and keeping the rest as a
         nested struct column. 5 is generous for most REST APIs; lower it
         if you want to deliberately leave deeper structure nested.
 
     Returns every scalar field discovered in raw_data as its own typed
-    column, plus _extracted_at (kept temporarily for dedup -- dropped
+    column, plus extracted_at (kept temporarily for dedup -- dropped
     before the final Silver write, same as flatten_and_standardize).
     """
     parsed_schema = bronze_df.sparkSession.read.json(
@@ -71,12 +71,12 @@ def auto_standardize(bronze_df: DataFrame, flatten_depth: int = 5) -> DataFrame:
 
     df = bronze_df.withColumn("_parsed", F.from_json(F.col("raw_data"), parsed_schema))
     select_exprs = [f"_parsed.{e}" for e in _flatten_struct_columns(parsed_schema, max_depth=flatten_depth)]
-    return df.selectExpr(*select_exprs, "_extracted_at")
+    return df.selectExpr(*select_exprs, "extracted_at")
 
 
 def run_auto_silver_standardize(spark, entity_name: str, natural_key_columns: List[str],
                                  bronze_schema: str = "bronze", silver_schema: str = "silver",
-                                 dedup_order_column: str = "_extracted_at",
+                                 dedup_order_column: str = "extracted_at",
                                  flatten_depth: int = 5) -> None:
     """
     Full auto-expand Silver step for one entity -- the no-column_mappings
@@ -98,8 +98,8 @@ def run_auto_silver_standardize(spark, entity_name: str, natural_key_columns: Li
     standardized = auto_standardize(bronze_df, flatten_depth=flatten_depth)
     deduped = dedup_latest(standardized, key_cols=natural_key_columns, order_by_col=dedup_order_column)
 
-    if dedup_order_column == "_extracted_at" and "_extracted_at" in deduped.columns:
-        deduped = deduped.drop("_extracted_at")
+    if dedup_order_column == "extracted_at" and "extracted_at" in deduped.columns:
+        deduped = deduped.drop("extracted_at")
 
     logger.info(f"Auto Silver standardize (overwrite): {bronze_table} -> {silver_table}")
     deduped.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(silver_table)

@@ -72,9 +72,9 @@ if spark.catalog.tableExists(f"{BRONZE_SCHEMA}.labels"):
     labels_df = (
         spark.table(f"{BRONZE_SCHEMA}.labels")
         .withColumn("label_name", F.regexp_replace(F.col("raw_data"), '^"|"$', ""))  # strip the JSON quoting
-        .select("label_name", "_extracted_at")
+        .select("label_name", "extracted_at")
     )
-    deduped = fmt.dedup_latest(labels_df, key_cols=["label_name"], order_by_col="_extracted_at").drop("_extracted_at")
+    deduped = fmt.dedup_latest(labels_df, key_cols=["label_name"], order_by_col="extracted_at").drop("extracted_at")
     deduped.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.labels")
     print(f"[labels] standardized -> {SILVER_SCHEMA}.labels")
 else:

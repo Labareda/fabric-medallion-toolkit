@@ -84,7 +84,7 @@ def _load_silver(source_name: str, entity_name: str, silver_json: Optional[Dict[
         entity_name=entity_name,
         natural_key_columns=silver_json["natural_key_columns"],
         column_mappings=mappings,
-        dedup_order_column=silver_json.get("dedup_order_column", "_extracted_at"),
+        dedup_order_column=silver_json.get("dedup_order_column", "extracted_at"),
     )
 
 

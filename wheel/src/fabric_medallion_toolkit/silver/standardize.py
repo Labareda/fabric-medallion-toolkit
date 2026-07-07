@@ -66,8 +66,8 @@ def _json_extract_udf_factory(json_path: str):
 
 def flatten_and_standardize(bronze_df: DataFrame, config: SilverEntityConfig) -> DataFrame:
     """
-    bronze_df: raw read of a Bronze landing table (has raw_data, _natural_key,
-    _extracted_at, etc. — see bronze/landing.py for the exact schema).
+    bronze_df: raw read of a Bronze landing table (has raw_data, primary_key,
+    extracted_at, etc. — see bronze/landing.py for the exact schema).
     """
     df = bronze_df
     for mapping in config.column_mappings:
@@ -91,14 +91,14 @@ def flatten_and_standardize(bronze_df: DataFrame, config: SilverEntityConfig) ->
 
         df = df.withColumn(mapping.target_column, typed).drop(raw_col)
 
-    # Only the mapped business columns survive into Silver -- _natural_key,
-    # _source_system, _entity, _load_id, _ingest_date were Bronze-side
+    # Only the mapped business columns survive into Silver -- primary_key,
+    # source_system, _entity, load_id, ingest_date were Bronze-side
     # tracking metadata that never needed to leak into Silver's schema.
-    # _extracted_at is the one exception, kept temporarily: dedup_latest
+    # extracted_at is the one exception, kept temporarily: dedup_latest
     # needs it (by default) to determine "latest per natural key" -- see
     # run_silver_standardize, which drops it again right after, so it never
     # actually reaches the final Silver table either.
-    keep_cols = [m.target_column for m in config.column_mappings] + ["_extracted_at"]
+    keep_cols = [m.target_column for m in config.column_mappings] + ["extracted_at"]
     return df.select(*keep_cols)
 
 
@@ -107,7 +107,7 @@ def dedup_latest(df: DataFrame, key_cols: List[str], order_by_col: str) -> DataF
     Keeps only the most recent row per natural key. Load-bearing now that
     Bronze holds full history — this is what collapses N historical
     extractions of the same record down to current state. Defaults to
-    ordering by _extracted_at; pass a source-side "updated" column here
+    ordering by extracted_at; pass a source-side "updated" column here
     instead if the source's own timestamp is more trustworthy than
     ingestion time (e.g. to correctly handle a record that was re-extracted
     but genuinely didn't change).
@@ -136,13 +136,13 @@ def run_silver_standardize(spark, config: SilverEntityConfig, bronze_schema: str
     deduped = dedup_latest(standardized, key_cols=config.natural_key_columns,
                             order_by_col=config.dedup_order_column)
 
-    # _extracted_at was only ever needed to compute "latest" above -- drop
+    # extracted_at was only ever needed to compute "latest" above -- drop
     # it now so it doesn't appear in Silver. (If dedup_order_column was set
     # to something else -- e.g. a real "updated_at" business column instead
     # of the default -- there's nothing extra to drop; that column is a
     # legitimate mapped output the caller wants.)
-    if config.dedup_order_column == "_extracted_at" and "_extracted_at" in deduped.columns:
-        deduped = deduped.drop("_extracted_at")
+    if config.dedup_order_column == "extracted_at" and "extracted_at" in deduped.columns:
+        deduped = deduped.drop("extracted_at")
 
     logger.info(f"Silver standardize (overwrite): {bronze_table} -> {silver_table}")
     # overwriteSchema=true because Silver is meant to be fully recomputed
