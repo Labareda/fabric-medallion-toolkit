@@ -1,130 +1,111 @@
 # Fabric notebook source
-# "B2S - Jira" — Bronze-to-Silver for the Jira source. Standardization
-# only: reads what "S2B - Jira" already landed in Bronze, types and cleans
-# it into Silver. NO API calls happen here at all. Run this AFTER
-# "S2B - Jira".
+# "B2S - Jira" — Bronze-to-Silver for the Jira source. No column_mappings
+# maintained here at all: every entity's fields land in Silver automatically
+# (auto_standardize), typed correctly via Spark's own JSON inference.
+# Column NAMING and any real modeling happens later, in Gold -- this
+# notebook's job is just "raw data, correct types, in Delta tables."
+# NO API calls happen here. Run this AFTER "S2B - Jira".
 # Attach Bronze, Silver, and Config lakehouses, plus env_medallion_toolkit.
 
 # CELL ********************
-import json
 from notebookutils import mssparkutils
+from pyspark.sql import functions as F
 import fabric_medallion_toolkit as fmt
 
 # CELL ********************
-SOURCE_NAME = "jira"
-# Lakehouse-qualified -- see S2B - Jira for why a bare "jira" schema name
-# isn't enough once Bronze and Silver are genuinely separate lakehouses.
-# This notebook reads FROM Bronze and writes TO Silver, so both need to be
-# explicit regardless of which one happens to be pinned default here.
 BRONZE_SCHEMA = "Bronze.jira"
 SILVER_SCHEMA = "Silver.jira"
 
-# Same ABFS approach as S2B - Jira -- see that notebook for how to get this path.
-CONFIG_ABFS_PATH = "abfss://<workspace>@onelake.dfs.fabric.microsoft.com/Config.Lakehouse/Files/jira.json"
-
-def resolve_secret(akv_name: str, secret_name: str) -> str:
-    return mssparkutils.credentials.getSecret(akv_name, secret_name)
-
-# source_config isn't needed here (no API calls in this notebook) -- only
-# the "silver" blocks from jira.json matter.
-config_json_text = mssparkutils.fs.head(CONFIG_ABFS_PATH, 10 * 1024 * 1024)
-config_dict = json.loads(config_json_text)
-_source_config, silver_configs = fmt.load_source_config(config_dict, secret_resolver=resolve_secret)
-silver_by_entity = {sc.entity_name: sc for sc in silver_configs}
+# --- Every entity here, and the Bronze-side natural key column(s) it uses.
+# These match S2B - Jira's config exactly -- if you add an entity to
+# jira.json's "entities" list, add its natural key here too. (Nested-object
+# keys, e.g. workflows' "id.entityId", flatten with underscores: "id_entityId".)
+ENTITY_NATURAL_KEYS = {
+    "issues": ["key"],
+    "projects": ["key"],
+    "users": ["accountId"],
+    "issuetypes": ["id"],
+    "statuses": ["id"],
+    "priorities": ["id"],
+    "resolutions": ["id"],
+    "project_roles": ["id"],
+    "audit_logs": ["id"],
+    "boards": ["id"],
+    "fields": ["id"],
+    "issue_link_types": ["id"],
+    "filters": ["id"],
+    "groups": ["groupId"],
+    "dashboards": ["id"],
+    "screens": ["id"],
+    "workflows": ["id_entityId"],
+    "versions": ["id"],
+    "components": ["id"],
+    "sprints": ["id"],
+}
 
 # CELL ********************
-# --- Main entities: everything with a "silver" block in jira.json ---
 failed_entities = []
 
-for entity_name, silver_cfg in silver_by_entity.items():
+for entity_name, natural_keys in ENTITY_NATURAL_KEYS.items():
     bronze_table = f"{BRONZE_SCHEMA}.{entity_name}"
     if not spark.catalog.tableExists(bronze_table):
-        # Two reasons this happens, both fine to just skip: the entity
-        # genuinely returned 0 records in Bronze (land_records doesn't
-        # create a table for zero rows), or Bronze extraction failed for
-        # it entirely. Either way, nothing here to standardize yet.
-        print(f"[{entity_name}] skipping -- {bronze_table} doesn't exist yet (0 records landed, or Bronze extraction hasn't succeeded for this entity)")
+        print(f"[{entity_name}] skipping -- {bronze_table} doesn't exist yet "
+              f"(0 records landed in S2B, or that entity's extraction failed there)")
         failed_entities.append(entity_name)
         continue
     try:
-        fmt.run_silver_standardize(spark, silver_cfg, bronze_schema=BRONZE_SCHEMA, silver_schema=SILVER_SCHEMA)
-        print(f"[{entity_name}] standardized -> {SILVER_SCHEMA}.{entity_name} (Silver)")
+        fmt.run_auto_silver_standardize(
+            spark, entity_name=entity_name, natural_key_columns=natural_keys,
+            bronze_schema=BRONZE_SCHEMA, silver_schema=SILVER_SCHEMA,
+        )
+        print(f"[{entity_name}] standardized -> {SILVER_SCHEMA}.{entity_name}")
     except Exception as exc:
-        print(f"[{entity_name}] Silver standardization FAILED, skipping: {exc}")
+        print(f"[{entity_name}] FAILED, skipping: {exc}")
         failed_entities.append(entity_name)
 
 # CELL ********************
-# --- Versions (per-project Bronze entity, standardized the same way as any other) ---
-if not spark.catalog.tableExists(f"{BRONZE_SCHEMA}.versions"):
-    print(f"[versions] skipping -- {BRONZE_SCHEMA}.versions doesn't exist yet (S2B - Jira hasn't landed it)")
-else:
-    versions_silver_cfg = fmt.SilverEntityConfig(
-        source_name=SOURCE_NAME, entity_name="versions", natural_key_columns=["version_id"],
-        column_mappings=[
-            fmt.ColumnMapping("version_id", "id", "string"),
-            fmt.ColumnMapping("version_name", "name", "string"),
-            fmt.ColumnMapping("project_key", "_parent_id", "string"),
-            fmt.ColumnMapping("is_released", "released", "boolean"),
-            fmt.ColumnMapping("is_archived", "archived", "boolean"),
-            fmt.ColumnMapping("release_date", "releaseDate", "date"),
-            fmt.ColumnMapping("start_date", "startDate", "date"),
-        ],
+# --- Labels is the one exception: Bronze stores each label as a bare JSON
+# string ("backend"), not an object, so auto_standardize's schema inference
+# doesn't apply (Spark's JSON reader expects each record to be an object).
+# Trivial one-column case anyway -- handled directly here instead.
+if spark.catalog.tableExists(f"{BRONZE_SCHEMA}.labels"):
+    labels_df = (
+        spark.table(f"{BRONZE_SCHEMA}.labels")
+        .withColumn("label_name", F.regexp_replace(F.col("raw_data"), '^"|"$', ""))  # strip the JSON quoting
+        .select("label_name", "_extracted_at")
     )
-    fmt.run_silver_standardize(spark, versions_silver_cfg, bronze_schema=BRONZE_SCHEMA, silver_schema=SILVER_SCHEMA)
-    print("[versions] standardized -> jira.versions (Silver)")
+    deduped = fmt.dedup_latest(labels_df, key_cols=["label_name"], order_by_col="_extracted_at").drop("_extracted_at")
+    deduped.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.labels")
+    print(f"[labels] standardized -> {SILVER_SCHEMA}.labels")
+else:
+    print(f"[labels] skipping -- {BRONZE_SCHEMA}.labels doesn't exist yet")
+    failed_entities.append("labels")
 
 # CELL ********************
-# --- Components (per-project Bronze entity) ---
-if not spark.catalog.tableExists(f"{BRONZE_SCHEMA}.components"):
-    print(f"[components] skipping -- {BRONZE_SCHEMA}.components doesn't exist yet (S2B - Jira hasn't landed it)")
-else:
-    components_silver_cfg = fmt.SilverEntityConfig(
-        source_name=SOURCE_NAME, entity_name="components", natural_key_columns=["component_id"],
-        column_mappings=[
-            fmt.ColumnMapping("component_id", "id", "string"),
-            fmt.ColumnMapping("component_name", "name", "string"),
-            fmt.ColumnMapping("description", "description", "string"),
-            fmt.ColumnMapping("project_key", "_parent_id", "string"),
-            fmt.ColumnMapping("lead_account_id", "lead.accountId", "string"),
-            fmt.ColumnMapping("lead_name", "lead.displayName", "string"),
-        ],
-    )
-    fmt.run_silver_standardize(spark, components_silver_cfg, bronze_schema=BRONZE_SCHEMA, silver_schema=SILVER_SCHEMA)
-    print("[components] standardized -> jira.components (Silver)")
+# --- Ad-hoc type corrections go here, per field, as you discover you need
+# them -- no config to maintain, just Spark column expressions. Examples
+# (edit/delete/add as needed once you've looked at real Silver data):
+#
+# df = spark.table(f"{SILVER_SCHEMA}.issues")
+# df = df.withColumn(
+#     "fields_duedate",
+#     F.when(F.col("fields_duedate") == "", None).otherwise(F.to_date("fields_duedate"))
+# )
+# df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.issues")
 
 # CELL ********************
-# --- Sprints (per-board Bronze entity) ---
-if not spark.catalog.tableExists(f"{BRONZE_SCHEMA}.sprints"):
-    print(f"[sprints] skipping -- {BRONZE_SCHEMA}.sprints doesn't exist yet (S2B - Jira hasn't landed it, "
-          "likely because Boards access failed there)")
-else:
-    sprints_silver_cfg = fmt.SilverEntityConfig(
-        source_name=SOURCE_NAME, entity_name="sprints", natural_key_columns=["sprint_id"],
-        column_mappings=[
-            fmt.ColumnMapping("sprint_id", "id", "string"),
-            fmt.ColumnMapping("sprint_name", "name", "string"),
-            fmt.ColumnMapping("board_id", "_parent_id", "string"),
-            fmt.ColumnMapping("sprint_state", "state", "string"),
-            fmt.ColumnMapping("sprint_goal", "goal", "string"),
-            fmt.ColumnMapping("start_date", "startDate", "timestamp", date_format="yyyy-MM-dd'T'HH:mm:ss.SSSZ"),
-            fmt.ColumnMapping("end_date", "endDate", "timestamp", date_format="yyyy-MM-dd'T'HH:mm:ss.SSSZ"),
-            fmt.ColumnMapping("complete_date", "completeDate", "timestamp", date_format="yyyy-MM-dd'T'HH:mm:ss.SSSZ"),
-        ],
-    )
-    fmt.run_silver_standardize(spark, sprints_silver_cfg, bronze_schema=BRONZE_SCHEMA, silver_schema=SILVER_SCHEMA)
-    print("[sprints] standardized -> jira.sprints (Silver)")
-
-# CELL ********************
-# --- Nested-inside-Issues tables: NO new API calls -- already in Bronze via
-# issues' raw_data (fields.* / changelog.*), just need exploding into their
-# own tables.
+# --- Nested-inside-Issues tables: IssueLinks, IssueComponents,
+# IssueFixVersion, IssueAffectsVersions, Histories, HistoryItems. These stay
+# on explode_nested_array's explicit field list (not auto_standardize) --
+# they're specific derived child tables you asked for by name, not "every
+# field," so declaring exactly which fields make up each one is the right
+# fit here, same as before.
 if not spark.catalog.tableExists(f"{BRONZE_SCHEMA}.issues"):
-    print("[issue_links/issue_components/issue_fix_version/issue_affects_version/histories] "
-          "skipping -- jira.issues doesn't exist yet (0 issues landed, or S2B - Jira hasn't run)")
+    print("[issue_links/issue_components/issue_fix_version/issue_affects_version/histories/history_items] "
+          "skipping -- no issues in Bronze yet")
 else:
     bronze_issues_df = spark.table(f"{BRONZE_SCHEMA}.issues")
 
-    # IssueLinks
     issue_links_df = fmt.explode_nested_array(
         bronze_issues_df, array_json_path="fields.issuelinks",
         parent_key_column="issue_key", parent_key_json_path="key",
@@ -138,9 +119,8 @@ else:
         ],
     )
     issue_links_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.issue_links")
-    print(f"[issue_links] {issue_links_df.count()} rows -> jira.issue_links (Silver)")
+    print(f"[issue_links] {issue_links_df.count()} rows -> {SILVER_SCHEMA}.issue_links")
 
-    # IssueComponents
     issue_components_df = fmt.explode_nested_array(
         bronze_issues_df, array_json_path="fields.components",
         parent_key_column="issue_key", parent_key_json_path="key",
@@ -150,9 +130,8 @@ else:
         ],
     )
     issue_components_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.issue_components")
-    print(f"[issue_components] {issue_components_df.count()} rows -> jira.issue_components (Silver)")
+    print(f"[issue_components] {issue_components_df.count()} rows -> {SILVER_SCHEMA}.issue_components")
 
-    # IssueFixVersion
     issue_fix_version_df = fmt.explode_nested_array(
         bronze_issues_df, array_json_path="fields.fixVersions",
         parent_key_column="issue_key", parent_key_json_path="key",
@@ -162,9 +141,8 @@ else:
         ],
     )
     issue_fix_version_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.issue_fix_version")
-    print(f"[issue_fix_version] {issue_fix_version_df.count()} rows -> jira.issue_fix_version (Silver)")
+    print(f"[issue_fix_version] {issue_fix_version_df.count()} rows -> {SILVER_SCHEMA}.issue_fix_version")
 
-    # IssueAffectsVersions
     issue_affects_version_df = fmt.explode_nested_array(
         bronze_issues_df, array_json_path="fields.versions",
         parent_key_column="issue_key", parent_key_json_path="key",
@@ -174,13 +152,8 @@ else:
         ],
     )
     issue_affects_version_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.issue_affects_version")
-    print(f"[issue_affects_version] {issue_affects_version_df.count()} rows -> jira.issue_affects_version (Silver)")
+    print(f"[issue_affects_version] {issue_affects_version_df.count()} rows -> {SILVER_SCHEMA}.issue_affects_version")
 
-    # Histories -- one row per changelog ENTRY (a single edit event, which can
-    # Histories -- one row per changelog ENTRY (a single edit event, e.g.
-    # "Ana changed 2 fields on this issue at 10:00"), plus a SEPARATE
-    # history_items table with one row per individual FIELD CHANGE within
-    # that entry (an entry can touch several fields at once).
     histories_df = fmt.explode_nested_array(
         bronze_issues_df, array_json_path="changelog.histories",
         parent_key_column="issue_key", parent_key_json_path="key",
@@ -189,12 +162,12 @@ else:
             fmt.ColumnMapping("author_account_id", "author.accountId", "string"),
             fmt.ColumnMapping("author_name", "author.displayName", "string"),
             fmt.ColumnMapping("created", "created", "timestamp", date_format="yyyy-MM-dd'T'HH:mm:ss.SSSZ"),
-            fmt.ColumnMapping("items", "items", "string"),  # kept here temporarily so the chained call below can read it
+            fmt.ColumnMapping("items", "items", "string"),
         ],
     )
 
     history_items_df = fmt.explode_nested_array(
-        histories_df, array_json_path="",  # "items" IS the array already -- nothing further to drill into
+        histories_df, array_json_path="",
         column_mappings=[
             fmt.ColumnMapping("field_name", "field", "string"),
             fmt.ColumnMapping("from_value", "fromString", "string"),
@@ -204,13 +177,11 @@ else:
         carry_through_columns=["issue_key", "history_id"],
     )
     history_items_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.history_items")
-    print(f"[history_items] {history_items_df.count()} rows -> jira.history_items (Silver)")
+    print(f"[history_items] {history_items_df.count()} rows -> {SILVER_SCHEMA}.history_items")
 
-    # Drop the now-redundant raw "items" JSON blob from histories itself --
-    # history_items above is the properly exploded version of it.
     histories_df = histories_df.drop("items")
     histories_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.histories")
-    print(f"[histories] {histories_df.count()} rows -> jira.histories (Silver)")
+    print(f"[histories] {histories_df.count()} rows -> {SILVER_SCHEMA}.histories")
 
 # CELL ********************
 if failed_entities:
