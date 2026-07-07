@@ -42,7 +42,8 @@
       "natural_key_field": "key",
       "extra_params": {
         "expand": "description,lead,url,projectKeys"
-      }
+      },
+      "total_json_path": "total"
     },
     {
       "entity_name": "users",
@@ -76,7 +77,8 @@
       "pagination_style": "page_number",
       "page_size": 50,
       "records_json_path": "values",
-      "natural_key_field": "id"
+      "natural_key_field": "id",
+      "total_json_path": "total"
     },
     {
       "entity_name": "resolutions",
@@ -85,7 +87,8 @@
       "pagination_style": "page_number",
       "page_size": 50,
       "records_json_path": "values",
-      "natural_key_field": "id"
+      "natural_key_field": "id",
+      "total_json_path": "total"
     },
     {
       "entity_name": "project_roles",
@@ -122,7 +125,8 @@
       "pagination_style": "page_number",
       "page_size": 50,
       "records_json_path": "values",
-      "natural_key_field": "id"
+      "natural_key_field": "id",
+      "total_json_path": "total"
     },
     {
       "entity_name": "fields",
@@ -147,7 +151,8 @@
       "pagination_style": "page_number",
       "page_size": 50,
       "records_json_path": "values",
-      "natural_key_field": "id"
+      "natural_key_field": "id",
+      "total_json_path": "total"
     },
     {
       "entity_name": "groups",
@@ -156,7 +161,8 @@
       "pagination_style": "offset_limit",
       "page_size": 50,
       "records_json_path": "groups",
-      "natural_key_field": "groupId"
+      "natural_key_field": "groupId",
+      "total_json_path": "total"
     },
     {
       "entity_name": "dashboards",
@@ -165,7 +171,8 @@
       "pagination_style": "offset_limit",
       "page_size": 20,
       "records_json_path": "dashboards",
-      "natural_key_field": "id"
+      "natural_key_field": "id",
+      "total_json_path": "total"
     },
     {
       "entity_name": "screens",
@@ -174,7 +181,8 @@
       "pagination_style": "page_number",
       "page_size": 50,
       "records_json_path": "values",
-      "natural_key_field": "id"
+      "natural_key_field": "id",
+      "total_json_path": "total"
     },
     {
       "entity_name": "workflows",
@@ -183,7 +191,8 @@
       "pagination_style": "page_number",
       "page_size": 50,
       "records_json_path": "values",
-      "natural_key_field": "id.entityId"
+      "natural_key_field": "id.entityId",
+      "total_json_path": "total"
     }
   ]
 }
