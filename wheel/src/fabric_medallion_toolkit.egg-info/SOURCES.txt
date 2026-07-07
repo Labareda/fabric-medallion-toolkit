@@ -27,3 +27,4 @@ src/fabric_medallion_toolkit/utils/__init__.py
 src/fabric_medallion_toolkit/utils/delta_merge.py
 src/fabric_medallion_toolkit/utils/json_path.py
 src/fabric_medallion_toolkit/utils/logging_utils.py
+src/fabric_medallion_toolkit/utils/sql_endpoint.py
