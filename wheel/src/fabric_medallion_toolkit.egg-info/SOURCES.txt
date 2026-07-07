@@ -20,6 +20,7 @@ src/fabric_medallion_toolkit/gold/lookup.py
 src/fabric_medallion_toolkit/gold/scd2.py
 src/fabric_medallion_toolkit/gold/unknown.py
 src/fabric_medallion_toolkit/silver/__init__.py
+src/fabric_medallion_toolkit/silver/auto_standardize.py
 src/fabric_medallion_toolkit/silver/explode.py
 src/fabric_medallion_toolkit/silver/standardize.py
 src/fabric_medallion_toolkit/utils/__init__.py
