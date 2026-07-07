@@ -33,11 +33,15 @@ def get_watermark(spark, source_name: str, entity: EntityConfig, bronze_schema: 
     # matching refresh after writes -- this one covers any other case).
     spark.catalog.refreshTable(table)
 
-    row = (
-        spark.table(table)
-        .filter(spark.table(table)["entity_name"] == entity.entity_name)
-        .collect()
-    )
+    # Call spark.table() exactly ONCE and reuse that single reference for
+    # both the DataFrame being filtered and the column inside the filter.
+    # Calling spark.table() twice (once to filter, again just to get a
+    # column reference) creates two separate logical-plan instances of the
+    # same table, which can end up with mismatched internal attribute IDs --
+    # that mismatch is the actual cause of the "resolved attribute missing"
+    # error, not just a timing/staleness issue.
+    df = spark.table(table)
+    row = df.filter(df["entity_name"] == entity.entity_name).collect()
     return row[0]["last_watermark"] if row else entity.initial_watermark_value
 
 
