@@ -28,6 +28,11 @@ def get_watermark(spark, source_name: str, entity: EntityConfig, bronze_schema: 
     if not spark.catalog.tableExists(table):
         return entity.initial_watermark_value
 
+    # Defensive: ensure we're reading the current version of this table, not
+    # a plan cached from earlier in this session (see save_watermark for the
+    # matching refresh after writes -- this one covers any other case).
+    spark.catalog.refreshTable(table)
+
     row = (
         spark.table(table)
         .filter(spark.table(table)["entity_name"] == entity.entity_name)
@@ -45,6 +50,12 @@ def save_watermark(spark, source_name: str, entity: EntityConfig, new_watermark:
         "updated_at": datetime.now(timezone.utc),
     }])
     upsert_delta(spark, df, table, key_cols=["entity_name"])
+    # Without this, Spark can hold onto a stale logical plan for this table
+    # from before the write above -- the NEXT entity's get_watermark() call
+    # (same session, same loop) can then fail with a confusing
+    # "resolved attribute missing" error, since it's resolving against an
+    # outdated version of the table. refreshTable forces a clean re-read.
+    spark.catalog.refreshTable(table)
 
 
 def compute_new_watermark(records: Iterable[Dict[str, Any]], entity: EntityConfig,
