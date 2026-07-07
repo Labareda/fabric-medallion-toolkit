@@ -66,12 +66,20 @@
       "page_size": 50,
       "records_json_path": "values",
       "natural_key_field": "key",
+      "extra_params": { "expand": "description,lead,url,projectKeys" },
       "silver": {
         "natural_key_columns": ["project_key"],
         "column_mappings": [
+          { "target_column": "project_id", "json_path": "id", "data_type": "string" },
           { "target_column": "project_key", "json_path": "key", "data_type": "string" },
           { "target_column": "project_name", "json_path": "name", "data_type": "string" },
           { "target_column": "project_type", "json_path": "projectTypeKey", "data_type": "string" },
+          { "target_column": "description", "json_path": "description", "data_type": "string" },
+          { "target_column": "url", "json_path": "url", "data_type": "string" },
+          { "target_column": "project_style", "json_path": "style", "data_type": "string" },
+          { "target_column": "is_private", "json_path": "isPrivate", "data_type": "boolean" },
+          { "target_column": "lead_account_id", "json_path": "lead.accountId", "data_type": "string" },
+          { "target_column": "lead_name", "json_path": "lead.displayName", "data_type": "string" },
           { "target_column": "is_archived", "json_path": "archived", "data_type": "boolean" }
         ]
       }
@@ -107,7 +115,12 @@
         "column_mappings": [
           { "target_column": "issue_type_id", "json_path": "id", "data_type": "string" },
           { "target_column": "issue_type_name", "json_path": "name", "data_type": "string" },
-          { "target_column": "is_subtask", "json_path": "subtask", "data_type": "boolean" }
+          { "target_column": "description", "json_path": "description", "data_type": "string" },
+          { "target_column": "is_subtask", "json_path": "subtask", "data_type": "boolean" },
+          { "target_column": "icon_url", "json_path": "iconUrl", "data_type": "string" },
+          { "target_column": "scope_type", "json_path": "scope.type", "data_type": "string" },
+          { "target_column": "scope_project_id", "json_path": "scope.project.id", "data_type": "string" },
+          { "target_column": "hierarchy_level", "json_path": "hierarchyLevel", "data_type": "int" }
         ]
       }
     },
@@ -123,7 +136,11 @@
         "column_mappings": [
           { "target_column": "status_id", "json_path": "id", "data_type": "string" },
           { "target_column": "status_name", "json_path": "name", "data_type": "string" },
-          { "target_column": "status_category", "json_path": "statusCategory.name", "data_type": "string" }
+          { "target_column": "description", "json_path": "description", "data_type": "string" },
+          { "target_column": "icon_url", "json_path": "iconUrl", "data_type": "string" },
+          { "target_column": "status_category", "json_path": "statusCategory.name", "data_type": "string" },
+          { "target_column": "scope_type", "json_path": "scope.type", "data_type": "string" },
+          { "target_column": "scope_project_id", "json_path": "scope.project.id", "data_type": "string" }
         ]
       }
     },
@@ -139,7 +156,11 @@
         "natural_key_columns": ["priority_id"],
         "column_mappings": [
           { "target_column": "priority_id", "json_path": "id", "data_type": "string" },
-          { "target_column": "priority_name", "json_path": "name", "data_type": "string" }
+          { "target_column": "priority_name", "json_path": "name", "data_type": "string" },
+          { "target_column": "description", "json_path": "description", "data_type": "string" },
+          { "target_column": "icon_url", "json_path": "iconUrl", "data_type": "string" },
+          { "target_column": "status_color", "json_path": "statusColor", "data_type": "string" },
+          { "target_column": "is_default", "json_path": "isDefault", "data_type": "boolean" }
         ]
       }
     },
@@ -226,6 +247,128 @@
           { "target_column": "board_name", "json_path": "name", "data_type": "string" },
           { "target_column": "board_type", "json_path": "type", "data_type": "string" },
           { "target_column": "project_key", "json_path": "location.projectKey", "data_type": "string" }
+        ]
+      }
+    },
+    {
+      "entity_name": "fields",
+      "endpoint_path": "/rest/api/3/field",
+      "http_method": "GET",
+      "pagination_style": "none",
+      "records_json_path": "",
+      "natural_key_field": "id",
+      "silver": {
+        "natural_key_columns": ["field_id"],
+        "column_mappings": [
+          { "target_column": "field_id", "json_path": "id", "data_type": "string" },
+          { "target_column": "field_name", "json_path": "name", "data_type": "string" },
+          { "target_column": "is_custom", "json_path": "custom", "data_type": "boolean" },
+          { "target_column": "field_type", "json_path": "schema.type", "data_type": "string" },
+          { "target_column": "custom_field_type", "json_path": "schema.custom", "data_type": "string" }
+        ]
+      }
+    },
+    {
+      "entity_name": "issue_link_types",
+      "endpoint_path": "/rest/api/3/issueLinkType",
+      "http_method": "GET",
+      "pagination_style": "none",
+      "records_json_path": "issueLinkTypes",
+      "natural_key_field": "id",
+      "silver": {
+        "natural_key_columns": ["link_type_id"],
+        "column_mappings": [
+          { "target_column": "link_type_id", "json_path": "id", "data_type": "string" },
+          { "target_column": "link_type_name", "json_path": "name", "data_type": "string" },
+          { "target_column": "inward_label", "json_path": "inward", "data_type": "string" },
+          { "target_column": "outward_label", "json_path": "outward", "data_type": "string" }
+        ]
+      }
+    },
+    {
+      "entity_name": "filters",
+      "endpoint_path": "/rest/api/3/filter/search",
+      "http_method": "GET",
+      "pagination_style": "page_number",
+      "page_size": 50,
+      "records_json_path": "values",
+      "natural_key_field": "id",
+      "silver": {
+        "natural_key_columns": ["filter_id"],
+        "column_mappings": [
+          { "target_column": "filter_id", "json_path": "id", "data_type": "string" },
+          { "target_column": "filter_name", "json_path": "name", "data_type": "string" },
+          { "target_column": "jql", "json_path": "jql", "data_type": "string" },
+          { "target_column": "owner_account_id", "json_path": "owner.accountId", "data_type": "string" },
+          { "target_column": "owner_name", "json_path": "owner.displayName", "data_type": "string" }
+        ]
+      }
+    },
+    {
+      "entity_name": "groups",
+      "endpoint_path": "/rest/api/3/group/bulk",
+      "http_method": "GET",
+      "pagination_style": "offset_limit",
+      "page_size": 50,
+      "records_json_path": "groups",
+      "natural_key_field": "groupId",
+      "silver": {
+        "natural_key_columns": ["group_id"],
+        "column_mappings": [
+          { "target_column": "group_id", "json_path": "groupId", "data_type": "string" },
+          { "target_column": "group_name", "json_path": "name", "data_type": "string" }
+        ]
+      }
+    },
+    {
+      "entity_name": "dashboards",
+      "endpoint_path": "/rest/api/3/dashboard",
+      "http_method": "GET",
+      "pagination_style": "offset_limit",
+      "page_size": 20,
+      "records_json_path": "dashboards",
+      "natural_key_field": "id",
+      "silver": {
+        "natural_key_columns": ["dashboard_id"],
+        "column_mappings": [
+          { "target_column": "dashboard_id", "json_path": "id", "data_type": "string" },
+          { "target_column": "dashboard_name", "json_path": "name", "data_type": "string" },
+          { "target_column": "owner_account_id", "json_path": "owner.accountId", "data_type": "string" },
+          { "target_column": "owner_name", "json_path": "owner.displayName", "data_type": "string" }
+        ]
+      }
+    },
+    {
+      "entity_name": "screens",
+      "endpoint_path": "/rest/api/3/screens",
+      "http_method": "GET",
+      "pagination_style": "page_number",
+      "page_size": 50,
+      "records_json_path": "values",
+      "natural_key_field": "id",
+      "silver": {
+        "natural_key_columns": ["screen_id"],
+        "column_mappings": [
+          { "target_column": "screen_id", "json_path": "id", "data_type": "string" },
+          { "target_column": "screen_name", "json_path": "name", "data_type": "string" },
+          { "target_column": "description", "json_path": "description", "data_type": "string" }
+        ]
+      }
+    },
+    {
+      "entity_name": "workflows",
+      "endpoint_path": "/rest/api/3/workflow/search",
+      "http_method": "GET",
+      "pagination_style": "page_number",
+      "page_size": 50,
+      "records_json_path": "values",
+      "natural_key_field": "id.entityId",
+      "silver": {
+        "natural_key_columns": ["workflow_entity_id"],
+        "column_mappings": [
+          { "target_column": "workflow_entity_id", "json_path": "id.entityId", "data_type": "string" },
+          { "target_column": "workflow_name", "json_path": "id.name", "data_type": "string" },
+          { "target_column": "description", "json_path": "description", "data_type": "string" }
         ]
       }
     }

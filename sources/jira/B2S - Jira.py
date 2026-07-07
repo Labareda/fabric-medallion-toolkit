@@ -129,7 +129,10 @@ else:
         bronze_issues_df, array_json_path="fields.issuelinks",
         parent_key_column="issue_key", parent_key_json_path="key",
         column_mappings=[
+            fmt.ColumnMapping("link_id", "id", "string"),
             fmt.ColumnMapping("link_type", "type.name", "string"),
+            fmt.ColumnMapping("inward_label", "type.inward", "string"),
+            fmt.ColumnMapping("outward_label", "type.outward", "string"),
             fmt.ColumnMapping("outward_issue_key", "outwardIssue.key", "string"),
             fmt.ColumnMapping("inward_issue_key", "inwardIssue.key", "string"),
         ],
@@ -174,10 +177,10 @@ else:
     print(f"[issue_affects_version] {issue_affects_version_df.count()} rows -> jira.issue_affects_version (Silver)")
 
     # Histories -- one row per changelog ENTRY (a single edit event, which can
-    # itself contain several field changes). The individual field changes stay
-    # as a JSON array in the "items" column rather than being exploded a second
-    # level down -- ask if you want that broken out further, it's a small
-    # extension of the same pattern.
+    # Histories -- one row per changelog ENTRY (a single edit event, e.g.
+    # "Ana changed 2 fields on this issue at 10:00"), plus a SEPARATE
+    # history_items table with one row per individual FIELD CHANGE within
+    # that entry (an entry can touch several fields at once).
     histories_df = fmt.explode_nested_array(
         bronze_issues_df, array_json_path="changelog.histories",
         parent_key_column="issue_key", parent_key_json_path="key",
@@ -186,9 +189,26 @@ else:
             fmt.ColumnMapping("author_account_id", "author.accountId", "string"),
             fmt.ColumnMapping("author_name", "author.displayName", "string"),
             fmt.ColumnMapping("created", "created", "timestamp", date_format="yyyy-MM-dd'T'HH:mm:ss.SSSZ"),
-            fmt.ColumnMapping("items", "items", "string"),
+            fmt.ColumnMapping("items", "items", "string"),  # kept here temporarily so the chained call below can read it
         ],
     )
+
+    history_items_df = fmt.explode_nested_array(
+        histories_df, array_json_path="",  # "items" IS the array already -- nothing further to drill into
+        column_mappings=[
+            fmt.ColumnMapping("field_name", "field", "string"),
+            fmt.ColumnMapping("from_value", "fromString", "string"),
+            fmt.ColumnMapping("to_value", "toString", "string"),
+        ],
+        source_column="items",
+        carry_through_columns=["issue_key", "history_id"],
+    )
+    history_items_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.history_items")
+    print(f"[history_items] {history_items_df.count()} rows -> jira.history_items (Silver)")
+
+    # Drop the now-redundant raw "items" JSON blob from histories itself --
+    # history_items above is the properly exploded version of it.
+    histories_df = histories_df.drop("items")
     histories_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.histories")
     print(f"[histories] {histories_df.count()} rows -> jira.histories (Silver)")
 

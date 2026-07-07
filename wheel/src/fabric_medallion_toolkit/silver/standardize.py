@@ -91,8 +91,14 @@ def flatten_and_standardize(bronze_df: DataFrame, config: SilverEntityConfig) ->
 
         df = df.withColumn(mapping.target_column, typed).drop(raw_col)
 
-    keep_cols = [m.target_column for m in config.column_mappings] + \
-                ["_natural_key", "_source_system", "_entity", "_load_id", "_extracted_at", "_ingest_date"]
+    # Only the mapped business columns survive into Silver -- _natural_key,
+    # _source_system, _entity, _load_id, _ingest_date were Bronze-side
+    # tracking metadata that never needed to leak into Silver's schema.
+    # _extracted_at is the one exception, kept temporarily: dedup_latest
+    # needs it (by default) to determine "latest per natural key" -- see
+    # run_silver_standardize, which drops it again right after, so it never
+    # actually reaches the final Silver table either.
+    keep_cols = [m.target_column for m in config.column_mappings] + ["_extracted_at"]
     return df.select(*keep_cols)
 
 
@@ -129,6 +135,14 @@ def run_silver_standardize(spark, config: SilverEntityConfig, bronze_schema: str
     standardized = flatten_and_standardize(bronze_df, config)
     deduped = dedup_latest(standardized, key_cols=config.natural_key_columns,
                             order_by_col=config.dedup_order_column)
+
+    # _extracted_at was only ever needed to compute "latest" above -- drop
+    # it now so it doesn't appear in Silver. (If dedup_order_column was set
+    # to something else -- e.g. a real "updated_at" business column instead
+    # of the default -- there's nothing extra to drop; that column is a
+    # legitimate mapped output the caller wants.)
+    if config.dedup_order_column == "_extracted_at" and "_extracted_at" in deduped.columns:
+        deduped = deduped.drop("_extracted_at")
 
     logger.info(f"Silver standardize (overwrite): {bronze_table} -> {silver_table}")
     # overwriteSchema=true because Silver is meant to be fully recomputed
