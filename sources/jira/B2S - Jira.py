@@ -20,7 +20,7 @@ SILVER_SCHEMA = "Silver.jira"
 # These match S2B - Jira's config exactly -- if you add an entity to
 # jira.json's "entities" list, add its natural key here too. (Nested-object
 # keys, e.g. workflows' "id.entityId", flatten with underscores: "id_entityId".)
-ENTITY_NATURAL_KEYS = {
+ENTITY_KEYS = {
     "issues": ["key"],
     "projects": ["key"],
     "users": ["accountId"],
@@ -46,7 +46,7 @@ ENTITY_NATURAL_KEYS = {
 # CELL ********************
 failed_entities = []
 
-for entity_name, natural_keys in ENTITY_NATURAL_KEYS.items():
+for entity_name, natural_keys in ENTITY_KEYS.items():
     bronze_table = f"{BRONZE_SCHEMA}.{entity_name}"
     if not spark.catalog.tableExists(bronze_table):
         print(f"[{entity_name}] skipping -- {bronze_table} doesn't exist yet "
@@ -182,6 +182,63 @@ else:
     histories_df = histories_df.drop("items")
     histories_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.histories")
     print(f"[histories] {histories_df.count()} rows -> {SILVER_SCHEMA}.histories")
+
+# CELL ********************
+# --- More nested-inside-Issues/AuditLogs tables: still zero new API calls,
+# same explode_nested_array pattern as issue_links/histories above.
+
+# Attachments -- nested in each issue's fields.attachment
+attachments_df = fmt.explode_nested_array(
+    bronze_issues_df, array_json_path="fields.attachment",
+    parent_key_column="issue_key", parent_key_json_path="key",
+    column_mappings=[
+        fmt.ColumnMapping("attachment_id", "id", "string"),
+        fmt.ColumnMapping("filename", "filename", "string"),
+        fmt.ColumnMapping("file_size", "size", "long"),
+        fmt.ColumnMapping("mime_type", "mimeType", "string"),
+        fmt.ColumnMapping("created", "created", "timestamp", date_format="yyyy-MM-dd'T'HH:mm:ss.SSSZ"),
+        fmt.ColumnMapping("author_account_id", "author.accountId", "string"),
+        fmt.ColumnMapping("author_name", "author.displayName", "string"),
+        fmt.ColumnMapping("content_url", "content", "string"),
+        fmt.ColumnMapping("thumbnail_url", "thumbnail", "string"),
+    ],
+)
+attachments_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.attachments")
+print(f"[attachments] {attachments_df.count()} rows -> {SILVER_SCHEMA}.attachments")
+
+# CELL ********************
+# AuditLogChangedValues / AuditLogAssociatedItems -- nested inside each audit
+# record. Bronze's audit_logs table already has the full record in raw_data.
+if not spark.catalog.tableExists(f"{BRONZE_SCHEMA}.audit_logs"):
+    print("[audit_log_changed_values/audit_log_associated_items] skipping -- no audit_logs in Bronze yet")
+else:
+    bronze_audit_df = spark.table(f"{BRONZE_SCHEMA}.audit_logs")
+
+    audit_changed_values_df = fmt.explode_nested_array(
+        bronze_audit_df, array_json_path="changedValues",
+        parent_key_column="audit_id", parent_key_json_path="id",
+        column_mappings=[
+            fmt.ColumnMapping("field_name", "fieldName", "string"),
+            fmt.ColumnMapping("old_value", "changedFrom", "string"),
+            fmt.ColumnMapping("new_value", "changedTo", "string"),
+        ],
+    )
+    audit_changed_values_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.audit_log_changed_values")
+    print(f"[audit_log_changed_values] {audit_changed_values_df.count()} rows -> {SILVER_SCHEMA}.audit_log_changed_values")
+
+    audit_associated_items_df = fmt.explode_nested_array(
+        bronze_audit_df, array_json_path="associatedItems",
+        parent_key_column="audit_id", parent_key_json_path="id",
+        column_mappings=[
+            fmt.ColumnMapping("item_id", "id", "string"),
+            fmt.ColumnMapping("item_name", "name", "string"),
+            fmt.ColumnMapping("item_type_name", "typeName", "string"),
+            fmt.ColumnMapping("item_parent_id", "parentId", "string"),
+            fmt.ColumnMapping("item_parent_name", "parentName", "string"),
+        ],
+    )
+    audit_associated_items_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.audit_log_associated_items")
+    print(f"[audit_log_associated_items] {audit_associated_items_df.count()} rows -> {SILVER_SCHEMA}.audit_log_associated_items")
 
 # CELL ********************
 if failed_entities:

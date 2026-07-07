@@ -119,6 +119,16 @@ class RestExtractor:
                        offset: int, records_returned: int) -> bool:
         if records_returned == 0:
             return True
+        if entity.pagination_style == "none":
+            # "none" means the endpoint has no pagination at all -- every
+            # call returns the complete result in one response, however
+            # many records that is. Falling through to the generic
+            # records_returned < page_size check below is wrong here: if
+            # the real result set happens to exceed page_size (100 by
+            # default), that check never becomes true, and the loop calls
+            # the same non-paginated endpoint forever, re-fetching the
+            # identical full list each time. Always exactly one page.
+            return True
         if entity.pagination_style == "cursor":
             next_cursor = get_by_path(page_response, entity.next_cursor_json_path or "", default=None)
             return not next_cursor
