@@ -31,7 +31,7 @@ from fabric_medallion_toolkit.bronze import (
 
 # --- silver: standardization ---
 from fabric_medallion_toolkit.silver import (
-    run_silver_standardize, flatten_and_standardize, dedup_latest, explode_nested_array, suggest_column_mappings,
+    run_silver_standardize, flatten_and_standardize, dedup_latest, explode_nested_array,
     auto_standardize, run_auto_silver_standardize,
 )
 
@@ -52,7 +52,7 @@ __all__ = [
     # bronze
     "RestExtractor", "land_records", "get_watermark", "save_watermark", "compute_new_watermark", "extract_per_parent",
     # silver
-    "run_silver_standardize", "flatten_and_standardize", "dedup_latest", "explode_nested_array", "suggest_column_mappings",
+    "run_silver_standardize", "flatten_and_standardize", "dedup_latest", "explode_nested_array",
     "auto_standardize", "run_auto_silver_standardize",
     # gold
     "merge", "build_gold_table", "run_gold_model",
