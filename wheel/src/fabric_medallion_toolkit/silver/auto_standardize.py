@@ -11,19 +11,27 @@ proper nested schema), not per-row guessing -- so a field that's
 consistently a number infers as a number, consistently a string infers as
 a string, etc.
 
-Arrays are deliberately NOT flattened into invented columns here -- they're
-kept as native Spark array/struct-typed columns (Delta supports these
-natively). If you want one specifically broken into its own child table
-(e.g. issuelinks), explode_nested_array is still the right tool for that;
-this function and that one solve different problems and are meant to be
-used together, not as alternatives.
+Arrays/maps are kept as their full content, but as a JSON STRING column,
+not a native Spark array/struct-typed column. This is a deliberate change
+from an earlier version of this function, which kept them as native
+complex types -- that works fine in Spark/Delta itself, but Fabric's SQL
+Analytics Endpoint (the auto-generated T-SQL view over every Lakehouse
+table) cannot represent array or map columns AT ALL, and silently fails to
+sync any table containing one ("Columns of the specified data types are
+not supported for..."). Storing them as a JSON string keeps the endpoint
+working for every table, at the cost of needing get_json_object/from_json
+to query into that field's contents when you actually need to -- if you
+want one specifically broken into its own child table (e.g. issuelinks),
+explode_nested_array is still the right tool for that; this function and
+that one solve different problems and are meant to be used together, not
+as alternatives.
 """
 
 from typing import List, Optional
 
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
-from pyspark.sql.types import StructType, ArrayType
+from pyspark.sql.types import StructType, ArrayType, MapType
 
 from fabric_medallion_toolkit.silver.standardize import dedup_latest
 from fabric_medallion_toolkit.utils.logging_utils import get_logger
@@ -31,25 +39,29 @@ from fabric_medallion_toolkit.utils.logging_utils import get_logger
 logger = get_logger("silver.auto_standardize")
 
 
-def _flatten_struct_columns(schema: StructType, prefix: str = "", depth: int = 0,
+def _flatten_struct_columns(schema: StructType, root_column: str, prefix: str = "", depth: int = 0,
                              max_depth: int = 5) -> List[str]:
     """
-    Returns a list of Spark SQL select expressions ("a.b.c AS a_b_c") for
-    every leaf field in a (possibly nested) struct schema. Stops recursing
-    into a field once it hits max_depth, or immediately for array/map
-    fields (kept whole, not flattened further -- see module docstring).
+    Returns a list of complete Spark SQL select expressions for every leaf
+    field in a (possibly nested) struct schema living under root_column
+    (e.g. "_parsed"). Stops recursing into a field once it hits max_depth,
+    or immediately for array/map fields -- those are wrapped in to_json()
+    rather than flattened further or kept as a native complex type (see
+    module docstring for why).
     """
     exprs = []
     for field in schema.fields:
         full_path = f"{prefix}.{field.name}" if prefix else field.name
         alias = full_path.replace(".", "_")
+        quoted_path = f"`{root_column}`." + ".".join(f"`{p}`" for p in full_path.split("."))
         if isinstance(field.dataType, StructType) and depth < max_depth:
-            exprs.extend(_flatten_struct_columns(field.dataType, full_path, depth + 1, max_depth))
+            exprs.extend(_flatten_struct_columns(field.dataType, root_column, full_path, depth + 1, max_depth))
+        elif isinstance(field.dataType, (ArrayType, MapType, StructType)):
+            # Array/map, or a struct we've stopped recursing into (too
+            # deep) -- to_json handles all three cases correctly.
+            exprs.append(f"to_json({quoted_path}) AS `{alias}`")
         else:
-            # Struct too deep, or a scalar, or an array/map -- take as-is,
-            # under a flattened name. Arrays stay arrays (Delta-native),
-            # not stringified or exploded here.
-            exprs.append(f"`{full_path.replace('.', '`.`')}` AS `{alias}`")
+            exprs.append(f"{quoted_path} AS `{alias}`")
     return exprs
 
 
@@ -70,7 +82,7 @@ def auto_standardize(bronze_df: DataFrame, flatten_depth: int = 5) -> DataFrame:
     ).schema
 
     df = bronze_df.withColumn("_parsed", F.from_json(F.col("raw_data"), parsed_schema))
-    select_exprs = [f"_parsed.{e}" for e in _flatten_struct_columns(parsed_schema, max_depth=flatten_depth)]
+    select_exprs = _flatten_struct_columns(parsed_schema, root_column="_parsed", max_depth=flatten_depth)
     return df.selectExpr(*select_exprs, "extracted_at")
 
 
