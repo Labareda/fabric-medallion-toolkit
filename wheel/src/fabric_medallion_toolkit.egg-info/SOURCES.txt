@@ -25,6 +25,7 @@ src/fabric_medallion_toolkit/silver/explode.py
 src/fabric_medallion_toolkit/silver/friendly_rename.py
 src/fabric_medallion_toolkit/silver/standardize.py
 src/fabric_medallion_toolkit/utils/__init__.py
+src/fabric_medallion_toolkit/utils/adf_text.py
 src/fabric_medallion_toolkit/utils/delta_merge.py
 src/fabric_medallion_toolkit/utils/json_path.py
 src/fabric_medallion_toolkit/utils/logging_utils.py
