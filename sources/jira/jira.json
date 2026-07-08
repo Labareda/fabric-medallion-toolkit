@@ -41,7 +41,7 @@
       "records_json_path": "values",
       "natural_key_field": "key",
       "extra_params": {
-        "expand": "description,lead,url,projectKeys"
+        "expand": "description,lead,url,projectKeys,issueTypes,permissions,insight"
       },
       "total_json_path": "total"
     },

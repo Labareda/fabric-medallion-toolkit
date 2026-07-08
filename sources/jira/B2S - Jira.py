@@ -95,20 +95,32 @@ else:
 
 # CELL ********************
 # --- Nested-inside-Issues tables: IssueLinks, IssueComponents,
-# IssueFixVersion, IssueAffectsVersions, Histories, HistoryItems. These stay
-# on explode_nested_array's explicit field list (not auto_standardize) --
-# they're specific derived child tables you asked for by name, not "every
-# field," so declaring exactly which fields make up each one is the right
-# fit here, same as before.
+# IssueFixVersion, IssueAffectsVersions, Histories, HistoryItems, IssueLabels,
+# Comments. These stay on explode_nested_array's explicit field list (not
+# auto_standardize) -- they're specific derived child tables you asked for
+# by name, not "every field," so declaring exactly which fields make up
+# each one is the right fit here, same as before.
+#
+# Every one of these carries issue_id and issue_created alongside
+# issue_key, matching the client's schema convention of always having all
+# three on a child table. Pulled once here (get_json_object straight off
+# raw_data, since these are single values, not arrays) and carried through
+# every explode call below rather than re-extracted each time.
 if not spark.catalog.tableExists(f"{BRONZE_SCHEMA}.issues"):
-    print("[issue_links/issue_components/issue_fix_version/issue_affects_version/histories/history_items] "
+    print("[issue_links/issue_components/issue_fix_version/issue_affects_version/histories/history_items/issue_labels/comments] "
           "skipping -- no issues in Bronze yet")
 else:
-    bronze_issues_df = spark.table(f"{BRONZE_SCHEMA}.issues")
+    bronze_issues_df = (
+        spark.table(f"{BRONZE_SCHEMA}.issues")
+        .withColumn("issue_id", F.get_json_object(F.col("raw_data"), "$.id"))
+        .withColumn("issue_created", F.get_json_object(F.col("raw_data"), "$.fields.created")
+                    .cast("timestamp"))
+    )
 
     issue_links_df = fmt.explode_nested_array(
         bronze_issues_df, array_json_path="fields.issuelinks",
         parent_key_column="issue_key", parent_key_json_path="key",
+        carry_through_columns=["issue_id", "issue_created"],
         column_mappings=[
             fmt.ColumnMapping("link_id", "id", "string"),
             fmt.ColumnMapping("link_type", "type.name", "string"),
@@ -124,6 +136,7 @@ else:
     issue_components_df = fmt.explode_nested_array(
         bronze_issues_df, array_json_path="fields.components",
         parent_key_column="issue_key", parent_key_json_path="key",
+        carry_through_columns=["issue_id", "issue_created"],
         column_mappings=[
             fmt.ColumnMapping("component_id", "id", "string"),
             fmt.ColumnMapping("component_name", "name", "string"),
@@ -135,6 +148,7 @@ else:
     issue_fix_version_df = fmt.explode_nested_array(
         bronze_issues_df, array_json_path="fields.fixVersions",
         parent_key_column="issue_key", parent_key_json_path="key",
+        carry_through_columns=["issue_id", "issue_created"],
         column_mappings=[
             fmt.ColumnMapping("version_id", "id", "string"),
             fmt.ColumnMapping("version_name", "name", "string"),
@@ -146,6 +160,7 @@ else:
     issue_affects_version_df = fmt.explode_nested_array(
         bronze_issues_df, array_json_path="fields.versions",
         parent_key_column="issue_key", parent_key_json_path="key",
+        carry_through_columns=["issue_id", "issue_created"],
         column_mappings=[
             fmt.ColumnMapping("version_id", "id", "string"),
             fmt.ColumnMapping("version_name", "name", "string"),
@@ -154,9 +169,50 @@ else:
     issue_affects_version_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.issue_affects_version")
     print(f"[issue_affects_version] {issue_affects_version_df.count()} rows -> {SILVER_SCHEMA}.issue_affects_version")
 
+    # Labels per issue -- a bridge table (issue_key/issue_id -> label name),
+    # distinct from the global "labels" reference table built earlier
+    # (every label name used ANYWHERE, with no issue linkage at all).
+    issue_labels_df = fmt.explode_nested_array(
+        bronze_issues_df, array_json_path="fields.labels",
+        parent_key_column="issue_key", parent_key_json_path="key",
+        carry_through_columns=["issue_id", "issue_created"],
+        column_mappings=[
+            fmt.ColumnMapping("label_name", "", "string"),  # each array element IS the label string itself
+        ],
+    )
+    issue_labels_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.issue_labels")
+    print(f"[issue_labels] {issue_labels_df.count()} rows -> {SILVER_SCHEMA}.issue_labels")
+
+    # Comments -- embedded directly in the issue payload (fields.comment.comments)
+    # up to Jira's default per-issue limit, so this needs NO extra API calls,
+    # unlike what I'd flagged earlier as needing a per-issue fetch. If an issue
+    # has more comments than that embedded limit, only the most recent ones up
+    # to the limit land here -- worth knowing if completeness matters for a
+    # heavily-commented issue; a dedicated per-issue Comments fetch would be
+    # the fix for that specific gap, separate from this.
+    comments_df = fmt.explode_nested_array(
+        bronze_issues_df, array_json_path="fields.comment.comments",
+        parent_key_column="issue_key", parent_key_json_path="key",
+        carry_through_columns=["issue_id", "issue_created"],
+        column_mappings=[
+            fmt.ColumnMapping("comment_id", "id", "string"),
+            fmt.ColumnMapping("author_account_id", "author.accountId", "string"),
+            fmt.ColumnMapping("author_name", "author.displayName", "string"),
+            fmt.ColumnMapping("update_author_account_id", "updateAuthor.accountId", "string"),
+            fmt.ColumnMapping("update_author_name", "updateAuthor.displayName", "string"),
+            fmt.ColumnMapping("comment_body", "body", "string"),  # Atlassian Document Format -- kept as JSON, not flattened
+            fmt.ColumnMapping("created", "created", "timestamp", date_format="yyyy-MM-dd'T'HH:mm:ss.SSSZ"),
+            fmt.ColumnMapping("updated", "updated", "timestamp", date_format="yyyy-MM-dd'T'HH:mm:ss.SSSZ"),
+            fmt.ColumnMapping("is_public", "jsdPublic", "boolean"),
+        ],
+    )
+    comments_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.comments")
+    print(f"[comments] {comments_df.count()} rows -> {SILVER_SCHEMA}.comments")
+
     histories_df = fmt.explode_nested_array(
         bronze_issues_df, array_json_path="changelog.histories",
         parent_key_column="issue_key", parent_key_json_path="key",
+        carry_through_columns=["issue_id", "issue_created"],
         column_mappings=[
             fmt.ColumnMapping("history_id", "id", "string"),
             fmt.ColumnMapping("author_account_id", "author.accountId", "string"),
@@ -167,14 +223,17 @@ else:
     )
 
     history_items_df = fmt.explode_nested_array(
-        histories_df, array_json_path="",
+        histories_df, array_json_path="",  # "items" IS the array already -- nothing further to drill into
         column_mappings=[
+            fmt.ColumnMapping("field_id", "fieldId", "string"),
             fmt.ColumnMapping("field_name", "field", "string"),
-            fmt.ColumnMapping("from_value", "fromString", "string"),
-            fmt.ColumnMapping("to_value", "toString", "string"),
+            fmt.ColumnMapping("old_value", "from", "string"),
+            fmt.ColumnMapping("old_value_formatted", "fromString", "string"),
+            fmt.ColumnMapping("new_value", "to", "string"),
+            fmt.ColumnMapping("new_value_formatted", "toString", "string"),
         ],
         source_column="items",
-        carry_through_columns=["issue_key", "history_id"],
+        carry_through_columns=["issue_key", "issue_id", "issue_created", "history_id"],
     )
     history_items_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.history_items")
     print(f"[history_items] {history_items_df.count()} rows -> {SILVER_SCHEMA}.history_items")
@@ -191,6 +250,7 @@ else:
 attachments_df = fmt.explode_nested_array(
     bronze_issues_df, array_json_path="fields.attachment",
     parent_key_column="issue_key", parent_key_json_path="key",
+    carry_through_columns=["issue_id", "issue_created"],
     column_mappings=[
         fmt.ColumnMapping("attachment_id", "id", "string"),
         fmt.ColumnMapping("filename", "filename", "string"),
@@ -205,6 +265,7 @@ attachments_df = fmt.explode_nested_array(
 )
 attachments_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.attachments")
 print(f"[attachments] {attachments_df.count()} rows -> {SILVER_SCHEMA}.attachments")
+
 
 # CELL ********************
 # AuditLogChangedValues / AuditLogAssociatedItems -- nested inside each audit

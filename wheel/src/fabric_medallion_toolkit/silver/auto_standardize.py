@@ -31,7 +31,7 @@ from typing import List, Optional
 
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
-from pyspark.sql.types import StructType, ArrayType, MapType
+from pyspark.sql.types import StructType, ArrayType, MapType, StringType
 
 from fabric_medallion_toolkit.silver.standardize import dedup_latest
 from fabric_medallion_toolkit.utils.logging_utils import get_logger
@@ -63,7 +63,12 @@ def _flatten_struct_columns(schema: StructType, root_column: str, path_segments:
     (e.g. "_parsed"). Stops recursing into a field once it hits max_depth,
     or immediately for array/map fields -- those are wrapped in to_json()
     rather than flattened further or kept as a native complex type (see
-    module docstring for why).
+    module docstring for why) -- EXCEPT an array whose elements are plain
+    strings (e.g. Jira's "labels", "clauseNames", "projectKeys"), which
+    gets a plain comma-joined string instead ("A, B, C" rather than
+    '["A","B","C"]') since there's nothing lossy about that for a flat
+    list of strings, and it's much more directly usable/readable than
+    JSON-array bracket-and-quote syntax.
 
     path_segments tracks each nesting level as its own LIST ELEMENT, not a
     dot-joined string -- some real Jira field names contain a literal dot
@@ -85,9 +90,14 @@ def _flatten_struct_columns(schema: StructType, root_column: str, path_segments:
         quoted_path = f"`{root_column}`." + ".".join(f"`{seg}`" for seg in full_segments)
         if isinstance(field.dataType, StructType) and depth < max_depth:
             exprs.extend(_flatten_struct_columns(field.dataType, root_column, full_segments, depth + 1, max_depth))
+        elif isinstance(field.dataType, ArrayType) and isinstance(field.dataType.elementType, StringType):
+            exprs.append(f"array_join({quoted_path}, ', ') AS `{alias}`")
         elif isinstance(field.dataType, (ArrayType, MapType, StructType)):
-            # Array/map, or a struct we've stopped recursing into (too
-            # deep) -- to_json handles all three cases correctly.
+            # Array of anything OTHER than plain strings (objects, numbers,
+            # etc.), map, or a struct we've stopped recursing into (too
+            # deep) -- to_json handles all these cases correctly; there's
+            # no clean flat representation for a variable-shape list of
+            # objects the way there is for a list of strings.
             exprs.append(f"to_json({quoted_path}) AS `{alias}`")
         else:
             exprs.append(f"{quoted_path} AS `{alias}`")
