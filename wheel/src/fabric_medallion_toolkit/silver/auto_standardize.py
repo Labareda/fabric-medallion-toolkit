@@ -68,7 +68,7 @@ That whole class of bug is structurally eliminated, not just handled for
 the specific cases seen so far.
 """
 
-from typing import List, Optional
+from typing import List, Optional, Callable
 
 from pyspark.sql import DataFrame, Column
 from pyspark.sql import functions as F
@@ -186,7 +186,8 @@ def run_auto_silver_standardize(spark, entity_name: str, natural_key_columns: Li
                                  bronze_schema: str = "bronze", silver_schema: str = "silver",
                                  dedup_order_column: str = "extracted_at",
                                  flatten_depth: int = 5, drop_empty_columns: bool = True,
-                                 exclude_columns: Optional[List[str]] = None) -> None:
+                                 exclude_columns: Optional[List[str]] = None,
+                                 post_process: Optional[Callable[[DataFrame], DataFrame]] = None) -> None:
     """
     Full auto-expand Silver step for one entity -- the no-column_mappings
     alternative to run_silver_standardize. Same overwrite/dedup semantics,
@@ -217,6 +218,12 @@ def run_auto_silver_standardize(spark, entity_name: str, natural_key_columns: Li
     metadata field present on most endpoints listing what COULD be
     requested via an expand param, never actual data, so it's pure noise
     on every entity it appears on.
+
+    post_process: an optional DataFrame -> DataFrame function applied
+    right before the final write (after dedup, after drop_empty_columns) --
+    e.g. rename_customfield_columns, to apply friendly names driven by the
+    "fields" reference table without needing a separate manual mapping
+    step maintained outside this function.
     """
     bronze_table = f"{bronze_schema}.{entity_name}"
     silver_table = f"{silver_schema}.{entity_name}"
@@ -235,6 +242,9 @@ def run_auto_silver_standardize(spark, entity_name: str, natural_key_columns: Li
 
     if drop_empty_columns:
         deduped = _drop_all_null_columns(deduped, protect=natural_key_columns)
+
+    if post_process is not None:
+        deduped = post_process(deduped)
 
     logger.info(f"Auto Silver standardize (overwrite): {bronze_table} -> {silver_table}")
     deduped.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(silver_table)

@@ -13,7 +13,7 @@ submodule something lives in:
     ))
 """
 
-__version__ = "0.3.22"
+__version__ = "0.3.24"
 
 # --- config: the dataclasses used to describe sources, entities, columns, tables ---
 from fabric_medallion_toolkit.config import (
@@ -32,7 +32,7 @@ from fabric_medallion_toolkit.bronze import (
 # --- silver: standardization ---
 from fabric_medallion_toolkit.silver import (
     run_silver_standardize, flatten_and_standardize, dedup_latest, explode_nested_array,
-    auto_standardize, run_auto_silver_standardize,
+    auto_standardize, run_auto_silver_standardize, rename_customfield_columns, build_field_id_to_name,
 )
 
 # --- gold: merge, keys, lookups, date dimension ---
@@ -42,7 +42,7 @@ from fabric_medallion_toolkit.gold import (
 )
 
 # --- utils, for the rarer case you need them directly ---
-from fabric_medallion_toolkit.utils import get_logger, get_by_path, upsert_delta, build_merge_sql, refresh_sql_endpoint
+from fabric_medallion_toolkit.utils import get_logger, get_by_path, upsert_delta, build_merge_sql, refresh_sql_endpoint, extract_adf_text
 
 __all__ = [
     # config
@@ -53,10 +53,10 @@ __all__ = [
     "RestExtractor", "land_records", "get_watermark", "save_watermark", "compute_new_watermark", "extract_per_parent",
     # silver
     "run_silver_standardize", "flatten_and_standardize", "dedup_latest", "explode_nested_array",
-    "auto_standardize", "run_auto_silver_standardize",
+    "auto_standardize", "run_auto_silver_standardize", "rename_customfield_columns", "build_field_id_to_name",
     # gold
     "merge", "build_gold_table", "run_gold_model",
     "build_date_dimension", "merge_scd2", "add_guid_key", "lookup_key", "add_unknown_member",
     # utils
-    "get_logger", "get_by_path", "upsert_delta", "build_merge_sql", "refresh_sql_endpoint",
+    "get_logger", "get_by_path", "upsert_delta", "build_merge_sql", "refresh_sql_endpoint", "extract_adf_text",
 ]

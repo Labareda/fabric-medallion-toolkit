@@ -10,7 +10,10 @@
 # CELL ********************
 from notebookutils import mssparkutils
 from pyspark.sql import functions as F
+from pyspark.sql.types import StringType
 import fabric_medallion_toolkit as fmt
+
+adf_to_text_udf = F.udf(fmt.extract_adf_text, StringType())
 
 # CELL ********************
 BRONZE_SCHEMA = "Bronze.jira"
@@ -21,6 +24,7 @@ SILVER_SCHEMA = "Silver.jira"
 # jira.json's "entities" list, add its natural key here too. (Nested-object
 # keys, e.g. workflows' "id.entityId", flatten with underscores: "id_entityId".)
 ENTITY_KEYS = {
+    "fields": ["id"],       # moved before "issues" -- issues' post_process needs this table to already exist
     "issues": ["key"],
     "projects": ["key"],
     "users": ["accountId"],
@@ -31,7 +35,6 @@ ENTITY_KEYS = {
     "project_roles": ["id"],
     "audit_logs": ["id"],
     "boards": ["id"],
-    "fields": ["id"],
     "issue_link_types": ["id"],
     "filters": ["id"],
     "groups": ["groupId"],
@@ -76,10 +79,22 @@ for entity_name, natural_keys in ENTITY_KEYS.items():
         failed_entities.append(entity_name)
         continue
     try:
+        # For "issues" specifically, apply friendly custom-field renaming
+        # using the "fields" table's own id->name mapping -- data-driven,
+        # no manual dictionary to maintain as custom fields get added.
+        # Requires "fields" itself to already be standardized -- if it's
+        # not yet in ENTITY_KEYS' processing order before "issues", this
+        # falls back to no renaming rather than failing outright.
+        post_process = None
+        if entity_name == "issues" and spark.catalog.tableExists(f"{SILVER_SCHEMA}.fields"):
+            field_id_to_name = fmt.build_field_id_to_name(spark, f"{SILVER_SCHEMA}.fields")
+            post_process = lambda df: fmt.rename_customfield_columns(df, field_id_to_name)
+
         fmt.run_auto_silver_standardize(
             spark, entity_name=entity_name, natural_key_columns=natural_keys,
             bronze_schema=BRONZE_SCHEMA, silver_schema=SILVER_SCHEMA,
             exclude_columns=ENTITY_EXCLUDE_COLUMNS.get(entity_name),
+            post_process=post_process,
         )
         print(f"[{entity_name}] standardized -> {SILVER_SCHEMA}.{entity_name}")
     except Exception as exc:
@@ -229,6 +244,7 @@ else:
             fmt.ColumnMapping("is_public", "jsdPublic", "boolean"),
         ],
     )
+    comments_df = comments_df.withColumn("comment_body", adf_to_text_udf(F.col("comment_body")))
     comments_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.comments")
     print(f"[comments] {comments_df.count()} rows -> {SILVER_SCHEMA}.comments")
 
