@@ -380,6 +380,113 @@ else:
     print(f"[audit_log_associated_items] {audit_associated_items_df.count()} rows -> {SILVER_SCHEMA}.audit_log_associated_items")
 
 # CELL ********************
+# --- Dashboard permissions (both editPermissions and sharePermissions).
+# These are polymorphic -- the "type" field (loggedin/user/project/group/
+# global) determines which nested object is actually present, so most
+# columns below will be NULL depending on a given row's type. That's
+# expected, not a bug: get_by_path returns None gracefully for whichever
+# nested object doesn't apply to that specific permission's type.
+if not spark.catalog.tableExists(f"{BRONZE_SCHEMA}.dashboards"):
+    print("[dashboard_edit_permissions/dashboard_share_permissions] skipping -- no dashboards in Bronze yet")
+else:
+    bronze_dashboards_df = spark.table(f"{BRONZE_SCHEMA}.dashboards")
+
+    _permission_column_mappings = [
+        fmt.ColumnMapping("permission_id", "id", "string"),
+        fmt.ColumnMapping("permission_type", "type", "string"),
+        fmt.ColumnMapping("project_id", "project.id", "string"),
+        fmt.ColumnMapping("project_key", "project.key", "string"),
+        fmt.ColumnMapping("project_name", "project.name", "string"),
+        fmt.ColumnMapping("user_account_id", "user.accountId", "string"),
+        fmt.ColumnMapping("user_display_name", "user.displayName", "string"),
+        fmt.ColumnMapping("group_id", "group.groupId", "string"),
+        fmt.ColumnMapping("group_name", "group.name", "string"),
+    ]
+
+    dashboard_edit_permissions_df = fmt.explode_nested_array(
+        bronze_dashboards_df, array_json_path="editPermissions",
+        parent_key_column="dashboard_id", parent_key_json_path="id",
+        column_mappings=_permission_column_mappings,
+    )
+    dashboard_edit_permissions_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.dashboard_edit_permissions")
+    print(f"[dashboard_edit_permissions] {dashboard_edit_permissions_df.count()} rows -> {SILVER_SCHEMA}.dashboard_edit_permissions")
+
+    dashboard_share_permissions_df = fmt.explode_nested_array(
+        bronze_dashboards_df, array_json_path="sharePermissions",
+        parent_key_column="dashboard_id", parent_key_json_path="id",
+        column_mappings=_permission_column_mappings,
+    )
+    dashboard_share_permissions_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.dashboard_share_permissions")
+    print(f"[dashboard_share_permissions] {dashboard_share_permissions_df.count()} rows -> {SILVER_SCHEMA}.dashboard_share_permissions")
+
+# CELL ********************
+# --- Project role membership (project_roles.actors)
+if not spark.catalog.tableExists(f"{BRONZE_SCHEMA}.project_roles"):
+    print("[project_role_actors] skipping -- no project_roles in Bronze yet")
+else:
+    bronze_project_roles_df = spark.table(f"{BRONZE_SCHEMA}.project_roles")
+
+    project_role_actors_df = fmt.explode_nested_array(
+        bronze_project_roles_df, array_json_path="actors",
+        parent_key_column="project_role_id", parent_key_json_path="id",
+        column_mappings=[
+            fmt.ColumnMapping("actor_id", "id", "string"),
+            fmt.ColumnMapping("display_name", "displayName", "string"),
+            fmt.ColumnMapping("actor_type", "type", "string"),
+            fmt.ColumnMapping("actor_user_account_id", "actorUser.accountId", "string"),
+            fmt.ColumnMapping("actor_group_name", "actorGroup.name", "string"),
+        ],
+    )
+    project_role_actors_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.project_role_actors")
+    print(f"[project_role_actors] {project_role_actors_df.count()} rows -> {SILVER_SCHEMA}.project_role_actors")
+
+# CELL ********************
+# --- Project issue types (projects.issueTypes) and issue subtasks
+# (issues.fields.subtasks). Different parents, kept in the same cell since
+# both need their respective Bronze tables checked first.
+if not spark.catalog.tableExists(f"{BRONZE_SCHEMA}.projects"):
+    print("[project_issue_types] skipping -- no projects in Bronze yet")
+else:
+    bronze_projects_df = spark.table(f"{BRONZE_SCHEMA}.projects")
+
+    project_issue_types_df = fmt.explode_nested_array(
+        bronze_projects_df, array_json_path="issueTypes",
+        parent_key_column="project_key", parent_key_json_path="key",
+        column_mappings=[
+            fmt.ColumnMapping("issue_type_id", "id", "string"),
+            fmt.ColumnMapping("issue_type_name", "name", "string"),
+            fmt.ColumnMapping("description", "description", "string"),
+            fmt.ColumnMapping("hierarchy_level", "hierarchyLevel", "int"),
+            fmt.ColumnMapping("is_subtask", "subtask", "boolean"),
+            fmt.ColumnMapping("icon_url", "iconUrl", "string"),
+            fmt.ColumnMapping("avatar_id", "avatarId", "long"),
+        ],
+    )
+    project_issue_types_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.project_issue_types")
+    print(f"[project_issue_types] {project_issue_types_df.count()} rows -> {SILVER_SCHEMA}.project_issue_types")
+
+if not spark.catalog.tableExists(f"{BRONZE_SCHEMA}.issues"):
+    print("[issue_subtasks] skipping -- no issues in Bronze yet")
+else:
+    # Reuses bronze_issues_df (with issue_id/issue_created already added)
+    # from the earlier issues-children cell above.
+    issue_subtasks_df = fmt.explode_nested_array(
+        bronze_issues_df, array_json_path="fields.subtasks",
+        parent_key_column="issue_key", parent_key_json_path="key",
+        carry_through_columns=["issue_id", "issue_created"],
+        column_mappings=[
+            fmt.ColumnMapping("subtask_issue_id", "id", "string"),
+            fmt.ColumnMapping("subtask_issue_key", "key", "string"),
+            fmt.ColumnMapping("summary", "fields.summary", "string"),
+            fmt.ColumnMapping("status_name", "fields.status.name", "string"),
+            fmt.ColumnMapping("priority_name", "fields.priority.name", "string"),
+            fmt.ColumnMapping("issue_type_name", "fields.issuetype.name", "string"),
+        ],
+    )
+    issue_subtasks_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.issue_subtasks")
+    print(f"[issue_subtasks] {issue_subtasks_df.count()} rows -> {SILVER_SCHEMA}.issue_subtasks")
+
+# CELL ********************
 if failed_entities:
     print(f"B2S - Jira complete, WITH SKIPS/FAILURES in: {failed_entities} -- see messages above for why.")
 else:
