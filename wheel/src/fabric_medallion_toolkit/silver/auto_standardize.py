@@ -185,7 +185,8 @@ def _drop_all_null_columns(df: DataFrame, protect: Optional[List[str]] = None) -
 def run_auto_silver_standardize(spark, entity_name: str, natural_key_columns: List[str],
                                  bronze_schema: str = "bronze", silver_schema: str = "silver",
                                  dedup_order_column: str = "extracted_at",
-                                 flatten_depth: int = 5, drop_empty_columns: bool = True) -> None:
+                                 flatten_depth: int = 5, drop_empty_columns: bool = True,
+                                 exclude_columns: Optional[List[str]] = None) -> None:
     """
     Full auto-expand Silver step for one entity -- the no-column_mappings
     alternative to run_silver_standardize. Same overwrite/dedup semantics,
@@ -206,12 +207,27 @@ def run_auto_silver_standardize(spark, entity_name: str, natural_key_columns: Li
     later gets a real value will simply reappear on a subsequent run --
     nothing is lost by dropping it now, just not carried as dead weight
     while it's genuinely unused.
+
+    exclude_columns: extra columns to drop regardless of nullness -- for
+    fields that are redundant with a separate child table built via
+    explode_nested_array elsewhere (e.g. "changelog_histories" on issues,
+    once histories/history_items exist as their own tables), or anything
+    else not worth carrying on this specific entity. "expand" is ALWAYS
+    dropped in addition to whatever's passed here -- it's a Jira API
+    metadata field present on most endpoints listing what COULD be
+    requested via an expand param, never actual data, so it's pure noise
+    on every entity it appears on.
     """
     bronze_table = f"{bronze_schema}.{entity_name}"
     silver_table = f"{silver_schema}.{entity_name}"
 
     bronze_df = spark.table(bronze_table)
     standardized = auto_standardize(bronze_df, flatten_depth=flatten_depth)
+
+    always_exclude = {"expand"}
+    to_exclude = always_exclude | set(exclude_columns or [])
+    standardized = standardized.drop(*[c for c in to_exclude if c in standardized.columns])
+
     deduped = dedup_latest(standardized, key_cols=natural_key_columns, order_by_col=dedup_order_column)
 
     if dedup_order_column == "extracted_at" and "extracted_at" in deduped.columns:

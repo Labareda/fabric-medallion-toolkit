@@ -43,6 +43,28 @@ ENTITY_KEYS = {
     "sprints": ["id"],
 }
 
+# --- Per-entity columns to drop as redundant, since they're already
+# captured in their own dedicated child tables built further down (see
+# the explode_nested_array section) -- keeping them here too would just be
+# duplicated data in two shapes. Entities not listed here have nothing to
+# exclude.
+ENTITY_EXCLUDE_COLUMNS = {
+    "issues": [
+        "changelog_histories",        # -> histories / history_items
+        "fields_issuelinks",          # -> issue_links
+        "fields_components",          # -> issue_components
+        "fields_fixVersions",         # -> issue_fix_version
+        "fields_versions",            # -> issue_affects_version
+        "fields_attachment",          # -> attachments
+        "fields_labels",              # -> issue_labels
+        "fields_comment_comments",    # -> comments
+    ],
+    "audit_logs": [
+        "changedValues",       # -> audit_log_changed_values
+        "associatedItems",     # -> audit_log_associated_items
+    ],
+}
+
 # CELL ********************
 failed_entities = []
 
@@ -57,6 +79,7 @@ for entity_name, natural_keys in ENTITY_KEYS.items():
         fmt.run_auto_silver_standardize(
             spark, entity_name=entity_name, natural_key_columns=natural_keys,
             bronze_schema=BRONZE_SCHEMA, silver_schema=SILVER_SCHEMA,
+            exclude_columns=ENTITY_EXCLUDE_COLUMNS.get(entity_name),
         )
         print(f"[{entity_name}] standardized -> {SILVER_SCHEMA}.{entity_name}")
     except Exception as exc:
