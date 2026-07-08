@@ -63,7 +63,7 @@ ENTITY_EXCLUDE_COLUMNS = {
         "fields_comment_comments",    # -> comments
         "fields_worklog_worklogs",    # -> worklogs
         "fields_subtasks",            # -> issue_subtasks
-        "fields_sprint",              # -> issue_sprints
+        "fields_customfield_10020",   # Sprint -- a custom field in this instance, not built-in. -> issue_sprints. Excludes MUST use the pre-friendly-rename name, since exclusion runs before renaming.
         # Pagination-envelope metadata for the above (maxResults/startAt/
         # total) -- these describe the API's paging, not actual data, so
         # they're noise same as "expand" (see run_auto_silver_standardize).
@@ -88,6 +88,9 @@ ENTITY_EXCLUDE_COLUMNS = {
     ],
     "projects": [
         "issueTypes",           # -> project_issue_types
+        # Appears twice here -- once for the project's own icon, once for
+        # its lead's user avatar -- wildcard catches both regardless of prefix.
+        "*avatarUrls_16x16*", "*avatarUrls_24x24*", "*avatarUrls_32x32*",
     ],
     "users": [
         "*avatarUrls_16x16*", "*avatarUrls_24x24*", "*avatarUrls_32x32*",
@@ -122,6 +125,8 @@ for entity_name, natural_keys in ENTITY_KEYS.items():
                 df = fmt.clean_adf_columns(df, adf_to_text_udf)
                 if "fields_review" in df.columns:
                     df = df.withColumn("fields_review", F.col("fields_review").cast("date"))
+                if "fields_duedate" in df.columns:
+                    df = df.withColumn("fields_duedate", F.col("fields_duedate").cast("date"))
                 return df
             post_process = _issues_post_process
 
@@ -509,11 +514,13 @@ else:
     issue_subtasks_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.issue_subtasks")
     print(f"[issue_subtasks] {issue_subtasks_df.count()} rows -> {SILVER_SCHEMA}.issue_subtasks")
 
-    # Sprints an issue has been in (fields.sprint) -- an issue can move
-    # through several sprints over its life, so this is a real bridge
-    # table, not a single value on the issue.
+    # Sprints an issue has been in -- Sprint is a CUSTOM field in this
+    # instance (customfield_10020), not Jira's built-in "fields.sprint" --
+    # confirmed from actual Bronze data. An issue can move through several
+    # sprints over its life, so this is a real bridge table, not a single
+    # value on the issue.
     issue_sprints_df = fmt.explode_nested_array(
-        bronze_issues_df, array_json_path="fields.sprint",
+        bronze_issues_df, array_json_path="fields.customfield_10020",
         parent_key_column="issue_key", parent_key_json_path="key",
         carry_through_columns=["issue_id", "issue_created"],
         column_mappings=[
