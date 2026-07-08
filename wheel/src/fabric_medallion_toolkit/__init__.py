@@ -13,7 +13,7 @@ submodule something lives in:
     ))
 """
 
-__version__ = "0.3.17"
+__version__ = "0.3.18"
 
 # --- config: the dataclasses used to describe sources, entities, columns, tables ---
 from fabric_medallion_toolkit.config import (

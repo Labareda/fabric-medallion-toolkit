@@ -39,8 +39,24 @@ from fabric_medallion_toolkit.utils.logging_utils import get_logger
 logger = get_logger("silver.auto_standardize")
 
 
-def _flatten_struct_columns(schema: StructType, root_column: str, prefix: str = "", depth: int = 0,
-                             max_depth: int = 5) -> List[str]:
+import re
+
+def _sanitize_alias(segments: List[str]) -> str:
+    """
+    Builds a clean column name from path segments -- replaces ANY
+    character that isn't a letter, digit, or underscore with an
+    underscore (not just dots), since some real Jira field names contain
+    colons/hyphens too (e.g. app-configuration keys like
+    "com.atlassian.jira.plugin.system.customfieldtypes:atlassian-team").
+    Collapses repeated underscores that this can produce.
+    """
+    raw = "_".join(segments)
+    cleaned = re.sub(r"[^0-9a-zA-Z_]", "_", raw)
+    return re.sub(r"_+", "_", cleaned).strip("_")
+
+
+def _flatten_struct_columns(schema: StructType, root_column: str, path_segments: Optional[List[str]] = None,
+                             depth: int = 0, max_depth: int = 5) -> List[str]:
     """
     Returns a list of complete Spark SQL select expressions for every leaf
     field in a (possibly nested) struct schema living under root_column
@@ -48,14 +64,27 @@ def _flatten_struct_columns(schema: StructType, root_column: str, prefix: str = 
     or immediately for array/map fields -- those are wrapped in to_json()
     rather than flattened further or kept as a native complex type (see
     module docstring for why).
+
+    path_segments tracks each nesting level as its own LIST ELEMENT, not a
+    dot-joined string -- some real Jira field names contain a literal dot
+    themselves (e.g. an app-configuration key like
+    "com.atlassian.jira.plugin.system.customfieldtypes:atlassian-team" on
+    the Team custom field type), and joining-then-splitting on "." would
+    wrongly treat that single field's own name as several fake nesting
+    levels, producing a [FIELD_NOT_FOUND] error trying to access a level
+    that doesn't exist. Keeping segments as a list the whole way through
+    means each one gets backtick-quoted as a single, whole identifier,
+    dots and all.
     """
+    if path_segments is None:
+        path_segments = []
     exprs = []
     for field in schema.fields:
-        full_path = f"{prefix}.{field.name}" if prefix else field.name
-        alias = full_path.replace(".", "_")
-        quoted_path = f"`{root_column}`." + ".".join(f"`{p}`" for p in full_path.split("."))
+        full_segments = path_segments + [field.name]
+        alias = _sanitize_alias(full_segments)
+        quoted_path = f"`{root_column}`." + ".".join(f"`{seg}`" for seg in full_segments)
         if isinstance(field.dataType, StructType) and depth < max_depth:
-            exprs.extend(_flatten_struct_columns(field.dataType, root_column, full_path, depth + 1, max_depth))
+            exprs.extend(_flatten_struct_columns(field.dataType, root_column, full_segments, depth + 1, max_depth))
         elif isinstance(field.dataType, (ArrayType, MapType, StructType)):
             # Array/map, or a struct we've stopped recursing into (too
             # deep) -- to_json handles all three cases correctly.
@@ -86,10 +115,28 @@ def auto_standardize(bronze_df: DataFrame, flatten_depth: int = 5) -> DataFrame:
     return df.selectExpr(*select_exprs, "extracted_at")
 
 
+def _drop_all_null_columns(df: DataFrame, protect: Optional[List[str]] = None) -> DataFrame:
+    """
+    Drops any column where every row is NULL across the whole table --
+    e.g. a custom field nobody's ever populated on any issue. protect is a
+    list of columns to keep regardless (natural keys, dedup ordering
+    column) even if they happen to be all-null in a small/test dataset.
+    """
+    protect = set(protect or [])
+    non_null_counts = df.select([
+        F.count(F.col(f"`{c}`")).alias(c) for c in df.columns
+    ]).collect()[0].asDict()
+    all_null_cols = [c for c, cnt in non_null_counts.items() if cnt == 0 and c not in protect]
+    if all_null_cols:
+        logger.info(f"Dropping {len(all_null_cols)} all-null column(s): {all_null_cols}")
+        df = df.drop(*all_null_cols)
+    return df
+
+
 def run_auto_silver_standardize(spark, entity_name: str, natural_key_columns: List[str],
                                  bronze_schema: str = "bronze", silver_schema: str = "silver",
                                  dedup_order_column: str = "extracted_at",
-                                 flatten_depth: int = 5) -> None:
+                                 flatten_depth: int = 5, drop_empty_columns: bool = True) -> None:
     """
     Full auto-expand Silver step for one entity -- the no-column_mappings
     alternative to run_silver_standardize. Same overwrite/dedup semantics,
@@ -102,6 +149,14 @@ def run_auto_silver_standardize(spark, entity_name: str, natural_key_columns: Li
     nested "fields.project.key" -- run this once and check the resulting
     Silver table's columns if you're not sure what a given field flattened
     to).
+
+    drop_empty_columns: if True (default), drops any column that's NULL
+    on every single row -- e.g. a custom field nobody's ever populated.
+    Natural keys and the dedup ordering column are never dropped even if
+    all-null. Since Silver is fully recomputed every run, a field that
+    later gets a real value will simply reappear on a subsequent run --
+    nothing is lost by dropping it now, just not carried as dead weight
+    while it's genuinely unused.
     """
     bronze_table = f"{bronze_schema}.{entity_name}"
     silver_table = f"{silver_schema}.{entity_name}"
@@ -112,6 +167,9 @@ def run_auto_silver_standardize(spark, entity_name: str, natural_key_columns: Li
 
     if dedup_order_column == "extracted_at" and "extracted_at" in deduped.columns:
         deduped = deduped.drop("extracted_at")
+
+    if drop_empty_columns:
+        deduped = _drop_all_null_columns(deduped, protect=natural_key_columns)
 
     logger.info(f"Auto Silver standardize (overwrite): {bronze_table} -> {silver_table}")
     deduped.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(silver_table)
