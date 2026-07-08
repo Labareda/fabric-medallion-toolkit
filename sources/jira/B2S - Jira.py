@@ -62,6 +62,8 @@ ENTITY_EXCLUDE_COLUMNS = {
         "fields_labels",              # -> issue_labels
         "fields_comment_comments",    # -> comments
         "fields_worklog_worklogs",    # -> worklogs
+        "fields_subtasks",            # -> issue_subtasks
+        "fields_sprint",              # -> issue_sprints
         # Pagination-envelope metadata for the above (maxResults/startAt/
         # total) -- these describe the API's paging, not actual data, so
         # they're noise same as "expand" (see run_auto_silver_standardize).
@@ -76,6 +78,16 @@ ENTITY_EXCLUDE_COLUMNS = {
     "audit_logs": [
         "changedValues",       # -> audit_log_changed_values
         "associatedItems",     # -> audit_log_associated_items
+    ],
+    "dashboards": [
+        "editPermissions",     # -> dashboard_edit_permissions
+        "sharePermissions",    # -> dashboard_share_permissions
+    ],
+    "project_roles": [
+        "actors",              # -> project_role_actors
+    ],
+    "projects": [
+        "issueTypes",           # -> project_issue_types
     ],
     "users": [
         "*avatarUrls_16x16*", "*avatarUrls_24x24*", "*avatarUrls_32x32*",
@@ -93,16 +105,25 @@ for entity_name, natural_keys in ENTITY_KEYS.items():
         failed_entities.append(entity_name)
         continue
     try:
-        # For "issues" specifically, apply friendly custom-field renaming
-        # using the "fields" table's own id->name mapping -- data-driven,
-        # no manual dictionary to maintain as custom fields get added.
-        # Requires "fields" itself to already be standardized -- if it's
-        # not yet in ENTITY_KEYS' processing order before "issues", this
-        # falls back to no renaming rather than failing outright.
+        # For "issues" specifically: friendly custom-field renaming (using
+        # the "fields" table's own id->name mapping -- data-driven, no
+        # manual dictionary to maintain), ADF rich-text cleanup (every
+        # "X_content"/"X_type"/"X_version" triple -> plain text "X"), and
+        # a manual type correction for "review" (a date field that didn't
+        # infer as one). Requires "fields" itself already standardized --
+        # if it's not yet in ENTITY_KEYS' processing order before "issues",
+        # friendly renaming falls back to skipped rather than failing.
         post_process = None
-        if entity_name == "issues" and spark.catalog.tableExists(f"{SILVER_SCHEMA}.fields"):
-            field_id_to_name = fmt.build_field_id_to_name(spark, f"{SILVER_SCHEMA}.fields", id_column="id", name_column="name")
-            post_process = lambda df: fmt.rename_customfield_columns(df, field_id_to_name)
+        if entity_name == "issues":
+            def _issues_post_process(df):
+                if spark.catalog.tableExists(f"{SILVER_SCHEMA}.fields"):
+                    field_id_to_name = fmt.build_field_id_to_name(spark, f"{SILVER_SCHEMA}.fields", id_column="id", name_column="name")
+                    df = fmt.rename_customfield_columns(df, field_id_to_name)
+                df = fmt.clean_adf_columns(df, adf_to_text_udf)
+                if "fields_review" in df.columns:
+                    df = df.withColumn("fields_review", F.col("fields_review").cast("date"))
+                return df
+            post_process = _issues_post_process
 
         fmt.run_auto_silver_standardize(
             spark, entity_name=entity_name, natural_key_columns=natural_keys,
@@ -124,6 +145,7 @@ if spark.catalog.tableExists(f"{BRONZE_SCHEMA}.labels"):
     labels_df = (
         spark.table(f"{BRONZE_SCHEMA}.labels")
         .withColumn("label_name", F.regexp_replace(F.col("raw_data"), '^"|"$', ""))  # strip the JSON quoting
+        .withColumn("label_name", F.regexp_replace(F.col("label_name"), '^#', ""))  # some labels come back "#something" -- strip the leading #
         .select("label_name", "extracted_at")
     )
     deduped = fmt.dedup_latest(labels_df, key_cols=["label_name"], order_by_col="extracted_at").drop("extracted_at")
@@ -232,6 +254,7 @@ else:
             fmt.ColumnMapping("label_name", "", "string"),  # each array element IS the label string itself
         ],
     )
+    issue_labels_df = issue_labels_df.withColumn("label_name", F.regexp_replace(F.col("label_name"), '^#', ""))
     issue_labels_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.issue_labels")
     print(f"[issue_labels] {issue_labels_df.count()} rows -> {SILVER_SCHEMA}.issue_labels")
 
@@ -485,6 +508,27 @@ else:
     )
     issue_subtasks_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.issue_subtasks")
     print(f"[issue_subtasks] {issue_subtasks_df.count()} rows -> {SILVER_SCHEMA}.issue_subtasks")
+
+    # Sprints an issue has been in (fields.sprint) -- an issue can move
+    # through several sprints over its life, so this is a real bridge
+    # table, not a single value on the issue.
+    issue_sprints_df = fmt.explode_nested_array(
+        bronze_issues_df, array_json_path="fields.sprint",
+        parent_key_column="issue_key", parent_key_json_path="key",
+        carry_through_columns=["issue_id", "issue_created"],
+        column_mappings=[
+            fmt.ColumnMapping("sprint_id", "id", "long"),
+            fmt.ColumnMapping("sprint_name", "name", "string"),
+            fmt.ColumnMapping("board_id", "boardId", "long"),
+            fmt.ColumnMapping("state", "state", "string"),
+            fmt.ColumnMapping("goal", "goal", "string"),
+            fmt.ColumnMapping("start_date", "startDate", "timestamp", date_format="yyyy-MM-dd'T'HH:mm:ss.SSSX"),
+            fmt.ColumnMapping("end_date", "endDate", "timestamp", date_format="yyyy-MM-dd'T'HH:mm:ss.SSSX"),
+            fmt.ColumnMapping("complete_date", "completeDate", "timestamp", date_format="yyyy-MM-dd'T'HH:mm:ss.SSSX"),
+        ],
+    )
+    issue_sprints_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.issue_sprints")
+    print(f"[issue_sprints] {issue_sprints_df.count()} rows -> {SILVER_SCHEMA}.issue_sprints")
 
 # CELL ********************
 if failed_entities:

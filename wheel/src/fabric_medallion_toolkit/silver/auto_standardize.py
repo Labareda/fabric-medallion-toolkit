@@ -11,38 +11,10 @@ proper nested schema), not per-row guessing -- so a field that's
 consistently a number infers as a number, consistently a string infers as
 a string, etc.
 
-Arrays/maps are kept as their full content, but as a JSON STRING column,
-not a native Spark array/struct-typed column. This is a deliberate change
-from an earlier version of this function, which kept them as native
-complex types -- that works fine in Spark/Delta itself, but Fabric's SQL
-Analytics Endpoint (the auto-generated T-SQL view over every Lakehouse
-table) cannot represent array or map columns AT ALL, and silently fails to
-sync any table containing one ("Columns of the specified data types are
-not supported for..."). Storing them as a JSON string keeps the endpoint
-working for every table, at the cost of needing get_json_object/from_json
-to query into that field's contents when you actually need to -- if you
-want one specifically broken into its own child table (e.g. issuelinks),
-explode_nested_array is still the right tool for that; this function and
-that one solve different problems and are meant to be used together, not
-as alternatives.
-"""
-
-"""
-The alternative to column_mappings: automatically expand EVERY scalar
-field in raw_data into its own Silver column, typed correctly, with no
-manual mapping list to maintain. Naming is deterministic (dot-path with
-underscores) rather than curated -- rename in Gold if you want something
-friendlier, per the design choice this exists for.
-
-Correctness of types comes from Spark's own JSON schema inference
-(spark.read.json scans actual values across the real data and infers a
-proper nested schema), not per-row guessing -- so a field that's
-consistently a number infers as a number, consistently a string infers as
-a string, etc.
-
 Arrays/maps are kept as their full content, but as a JSON STRING column
-(or a comma-joined plain string, for a simple array of strings -- see
-below), not a native Spark array/struct-typed column. This is a
+(or a comma-joined plain string, for a simple array of strings, or an
+array of Jira's "select option" objects, or an array of user objects --
+see below), not a native Spark array/struct-typed column. This is a
 deliberate change from an earlier version of this function, which kept
 them as native complex types -- that works fine in Spark/Delta itself,
 but Fabric's SQL Analytics Endpoint (the auto-generated T-SQL view over
@@ -68,6 +40,7 @@ That whole class of bug is structurally eliminated, not just handled for
 the specific cases seen so far.
 """
 
+import re
 from typing import List, Optional, Callable
 
 from pyspark.sql import DataFrame, Column
@@ -80,6 +53,10 @@ from fabric_medallion_toolkit.utils.logging_utils import get_logger
 logger = get_logger("silver.auto_standardize")
 
 
+def _struct_field_names(struct_type: StructType) -> List[str]:
+    return [f.name for f in struct_type.fields]
+
+
 def _flatten_struct_columns(schema: StructType, root_col: Column, path_segments: Optional[List[str]] = None,
                              depth: int = 0, max_depth: int = 5) -> List[Column]:
     """
@@ -88,12 +65,24 @@ def _flatten_struct_columns(schema: StructType, root_col: Column, path_segments:
     root_col (e.g. F.col("_parsed")). Stops recursing into a field once it
     hits max_depth, or immediately for array/map fields -- those are
     wrapped in to_json() rather than flattened further or kept as a
-    native complex type (see module docstring for why) -- EXCEPT an array
-    whose elements are plain strings (e.g. Jira's "labels", "clauseNames",
-    "projectKeys"), which gets a plain comma-joined string instead ("A, B,
-    C" rather than '["A","B","C"]') since there's nothing lossy about
-    that for a flat list of strings, and it's much more directly
-    usable/readable than JSON-array bracket-and-quote syntax.
+    native complex type (see module docstring for why), EXCEPT three
+    common Jira shapes that get a clean comma-joined string instead of a
+    raw JSON blob, since there's nothing lossy about flattening these
+    specific, very regular shapes:
+
+    - A plain array of strings (e.g. "labels", "clauseNames",
+      "projectKeys") -> "A, B, C".
+    - An array of Jira's "select option" objects, i.e. each element has an
+      "id"/"self"/"value" shape (the near-universal shape for multi-select
+      custom fields like Reporting, Workstream, Environment, etc.) -> just
+      the "value"s, comma-joined, dropping the "id"/"self" noise.
+    - An array of user objects (each element has "accountId"/"displayName",
+      e.g. "people_involved") -> the "displayName"s, comma-joined.
+
+    Anything else (arrays of genuinely varied/complex objects, e.g.
+    issuelinks) still gets the full to_json() treatment -- there's no
+    clean flat representation for those the way there is for these three
+    very regular shapes.
 
     path_segments tracks each nesting level purely for building the OUTPUT
     column name (joined with underscores) -- it never round-trips back
@@ -108,27 +97,33 @@ def _flatten_struct_columns(schema: StructType, root_col: Column, path_segments:
         full_segments = path_segments + [field.name]
         alias = _sanitize_alias(full_segments)
         field_col = root_col.getField(field.name)
+
+        is_array = isinstance(field.dataType, ArrayType)
+        element_type = field.dataType.elementType if is_array else None
+        element_field_names = _struct_field_names(element_type) if isinstance(element_type, StructType) else []
+
         if isinstance(field.dataType, StructType) and depth < max_depth:
             columns.extend(_flatten_struct_columns(field.dataType, field_col, full_segments, depth + 1, max_depth))
-        elif isinstance(field.dataType, ArrayType) and isinstance(field.dataType.elementType, StringType):
+        elif is_array and isinstance(element_type, StringType):
             columns.append(F.array_join(field_col, ", ").alias(alias))
+        elif is_array and "value" in element_field_names:
+            columns.append(F.array_join(F.transform(field_col, lambda x: x.getField("value")), ", ").alias(alias))
+        elif is_array and "displayName" in element_field_names:
+            columns.append(F.array_join(F.transform(field_col, lambda x: x.getField("displayName")), ", ").alias(alias))
         elif isinstance(field.dataType, (ArrayType, MapType, StructType)):
-            # Array of anything OTHER than plain strings (objects, numbers,
-            # etc.), map, or a struct we've stopped recursing into (too
-            # deep) -- to_json handles all these cases correctly; there's
-            # no clean flat representation for a variable-shape list of
-            # objects the way there is for a list of strings.
+            # Array of anything OTHER than the three regular shapes above,
+            # map, or a struct we've stopped recursing into (too deep) --
+            # to_json handles all these cases correctly; there's no clean
+            # flat representation for a variable-shape list of objects.
             columns.append(F.to_json(field_col).alias(alias))
         else:
             columns.append(field_col.alias(alias))
     return columns
 
 
-import re
-
 def _sanitize_alias(segments: List[str]) -> str:
     """
-    Builds a clean column NAME from path segments -- replaces any
+    Builds a clean column name from path segments -- replaces any
     character that isn't a letter, digit, or underscore with an
     underscore (some real Jira field names contain colons/hyphens, e.g.
     app-configuration keys like
@@ -141,6 +136,34 @@ def _sanitize_alias(segments: List[str]) -> str:
     raw = "_".join(segments)
     cleaned = re.sub(r"[^0-9a-zA-Z_]", "_", raw)
     return re.sub(r"_+", "_", cleaned).strip("_")
+
+
+def clean_adf_columns(df: DataFrame, adf_udf) -> DataFrame:
+    """
+    Finds every "X_content"/"X_type"/"X_version" column triple -- the
+    signature shape Atlassian Document Format leaves behind once
+    auto_standardize flattens a rich-text field's nested {content, type,
+    version} structure -- converts "X_content" to plain readable text via
+    adf_udf (pass a UDF wrapping extract_adf_text), renames it to plain
+    "X", and drops the "_type"/"_version" siblings (structural metadata
+    about the ADF document, not useful once it's plain text).
+
+    Only acts on genuine triples (all three of _content/_type/_version
+    present together) -- a column that merely happens to end in "_content"
+    without its siblings is left alone, since that's not actually ADF.
+    """
+    content_cols = {c[:-len("_content")] for c in df.columns if c.endswith("_content")}
+    type_cols = {c[:-len("_type")] for c in df.columns if c.endswith("_type")}
+    version_cols = {c[:-len("_version")] for c in df.columns if c.endswith("_version")}
+    adf_bases = content_cols & type_cols & version_cols
+
+    for base in adf_bases:
+        df = (
+            df.withColumn(f"{base}_content", adf_udf(F.col(f"{base}_content")))
+              .withColumnRenamed(f"{base}_content", base)
+              .drop(f"{base}_type", f"{base}_version")
+        )
+    return df
 
 
 def auto_standardize(bronze_df: DataFrame, flatten_depth: int = 5) -> DataFrame:
