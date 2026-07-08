@@ -27,9 +27,50 @@ that one solve different problems and are meant to be used together, not
 as alternatives.
 """
 
+"""
+The alternative to column_mappings: automatically expand EVERY scalar
+field in raw_data into its own Silver column, typed correctly, with no
+manual mapping list to maintain. Naming is deterministic (dot-path with
+underscores) rather than curated -- rename in Gold if you want something
+friendlier, per the design choice this exists for.
+
+Correctness of types comes from Spark's own JSON schema inference
+(spark.read.json scans actual values across the real data and infers a
+proper nested schema), not per-row guessing -- so a field that's
+consistently a number infers as a number, consistently a string infers as
+a string, etc.
+
+Arrays/maps are kept as their full content, but as a JSON STRING column
+(or a comma-joined plain string, for a simple array of strings -- see
+below), not a native Spark array/struct-typed column. This is a
+deliberate change from an earlier version of this function, which kept
+them as native complex types -- that works fine in Spark/Delta itself,
+but Fabric's SQL Analytics Endpoint (the auto-generated T-SQL view over
+every Lakehouse table) cannot represent array or map columns AT ALL, and
+silently fails to sync any table containing one ("Columns of the
+specified data types are not supported for..."). Storing them as a JSON
+string keeps the endpoint working for every table, at the cost of
+needing get_json_object/from_json to query into that field's contents
+when you actually need to -- if you want one specifically broken into
+its own child table (e.g. issuelinks), explode_nested_array is still the
+right tool for that; this function and that one solve different problems
+and are meant to be used together, not as alternatives.
+
+Field access is built using real DataFrame Column objects
+(.getField(name)) rather than generating SQL expression text and handing
+it to selectExpr. This isn't just a style choice: a field name is passed
+as a plain Python string argument to .getField(), never parsed as SQL
+syntax at all -- so a Jira field name containing dots, colons, hyphens,
+or spaces (all of which occur in real custom field configuration keys)
+simply cannot break this the way it can break string-built SQL, which
+needed manual backtick-quoting and a sanitizing regex to handle safely.
+That whole class of bug is structurally eliminated, not just handled for
+the specific cases seen so far.
+"""
+
 from typing import List, Optional
 
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, Column
 from pyspark.sql import functions as F
 from pyspark.sql.types import StructType, ArrayType, MapType, StringType
 
@@ -39,69 +80,67 @@ from fabric_medallion_toolkit.utils.logging_utils import get_logger
 logger = get_logger("silver.auto_standardize")
 
 
-import re
-
-def _sanitize_alias(segments: List[str]) -> str:
+def _flatten_struct_columns(schema: StructType, root_col: Column, path_segments: Optional[List[str]] = None,
+                             depth: int = 0, max_depth: int = 5) -> List[Column]:
     """
-    Builds a clean column name from path segments -- replaces ANY
-    character that isn't a letter, digit, or underscore with an
-    underscore (not just dots), since some real Jira field names contain
-    colons/hyphens too (e.g. app-configuration keys like
-    "com.atlassian.jira.plugin.system.customfieldtypes:atlassian-team").
-    Collapses repeated underscores that this can produce.
-    """
-    raw = "_".join(segments)
-    cleaned = re.sub(r"[^0-9a-zA-Z_]", "_", raw)
-    return re.sub(r"_+", "_", cleaned).strip("_")
+    Returns a list of real DataFrame Columns (each already .alias()'d) for
+    every leaf field in a (possibly nested) struct schema reachable from
+    root_col (e.g. F.col("_parsed")). Stops recursing into a field once it
+    hits max_depth, or immediately for array/map fields -- those are
+    wrapped in to_json() rather than flattened further or kept as a
+    native complex type (see module docstring for why) -- EXCEPT an array
+    whose elements are plain strings (e.g. Jira's "labels", "clauseNames",
+    "projectKeys"), which gets a plain comma-joined string instead ("A, B,
+    C" rather than '["A","B","C"]') since there's nothing lossy about
+    that for a flat list of strings, and it's much more directly
+    usable/readable than JSON-array bracket-and-quote syntax.
 
-
-def _flatten_struct_columns(schema: StructType, root_column: str, path_segments: Optional[List[str]] = None,
-                             depth: int = 0, max_depth: int = 5) -> List[str]:
-    """
-    Returns a list of complete Spark SQL select expressions for every leaf
-    field in a (possibly nested) struct schema living under root_column
-    (e.g. "_parsed"). Stops recursing into a field once it hits max_depth,
-    or immediately for array/map fields -- those are wrapped in to_json()
-    rather than flattened further or kept as a native complex type (see
-    module docstring for why) -- EXCEPT an array whose elements are plain
-    strings (e.g. Jira's "labels", "clauseNames", "projectKeys"), which
-    gets a plain comma-joined string instead ("A, B, C" rather than
-    '["A","B","C"]') since there's nothing lossy about that for a flat
-    list of strings, and it's much more directly usable/readable than
-    JSON-array bracket-and-quote syntax.
-
-    path_segments tracks each nesting level as its own LIST ELEMENT, not a
-    dot-joined string -- some real Jira field names contain a literal dot
-    themselves (e.g. an app-configuration key like
-    "com.atlassian.jira.plugin.system.customfieldtypes:atlassian-team" on
-    the Team custom field type), and joining-then-splitting on "." would
-    wrongly treat that single field's own name as several fake nesting
-    levels, producing a [FIELD_NOT_FOUND] error trying to access a level
-    that doesn't exist. Keeping segments as a list the whole way through
-    means each one gets backtick-quoted as a single, whole identifier,
-    dots and all.
+    path_segments tracks each nesting level purely for building the OUTPUT
+    column name (joined with underscores) -- it never round-trips back
+    into a path Spark has to re-parse, so a field name containing a
+    literal dot, colon, or hyphen is just an ordinary string here, not a
+    hazard.
     """
     if path_segments is None:
         path_segments = []
-    exprs = []
+    columns = []
     for field in schema.fields:
         full_segments = path_segments + [field.name]
         alias = _sanitize_alias(full_segments)
-        quoted_path = f"`{root_column}`." + ".".join(f"`{seg}`" for seg in full_segments)
+        field_col = root_col.getField(field.name)
         if isinstance(field.dataType, StructType) and depth < max_depth:
-            exprs.extend(_flatten_struct_columns(field.dataType, root_column, full_segments, depth + 1, max_depth))
+            columns.extend(_flatten_struct_columns(field.dataType, field_col, full_segments, depth + 1, max_depth))
         elif isinstance(field.dataType, ArrayType) and isinstance(field.dataType.elementType, StringType):
-            exprs.append(f"array_join({quoted_path}, ', ') AS `{alias}`")
+            columns.append(F.array_join(field_col, ", ").alias(alias))
         elif isinstance(field.dataType, (ArrayType, MapType, StructType)):
             # Array of anything OTHER than plain strings (objects, numbers,
             # etc.), map, or a struct we've stopped recursing into (too
             # deep) -- to_json handles all these cases correctly; there's
             # no clean flat representation for a variable-shape list of
             # objects the way there is for a list of strings.
-            exprs.append(f"to_json({quoted_path}) AS `{alias}`")
+            columns.append(F.to_json(field_col).alias(alias))
         else:
-            exprs.append(f"{quoted_path} AS `{alias}`")
-    return exprs
+            columns.append(field_col.alias(alias))
+    return columns
+
+
+import re
+
+def _sanitize_alias(segments: List[str]) -> str:
+    """
+    Builds a clean column NAME from path segments -- replaces any
+    character that isn't a letter, digit, or underscore with an
+    underscore (some real Jira field names contain colons/hyphens, e.g.
+    app-configuration keys like
+    "com.atlassian.jira.plugin.system.customfieldtypes:atlassian-team").
+    Collapses repeated underscores that this can produce. This only ever
+    affects the OUTPUT column's display name -- field ACCESS uses
+    .getField() with the real, unmodified name (see above), so this
+    sanitizing is purely cosmetic now, not load-bearing for correctness.
+    """
+    raw = "_".join(segments)
+    cleaned = re.sub(r"[^0-9a-zA-Z_]", "_", raw)
+    return re.sub(r"_+", "_", cleaned).strip("_")
 
 
 def auto_standardize(bronze_df: DataFrame, flatten_depth: int = 5) -> DataFrame:
@@ -121,8 +160,8 @@ def auto_standardize(bronze_df: DataFrame, flatten_depth: int = 5) -> DataFrame:
     ).schema
 
     df = bronze_df.withColumn("_parsed", F.from_json(F.col("raw_data"), parsed_schema))
-    select_exprs = _flatten_struct_columns(parsed_schema, root_column="_parsed", max_depth=flatten_depth)
-    return df.selectExpr(*select_exprs, "extracted_at")
+    output_columns = _flatten_struct_columns(parsed_schema, root_col=F.col("_parsed"), max_depth=flatten_depth)
+    return df.select(*output_columns, F.col("extracted_at"))
 
 
 def _drop_all_null_columns(df: DataFrame, protect: Optional[List[str]] = None) -> DataFrame:
