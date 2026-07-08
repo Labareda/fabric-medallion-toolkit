@@ -74,7 +74,23 @@ def land_records(spark, records: Iterable[Dict[str, Any]], source_name: str,
         return 0
 
     df = spark.createDataFrame(rows)
-    logger.info(f"Appending {len(rows)} records -> {table_name}")
+
+    # spark.createDataFrame() on an in-memory Python list defaults to a
+    # small, fixed number of partitions regardless of how much data is in
+    # it. Fine for a small reference entity (priorities, statuses), but for
+    # a large entity with rich per-record content (issues, with many
+    # custom fields and embedded comments/history), that means too few,
+    # too-large partitions -- and Delta's Optimized Write then fails
+    # trying to shuffle-rebalance one of those into well-sized files,
+    # since the shuffle task itself exceeds Spark's internal RPC message
+    # size limit. Repartitioning based on actual row count keeps each
+    # partition a sane size regardless of how large this particular
+    # entity's records are or how many there are.
+    target_rows_per_partition = 2000
+    num_partitions = max(1, -(-len(rows) // target_rows_per_partition))  # ceiling division
+    df = df.repartition(num_partitions)
+
+    logger.info(f"Appending {len(rows)} records ({num_partitions} partitions) -> {table_name}")
     (
         df.write.format("delta")
         .mode("append")
