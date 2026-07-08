@@ -87,7 +87,7 @@ for entity_name, natural_keys in ENTITY_KEYS.items():
         # falls back to no renaming rather than failing outright.
         post_process = None
         if entity_name == "issues" and spark.catalog.tableExists(f"{SILVER_SCHEMA}.fields"):
-            field_id_to_name = fmt.build_field_id_to_name(spark, f"{SILVER_SCHEMA}.fields")
+            field_id_to_name = fmt.build_field_id_to_name(spark, f"{SILVER_SCHEMA}.fields", id_column="id", name_column="name")
             post_process = lambda df: fmt.rename_customfield_columns(df, field_id_to_name)
 
         fmt.run_auto_silver_standardize(
