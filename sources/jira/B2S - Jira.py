@@ -61,10 +61,24 @@ ENTITY_EXCLUDE_COLUMNS = {
         "fields_attachment",          # -> attachments
         "fields_labels",              # -> issue_labels
         "fields_comment_comments",    # -> comments
+        "fields_worklog_worklogs",    # -> worklogs
+        # Pagination-envelope metadata for the above (maxResults/startAt/
+        # total) -- these describe the API's paging, not actual data, so
+        # they're noise same as "expand" (see run_auto_silver_standardize).
+        "changelog_maxResults", "changelog_startAt", "changelog_total",
+        "fields_comment_maxResults", "fields_comment_startAt", "fields_comment_total",
+        "fields_worklog_maxResults", "fields_worklog_startAt", "fields_worklog_total",
+        # Jira embeds 4 avatar sizes for every nested user/project object --
+        # keep just 48x48 (the highest-res "standard" one), drop the rest,
+        # wherever they appear (assignee/reporter/creator/project/parent...).
+        "*avatarUrls_16x16*", "*avatarUrls_24x24*", "*avatarUrls_32x32*",
     ],
     "audit_logs": [
         "changedValues",       # -> audit_log_changed_values
         "associatedItems",     # -> audit_log_associated_items
+    ],
+    "users": [
+        "*avatarUrls_16x16*", "*avatarUrls_24x24*", "*avatarUrls_32x32*",
     ],
 }
 
@@ -247,6 +261,31 @@ else:
     comments_df = comments_df.withColumn("comment_body", adf_to_text_udf(F.col("comment_body")))
     comments_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.comments")
     print(f"[comments] {comments_df.count()} rows -> {SILVER_SCHEMA}.comments")
+
+    # Worklogs -- same free-embedded-data situation as comments:
+    # fields.worklog.worklogs comes back with the issue payload itself, no
+    # extra API calls needed.
+    worklogs_df = fmt.explode_nested_array(
+        bronze_issues_df, array_json_path="fields.worklog.worklogs",
+        parent_key_column="issue_key", parent_key_json_path="key",
+        carry_through_columns=["issue_id", "issue_created"],
+        column_mappings=[
+            fmt.ColumnMapping("worklog_id", "id", "string"),
+            fmt.ColumnMapping("author_account_id", "author.accountId", "string"),
+            fmt.ColumnMapping("author_name", "author.displayName", "string"),
+            fmt.ColumnMapping("update_author_account_id", "updateAuthor.accountId", "string"),
+            fmt.ColumnMapping("update_author_name", "updateAuthor.displayName", "string"),
+            fmt.ColumnMapping("comment_body", "comment", "string"),  # ADF -- converted to text below
+            fmt.ColumnMapping("started", "started", "timestamp", date_format="yyyy-MM-dd'T'HH:mm:ss.SSSZ"),
+            fmt.ColumnMapping("time_spent", "timeSpent", "string"),
+            fmt.ColumnMapping("time_spent_seconds", "timeSpentSeconds", "long"),
+            fmt.ColumnMapping("created", "created", "timestamp", date_format="yyyy-MM-dd'T'HH:mm:ss.SSSZ"),
+            fmt.ColumnMapping("updated", "updated", "timestamp", date_format="yyyy-MM-dd'T'HH:mm:ss.SSSZ"),
+        ],
+    )
+    worklogs_df = worklogs_df.withColumn("comment_body", adf_to_text_udf(F.col("comment_body")))
+    worklogs_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.worklogs")
+    print(f"[worklogs] {worklogs_df.count()} rows -> {SILVER_SCHEMA}.worklogs")
 
     histories_df = fmt.explode_nested_array(
         bronze_issues_df, array_json_path="changelog.histories",

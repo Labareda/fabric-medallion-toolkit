@@ -219,6 +219,13 @@ def run_auto_silver_standardize(spark, entity_name: str, natural_key_columns: Li
     requested via an expand param, never actual data, so it's pure noise
     on every entity it appears on.
 
+    Entries may be exact column names OR glob-style patterns (using * and
+    ? wildcards, matched via fnmatch) -- e.g. "*avatarUrls_16x16*" drops
+    every column ending that way regardless of what's nested in front of
+    it (fields_assignee_avatarUrls_16x16, fields_reporter_avatarUrls_16x16,
+    fields_project_avatarUrls_16x16, etc.) without needing to enumerate
+    each one by name.
+
     post_process: an optional DataFrame -> DataFrame function applied
     right before the final write (after dedup, after drop_empty_columns) --
     e.g. rename_customfield_columns, to apply friendly names driven by the
@@ -231,9 +238,11 @@ def run_auto_silver_standardize(spark, entity_name: str, natural_key_columns: Li
     bronze_df = spark.table(bronze_table)
     standardized = auto_standardize(bronze_df, flatten_depth=flatten_depth)
 
-    always_exclude = {"expand"}
-    to_exclude = always_exclude | set(exclude_columns or [])
-    standardized = standardized.drop(*[c for c in to_exclude if c in standardized.columns])
+    import fnmatch
+    always_exclude_patterns = ["expand", "self", "*_self"] + list(exclude_columns or [])
+    to_exclude = [c for c in standardized.columns
+                  if any(fnmatch.fnmatch(c, pat) for pat in always_exclude_patterns)]
+    standardized = standardized.drop(*to_exclude)
 
     deduped = dedup_latest(standardized, key_cols=natural_key_columns, order_by_col=dedup_order_column)
 
