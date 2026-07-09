@@ -210,7 +210,8 @@ def run_auto_silver_standardize(spark, entity_name: str, natural_key_columns: Li
                                  dedup_order_column: str = "extracted_at",
                                  flatten_depth: int = 5, drop_empty_columns: bool = True,
                                  exclude_columns: Optional[List[str]] = None,
-                                 post_process: Optional[Callable[[DataFrame], DataFrame]] = None) -> None:
+                                 post_process: Optional[Callable[[DataFrame], DataFrame]] = None,
+                                 sort_columns_alphabetically: bool = True) -> None:
     """
     Full auto-expand Silver step for one entity -- the no-column_mappings
     alternative to run_silver_standardize. Same overwrite/dedup semantics,
@@ -254,6 +255,12 @@ def run_auto_silver_standardize(spark, entity_name: str, natural_key_columns: Li
     e.g. rename_customfield_columns, to apply friendly names driven by the
     "fields" reference table without needing a separate manual mapping
     step maintained outside this function.
+
+    sort_columns_alphabetically: if True (default), the final column
+    order is alphabetical -- purely cosmetic (Delta/SQL don't care about
+    column order functionally), but genuinely helps navigating a table
+    with hundreds of columns rather than leaving them in Jira's own
+    arbitrary JSON key order.
     """
     bronze_table = f"{bronze_schema}.{entity_name}"
     silver_table = f"{silver_schema}.{entity_name}"
@@ -263,9 +270,12 @@ def run_auto_silver_standardize(spark, entity_name: str, natural_key_columns: Li
 
     import fnmatch
     always_exclude_patterns = ["expand", "self", "*_self"] + list(exclude_columns or [])
-    to_exclude = [c for c in standardized.columns
-                  if any(fnmatch.fnmatch(c, pat) for pat in always_exclude_patterns)]
-    standardized = standardized.drop(*to_exclude)
+
+    def _apply_excludes(df):
+        to_exclude = [c for c in df.columns if any(fnmatch.fnmatch(c, pat) for pat in always_exclude_patterns)]
+        return df.drop(*to_exclude)
+
+    standardized = _apply_excludes(standardized)
 
     deduped = dedup_latest(standardized, key_cols=natural_key_columns, order_by_col=dedup_order_column)
 
@@ -277,6 +287,17 @@ def run_auto_silver_standardize(spark, entity_name: str, natural_key_columns: Li
 
     if post_process is not None:
         deduped = post_process(deduped)
+        # Safety net: a post_process step (e.g. friendly renaming) can
+        # produce a column name that WOULD have matched an exclude pattern
+        # if it had existed under that name from the start (exclude_columns
+        # entries are written against the PRE-rename name, since that's
+        # what's actually present at the point exclusion first runs --
+        # but if that ordering assumption is ever wrong for some entity,
+        # this re-check catches it rather than silently leaving the column in).
+        deduped = _apply_excludes(deduped)
+
+    if sort_columns_alphabetically:
+        deduped = deduped.select(*sorted(deduped.columns))
 
     logger.info(f"Auto Silver standardize (overwrite): {bronze_table} -> {silver_table}")
     deduped.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(silver_table)

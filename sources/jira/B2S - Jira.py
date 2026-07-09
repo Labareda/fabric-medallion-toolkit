@@ -24,26 +24,33 @@ SILVER_SCHEMA = "Silver.jira"
 # jira.json's "entities" list, add its natural key here too. (Nested-object
 # keys, e.g. workflows' "id.entityId", flatten with underscores: "id_entityId".)
 ENTITY_KEYS = {
-    "fields": ["id"],       # moved before "issues" -- issues' post_process needs this table to already exist
-    "issues": ["key"],
-    "projects": ["key"],
-    "users": ["accountId"],
-    "issuetypes": ["id"],
-    "statuses": ["id"],
-    "priorities": ["id"],
-    "resolutions": ["id"],
-    "project_roles": ["id"],
+    # Alphabetical -- also, coincidentally but importantly, keeps "fields"
+    # ahead of "issues" (needed since issues' friendly-rename post_process
+    # depends on "fields" already being standardized). If a new entity is
+    # ever added whose name alphabetically precedes something it actually
+    # depends on, that dependency needs handling explicitly rather than
+    # relying on alphabetical luck -- worth remembering before assuming
+    # this ordering is automatically safe forever.
     "audit_logs": ["id"],
     "boards": ["id"],
-    "issue_link_types": ["id"],
+    "components": ["id"],
+    "dashboards": ["id"],
+    "fields": ["id"],
     "filters": ["id"],
     "groups": ["groupId"],
-    "dashboards": ["id"],
+    "issue_link_types": ["id"],
+    "issues": ["key"],
+    "issuetypes": ["id"],
+    "priorities": ["id"],
+    "project_roles": ["id"],
+    "projects": ["key"],
+    "resolutions": ["id"],
     "screens": ["id"],
-    "workflows": ["id_entityId"],
-    "versions": ["id"],
-    "components": ["id"],
     "sprints": ["id"],
+    "statuses": ["id"],
+    "users": ["accountId"],
+    "versions": ["id"],
+    "workflows": ["id_entityId"],
 }
 
 # --- Per-entity columns to drop as redundant, since they're already
@@ -154,6 +161,7 @@ if spark.catalog.tableExists(f"{BRONZE_SCHEMA}.labels"):
         .select("label_name", "extracted_at")
     )
     deduped = fmt.dedup_latest(labels_df, key_cols=["label_name"], order_by_col="extracted_at").drop("extracted_at")
+    deduped = deduped.select(*sorted(deduped.columns))
     deduped.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.labels")
     print(f"[labels] standardized -> {SILVER_SCHEMA}.labels")
 else:
@@ -209,6 +217,7 @@ else:
             fmt.ColumnMapping("inward_issue_key", "inwardIssue.key", "string"),
         ],
     )
+    issue_links_df = issue_links_df.select(*sorted(issue_links_df.columns))
     issue_links_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.issue_links")
     print(f"[issue_links] {issue_links_df.count()} rows -> {SILVER_SCHEMA}.issue_links")
 
@@ -221,6 +230,7 @@ else:
             fmt.ColumnMapping("component_name", "name", "string"),
         ],
     )
+    issue_components_df = issue_components_df.select(*sorted(issue_components_df.columns))
     issue_components_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.issue_components")
     print(f"[issue_components] {issue_components_df.count()} rows -> {SILVER_SCHEMA}.issue_components")
 
@@ -233,6 +243,7 @@ else:
             fmt.ColumnMapping("version_name", "name", "string"),
         ],
     )
+    issue_fix_version_df = issue_fix_version_df.select(*sorted(issue_fix_version_df.columns))
     issue_fix_version_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.issue_fix_version")
     print(f"[issue_fix_version] {issue_fix_version_df.count()} rows -> {SILVER_SCHEMA}.issue_fix_version")
 
@@ -245,6 +256,7 @@ else:
             fmt.ColumnMapping("version_name", "name", "string"),
         ],
     )
+    issue_affects_version_df = issue_affects_version_df.select(*sorted(issue_affects_version_df.columns))
     issue_affects_version_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.issue_affects_version")
     print(f"[issue_affects_version] {issue_affects_version_df.count()} rows -> {SILVER_SCHEMA}.issue_affects_version")
 
@@ -260,6 +272,7 @@ else:
         ],
     )
     issue_labels_df = issue_labels_df.withColumn("label_name", F.regexp_replace(F.col("label_name"), '^#', ""))
+    issue_labels_df = issue_labels_df.select(*sorted(issue_labels_df.columns))
     issue_labels_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.issue_labels")
     print(f"[issue_labels] {issue_labels_df.count()} rows -> {SILVER_SCHEMA}.issue_labels")
 
@@ -287,6 +300,7 @@ else:
         ],
     )
     comments_df = comments_df.withColumn("comment_body", adf_to_text_udf(F.col("comment_body")))
+    comments_df = comments_df.select(*sorted(comments_df.columns))
     comments_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.comments")
     print(f"[comments] {comments_df.count()} rows -> {SILVER_SCHEMA}.comments")
 
@@ -312,6 +326,7 @@ else:
         ],
     )
     worklogs_df = worklogs_df.withColumn("comment_body", adf_to_text_udf(F.col("comment_body")))
+    worklogs_df = worklogs_df.select(*sorted(worklogs_df.columns))
     worklogs_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.worklogs")
     print(f"[worklogs] {worklogs_df.count()} rows -> {SILVER_SCHEMA}.worklogs")
 
@@ -341,10 +356,12 @@ else:
         source_column="items",
         carry_through_columns=["issue_key", "issue_id", "issue_created", "history_id"],
     )
+    history_items_df = history_items_df.select(*sorted(history_items_df.columns))
     history_items_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.history_items")
     print(f"[history_items] {history_items_df.count()} rows -> {SILVER_SCHEMA}.history_items")
 
     histories_df = histories_df.drop("items")
+    histories_df = histories_df.select(*sorted(histories_df.columns))
     histories_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.histories")
     print(f"[histories] {histories_df.count()} rows -> {SILVER_SCHEMA}.histories")
 
@@ -369,6 +386,7 @@ attachments_df = fmt.explode_nested_array(
         fmt.ColumnMapping("thumbnail_url", "thumbnail", "string"),
     ],
 )
+attachments_df = attachments_df.select(*sorted(attachments_df.columns))
 attachments_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.attachments")
 print(f"[attachments] {attachments_df.count()} rows -> {SILVER_SCHEMA}.attachments")
 
@@ -390,6 +408,7 @@ else:
             fmt.ColumnMapping("new_value", "changedTo", "string"),
         ],
     )
+    audit_changed_values_df = audit_changed_values_df.select(*sorted(audit_changed_values_df.columns))
     audit_changed_values_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.audit_log_changed_values")
     print(f"[audit_log_changed_values] {audit_changed_values_df.count()} rows -> {SILVER_SCHEMA}.audit_log_changed_values")
 
@@ -404,6 +423,7 @@ else:
             fmt.ColumnMapping("item_parent_name", "parentName", "string"),
         ],
     )
+    audit_associated_items_df = audit_associated_items_df.select(*sorted(audit_associated_items_df.columns))
     audit_associated_items_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.audit_log_associated_items")
     print(f"[audit_log_associated_items] {audit_associated_items_df.count()} rows -> {SILVER_SCHEMA}.audit_log_associated_items")
 
@@ -436,6 +456,7 @@ else:
         parent_key_column="dashboard_id", parent_key_json_path="id",
         column_mappings=_permission_column_mappings,
     )
+    dashboard_edit_permissions_df = dashboard_edit_permissions_df.select(*sorted(dashboard_edit_permissions_df.columns))
     dashboard_edit_permissions_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.dashboard_edit_permissions")
     print(f"[dashboard_edit_permissions] {dashboard_edit_permissions_df.count()} rows -> {SILVER_SCHEMA}.dashboard_edit_permissions")
 
@@ -444,6 +465,7 @@ else:
         parent_key_column="dashboard_id", parent_key_json_path="id",
         column_mappings=_permission_column_mappings,
     )
+    dashboard_share_permissions_df = dashboard_share_permissions_df.select(*sorted(dashboard_share_permissions_df.columns))
     dashboard_share_permissions_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.dashboard_share_permissions")
     print(f"[dashboard_share_permissions] {dashboard_share_permissions_df.count()} rows -> {SILVER_SCHEMA}.dashboard_share_permissions")
 
@@ -465,6 +487,7 @@ else:
             fmt.ColumnMapping("actor_group_name", "actorGroup.name", "string"),
         ],
     )
+    project_role_actors_df = project_role_actors_df.select(*sorted(project_role_actors_df.columns))
     project_role_actors_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.project_role_actors")
     print(f"[project_role_actors] {project_role_actors_df.count()} rows -> {SILVER_SCHEMA}.project_role_actors")
 
@@ -490,6 +513,7 @@ else:
             fmt.ColumnMapping("avatar_id", "avatarId", "long"),
         ],
     )
+    project_issue_types_df = project_issue_types_df.select(*sorted(project_issue_types_df.columns))
     project_issue_types_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.project_issue_types")
     print(f"[project_issue_types] {project_issue_types_df.count()} rows -> {SILVER_SCHEMA}.project_issue_types")
 
@@ -511,6 +535,7 @@ else:
             fmt.ColumnMapping("issue_type_name", "fields.issuetype.name", "string"),
         ],
     )
+    issue_subtasks_df = issue_subtasks_df.select(*sorted(issue_subtasks_df.columns))
     issue_subtasks_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.issue_subtasks")
     print(f"[issue_subtasks] {issue_subtasks_df.count()} rows -> {SILVER_SCHEMA}.issue_subtasks")
 
@@ -534,6 +559,7 @@ else:
             fmt.ColumnMapping("complete_date", "completeDate", "timestamp", date_format="yyyy-MM-dd'T'HH:mm:ss.SSSX"),
         ],
     )
+    issue_sprints_df = issue_sprints_df.select(*sorted(issue_sprints_df.columns))
     issue_sprints_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.issue_sprints")
     print(f"[issue_sprints] {issue_sprints_df.count()} rows -> {SILVER_SCHEMA}.issue_sprints")
 
