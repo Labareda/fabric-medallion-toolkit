@@ -48,7 +48,16 @@ def merge(spark, df, schema: Union[TableSchema, GoldTableConfig]) -> Optional[st
 
     logger.info(f"Building {schema.table_name} (table_type={table_type})")
 
-    if getattr(schema, "include_unknown_member", False):
+    # include_unknown_member=None (the default) means "auto": True for
+    # dim/scd2, False for fact -- so you never need to type it out for an
+    # ordinary dimension, but a fact table (where it's never valid at all)
+    # doesn't error out just from using the default. Pass True/False
+    # explicitly only if you want to override the automatic choice.
+    include_unknown = getattr(schema, "include_unknown_member", None)
+    if include_unknown is None:
+        include_unknown = table_type in ("dim", "scd2")
+
+    if include_unknown:
         if table_type == "fact":
             raise ValueError(f"{schema.table_name}: include_unknown_member is for dim/scd2 tables, not fact")
         df = add_unknown_member(df, schema.merge_fields, getattr(schema, "unknown_value", "Unknown"))

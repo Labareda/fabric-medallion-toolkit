@@ -127,7 +127,7 @@ class TableSchema:
     merge_fields: List[str]                # business/natural key column(s); also the key's hash input
     key_column: str = "key"                # what to call the generated key column, e.g. "Project_key"
     tracked_columns: Optional[List[str]] = None  # scd2 only; None = track every non-merge-field column
-    include_unknown_member: bool = False   # dim/scd2 only; adds a placeholder row so fact lookups never go NULL
+    include_unknown_member: Optional[bool] = None  # None = auto (True for dim/scd2, False for fact); set explicitly to override
     unknown_value: str = "Unknown"         # the sentinel merge_fields get on that placeholder row
 
 
@@ -168,3 +168,4 @@ class DateDimensionConfig:
     start_date: str = "2020-01-01"
     end_date: str = "2035-12-31"
     fiscal_year_start_month: int = 1  # 1 = fiscal year == calendar year; e.g. 4 = FY starts in April
+
