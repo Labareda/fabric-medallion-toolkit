@@ -1,54 +1,86 @@
 # Fabric notebook source
-# "Orchestration - Jira" — runs the full Jira pipeline end to end, in
-# order: Source-to-Bronze, Bronze-to-Silver, then Silver-to-Gold (once
-# those exist), then refreshes the SQL Analytics Endpoint for the
-# lakehouses that changed. No Teams alerting logic here -- this notebook's
-# only job is to run the steps and either finish cleanly or fail with the
-# real error intact. The PIPELINE that schedules this notebook handles the
-# Teams alert on failure (see pipeline setup notes).
+# "Orchestration - Jira" — the single entry point for the whole pipeline:
+# Source -> Bronze -> Silver -> Gold dimensions -> Gold facts -> SQL
+# Endpoint refresh, then exit. One consistent execution model throughout
+# (a dependency graph, topologically sorted, run strictly one notebook at
+# a time -- never in parallel), rather than mixing a flat list for
+# Bronze/Silver with a different mechanism for Gold.
 #
-# Add S2G notebooks to PIPELINE_STEPS below once you've built them --
-# currently only S2B and B2S exist for Jira.
-#
-# Needs env_medallion_toolkit attached (for fmt.refresh_sql_endpoint) --
-# no lakehouse attached, since each step notebook it calls already has its
-# own attachments configured.
+# Needs env_medallion_toolkit attached (for fmt.topological_sort and
+# fmt.refresh_sql_endpoint) -- no lakehouse attached itself, since each
+# step notebook it calls already has its own attachments configured.
 
 # CELL ********************
 from notebookutils import mssparkutils
 import fabric_medallion_toolkit as fmt
 
 # CELL ********************
-# --- The pipeline, in order. Add Gold notebooks here once built, e.g.:
-# {"name": "S2G - dim_project", "timeout_seconds": 1800},
-PIPELINE_STEPS = [
-    {"name": "S2B - Jira", "timeout_seconds": 3600},
-    {"name": "B2S - Jira", "timeout_seconds": 3600},
+# --- Declare every step here, in the shape natural to what it actually is.
+# Add a new source's Bronze/Silver notebooks, a new dimension, or a new
+# fact by editing ONLY this cell -- nothing below needs to change.
+
+SOURCE_TO_BRONZE_STEPS = ["S2B - Jira"]   # add more here later, e.g. "S2B - Navision"
+BRONZE_TO_SILVER_STEPS = ["B2S - Jira"]   # same idea, per source
+
+DIMENSION_NOTEBOOKS = [
+    "Gold - Dim_Date",
+    "Gold - Dim_Project",
+    "Gold - Dim_User",
+    "Gold - Dim_IssueType",
+    "Gold - Dim_Status",
+    "Gold - Dim_Priority",
+    "Gold - Dim_Board",
 ]
 
-# --- SQL Analytics Endpoint refresh, run after all steps succeed. Add
-# "Gold" here too, once it exists, if you want both refreshed.
-LAKEHOUSES_TO_REFRESH = ["Silver"]
+# Facts only declare dependencies on OTHER FACTS here -- depending on every
+# dimension is automatic (see the merge step below), not restated per fact.
+FACT_NOTEBOOKS = {
+    "Gold - Fact_Issue": [],
+    # "Gold - Fact_ResourceAllocation": ["Gold - Fact_Issue"],  # add once built
+}
+
+LAKEHOUSES_TO_REFRESH = ["Silver", "Gold"]
 
 # CELL ********************
-for step in PIPELINE_STEPS:
-    step_name = step["name"]
+# --- Merge everything into ONE dependency graph, ONE execution model ---
+
+full_dependencies = {}
+
+for step in SOURCE_TO_BRONZE_STEPS:
+    full_dependencies[step] = []
+
+for step in BRONZE_TO_SILVER_STEPS:
+    full_dependencies[step] = list(SOURCE_TO_BRONZE_STEPS)
+
+for dim in DIMENSION_NOTEBOOKS:
+    full_dependencies[dim] = list(BRONZE_TO_SILVER_STEPS)
+
+for fact, fact_deps in FACT_NOTEBOOKS.items():
+    full_dependencies[fact] = DIMENSION_NOTEBOOKS + fact_deps
+
+run_order = fmt.topological_sort(full_dependencies)
+print("Computed run order:", run_order)
+
+# CELL ********************
+for step_name in run_order:
     print(f"--- Running {step_name} ---")
+    # useRootDefaultLakehouse=True bypasses Fabric's default behavior of
+    # blocking a child notebook run when its default lakehouse differs
+    # from the parent's -- this orchestration notebook has no lakehouse
+    # attached itself, and each step below attaches its own, so without
+    # this the run would be blocked outright.
+    #
+    # No try/except here on purpose: if a step fails, its exception
+    # (which already contains that notebook's own real error) should
+    # propagate all the way up unchanged, so this notebook's own failure
+    # carries the real error, not a summarized/re-wrapped version of it --
+    # EXCEPT we prefix which step failed, since the pipeline calling this
+    # notebook can only see THIS notebook's own failure message, not which
+    # internal step actually broke.
     try:
-        # useRootDefaultLakehouse=True bypasses Fabric's default behavior of
-        # blocking a child notebook run when its default lakehouse differs
-        # from the parent's -- this orchestration notebook has no lakehouse
-        # attached itself, and S2B/B2S each attach different ones, so without
-        # this the run would be blocked outright.
-        mssparkutils.notebook.run(step_name, step["timeout_seconds"], {"useRootDefaultLakehouse": True})
+        mssparkutils.notebook.run(step_name, 3600, {"useRootDefaultLakehouse": True})
         print(f"--- {step_name} succeeded ---")
     except Exception as exc:
-        # The pipeline running this notebook can only see THIS notebook's
-        # own failure message -- it has no visibility into which internal
-        # step (S2B/B2S/S2G) actually broke. Prefixing the step name here
-        # guarantees that's unambiguous in whatever the pipeline captures
-        # (and shows in the Teams alert), rather than depending on however
-        # Fabric happens to format the underlying notebook-run exception.
         raise RuntimeError(f"Failed at step '{step_name}': {exc}") from exc
 
 # CELL ********************
