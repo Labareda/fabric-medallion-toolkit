@@ -11,6 +11,7 @@ investigable.
 from typing import List
 
 from pyspark.sql import DataFrame
+from pyspark.sql.types import StructType, StructField
 
 
 def add_unknown_member(df: DataFrame, merge_fields: List[str], unknown_value: str = "Unknown") -> DataFrame:
@@ -36,5 +37,19 @@ def add_unknown_member(df: DataFrame, merge_fields: List[str], unknown_value: st
         unknown_value if field.name in merge_fields else None
         for field in df.schema.fields
     )
-    unknown_df = spark.createDataFrame([row_values], schema=df.schema)
+    # Force every field nullable=True for this one row's schema, regardless
+    # of what df.schema itself says -- df.schema can have nullable=False on
+    # a field purely because Spark's own inference never happened to see a
+    # null in the REAL data sampled so far, which has nothing to do with
+    # whether the Unknown row (which deliberately nulls out every
+    # non-merge-field column) is actually allowed to. Without this, a
+    # column that's simply never been empty in practice makes this whole
+    # function fail with an opaque "[CANNOT_BE_NONE] Argument `obj` can not
+    # be None" several layers down in PySpark's own type verification, with
+    # no indication the real cause is a nullability mismatch at all.
+    nullable_schema = StructType([
+        StructField(field.name, field.dataType, nullable=True)
+        for field in df.schema.fields
+    ])
+    unknown_df = spark.createDataFrame([row_values], schema=nullable_schema)
     return df.unionByName(unknown_df)

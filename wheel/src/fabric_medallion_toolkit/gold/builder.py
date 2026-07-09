@@ -16,6 +16,8 @@ way a dim's are); scd2 routes to gold/scd2.py's versioning logic instead.
 
 from typing import Optional, Union
 
+from pyspark.sql import functions as F
+
 from fabric_medallion_toolkit.config import GoldTableConfig, TableSchema
 from fabric_medallion_toolkit.gold.keys import add_guid_key
 from fabric_medallion_toolkit.gold.scd2 import merge_scd2
@@ -45,6 +47,65 @@ def merge(spark, df, schema: Union[TableSchema, GoldTableConfig]) -> Optional[st
         raise ValueError(f"{schema.table_name}: table_type must be one of {_VALID_TABLE_TYPES}, got '{schema.table_type}'")
     if not schema.merge_fields:
         raise ValueError(f"{schema.table_name}: merge_fields must be set (used for both MERGE matching and the key column)")
+
+    column_defaults = getattr(schema, "column_defaults", None)
+    if column_defaults:
+        missing_for_defaults = sorted(set(column_defaults) - set(df.columns))
+        if missing_for_defaults:
+            raise ValueError(
+                f"{schema.table_name}: column_defaults references column(s) not present in the "
+                f"DataFrame at all: {missing_for_defaults}. column_defaults can coerce a column's "
+                f"type/fill missing VALUES, but the column itself must already exist -- check your SELECT."
+            )
+        for col, spec in column_defaults.items():
+            df = df.withColumn(col, F.coalesce(F.col(col).cast(spec["type"]), F.lit(spec["default"])))
+
+    expected_columns = getattr(schema, "expected_columns", None)
+    if expected_columns:
+        actual_types = {f.name: f.dataType.simpleString() for f in df.schema.fields}
+        missing = sorted(set(expected_columns) - set(actual_types))
+        if missing:
+            raise ValueError(
+                f"{schema.table_name}: expected column(s) missing from the DataFrame: {missing}. "
+                f"The source query may no longer be producing a column this table relies on."
+            )
+        mismatches = [
+            f"'{col}' expected type '{expected_type}', got '{actual_types[col]}'"
+            for col, expected_type in expected_columns.items()
+            if actual_types[col] != expected_type
+        ]
+        if mismatches:
+            raise ValueError(
+                f"{schema.table_name}: column type drift detected (source data likely changed shape) -- "
+                + "; ".join(mismatches)
+            )
+
+    # Merge-field integrity: every row needs a COMPLETE, UNIQUE natural key.
+    # A null merge field would generate a key hashing partly from nothing
+    # (silently wrong), and a duplicate combination means two source rows
+    # would collide into the SAME generated key -- either corrupts the
+    # table silently if left unchecked, so both are checked unconditionally,
+    # not something you opt into.
+    missing_merge_cols = sorted(set(schema.merge_fields) - set(df.columns))
+    if missing_merge_cols:
+        raise ValueError(f"{schema.table_name}: merge field(s) not found in the DataFrame at all: {missing_merge_cols}")
+
+    null_filter = " OR ".join(f"`{col}` IS NULL" for col in schema.merge_fields)
+    null_rows = df.filter(null_filter).limit(1).count()
+    if null_rows > 0:
+        raise ValueError(
+            f"{schema.table_name}: merge field(s) {schema.merge_fields} contain NULL in at least one row -- "
+            f"every row needs a complete natural key. Fix the source query (e.g. COALESCE to a real "
+            f"sentinel) rather than merging with an incomplete key."
+        )
+
+    dup_rows = df.groupBy(*schema.merge_fields).count().filter("count > 1").limit(1).count()
+    if dup_rows > 0:
+        raise ValueError(
+            f"{schema.table_name}: merge field(s) {schema.merge_fields} contain duplicate combinations -- "
+            f"they must uniquely identify one row each. Two rows sharing the same merge field values "
+            f"would generate the SAME key and collide during MERGE, silently losing one of them."
+        )
 
     logger.info(f"Building {schema.table_name} (table_type={table_type})")
 

@@ -124,11 +124,84 @@ class TableSchema:
     """
     table_name: str                        # schema-qualified, e.g. "gold.dim_project"
     table_type: str                        # "dim" | "scd2" | "fact"
-    merge_fields: List[str]                # business/natural key column(s); also the key's hash input
+    merge_fields: List[str] = field(default_factory=list)  # business/natural key column(s); also the key's hash input -- omit if `columns` below marks the key column(s) with "key": True instead
     key_column: str = "key"                # what to call the generated key column, e.g. "Project_key"
+    columns: Optional[Dict[str, Dict[str, Any]]] = None
+        # The recommended way to declare a table going forward -- ONE place
+        # per column for its type, whether it's a merge field, and its
+        # default, instead of repeating a column name across separate
+        # merge_fields/column_defaults structures:
+        #
+        #   columns={
+        #       "Project_Id":   {"type": "string", "merge_field": True},
+        #       "Project_Name": {"type": "string", "default": "Unknown"},
+        #       "Is_Private":   {"type": "string", "default": "false"},
+        #   }
+        #
+        # merge_fields and column_defaults are DERIVED from this
+        # automatically in __post_init__ (see below) -- you don't set
+        # them yourself when using columns. Every column entry needs at
+        # least "type"; "merge_field": True marks it as feeding the
+        # MERGE match + key hash (a column can be both a merge field AND
+        # have a default, though that's unusual -- an unexpectedly-null
+        # natural key is normally something you WANT to catch, not
+        # silently paper over).
+        #
+        # Do NOT list the table's own generated surrogate key (whatever
+        # you set key_column to, e.g. "Project_Key") as an entry here --
+        # it isn't an input column at all; the wheel creates it as
+        # OUTPUT, from whichever column(s) you mark "merge_field": True.
+        #
+        # merge_fields/column_defaults still work exactly as before if you
+        # prefer to set them directly instead of using columns -- both
+        # styles are supported, not one replacing the other.
     tracked_columns: Optional[List[str]] = None  # scd2 only; None = track every non-merge-field column
     include_unknown_member: Optional[bool] = None  # None = auto (True for dim/scd2, False for fact); set explicitly to override
     unknown_value: str = "Unknown"         # the sentinel merge_fields get on that placeholder row
+    expected_columns: Optional[Dict[str, str]] = None
+        # Optional drift-detection contract: {"Project_Id": "string", "Is_Private": "string", ...}
+        # -- column name -> its expected Spark type (as df.schema[col].dataType.simpleString()
+        # would report it, e.g. "string", "bigint", "boolean", "date"). If set, merge() checks
+        # the incoming DataFrame against this BEFORE doing anything else, and raises a clear,
+        # specific error naming exactly which column is missing or changed type -- catching a
+        # source-side type change (e.g. a Jira field that used to infer as a number now
+        # infers as a string) at the point it happens, rather than surfacing later as a
+        # confusing downstream Spark error with no obvious cause. Doesn't need to list every
+        # column -- only the ones worth actively guarding.
+    column_defaults: Optional[Dict[str, Dict[str, str]]] = None
+        # Optional automatic type-coercion + defaulting, so you don't hand-write
+        # CAST(...)/COALESCE(...) for every ordinary attribute column in the SELECT --
+        # {"Is_Private": {"type": "string", "default": "false"}, "Lead_Name": {"type":
+        # "string", "default": "Unassigned"}}. merge() applies
+        # coalesce(cast(col, type), lit(default)) for each entry, BEFORE the
+        # expected_columns check above -- so a column covered here is guaranteed to
+        # already match its declared type by the time any drift check runs. Reserve
+        # expected_columns for columns where you genuinely WANT a loud error if the
+        # source shape changes (e.g. merge_fields/keys) rather than silent coercion;
+        # use column_defaults for ordinary attributes where "always conform, never
+        # null" is what you actually want. Real joins, computed expressions, and other
+        # substantive transformation logic still belongs in your own SELECT -- this is
+        # only for the mechanical type+default part.
+
+    def __post_init__(self):
+        if self.columns:
+            derived_merge_fields = [col for col, spec in self.columns.items() if spec.get("merge_field")]
+            derived_defaults = {
+                col: {"type": spec["type"], "default": spec["default"]}
+                for col, spec in self.columns.items()
+                if "default" in spec
+            }
+            if not self.merge_fields:
+                self.merge_fields = derived_merge_fields
+            if not self.column_defaults:
+                self.column_defaults = derived_defaults
+
+        if not self.merge_fields:
+            raise ValueError(
+                f"{self.table_name}: no merge_fields set, and no column in `columns` was marked "
+                f"\"merge_field\": True. Every table needs at least one -- it's both the MERGE match "
+                f"condition and the surrogate key's hash input."
+            )
 
 
 @dataclass

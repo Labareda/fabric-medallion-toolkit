@@ -1,32 +1,65 @@
 # Fabric notebook source
-# "Gold - Dim_Project"
-# Attach: Silver + Gold lakehouses + env_medallion_toolkit.
+
+# MARKDOWN ********************
+
+# ## Import environment and required packages
 
 # CELL ********************
 import fabric_medallion_toolkit as fmt
 
 GOLD_SCHEMA = "Gold.gold"
 
+# MARKDOWN ********************
+
+# ## Declare the table schema
+
 # CELL ********************
-df = spark.sql(f"""
+schema = fmt.TableSchema(
+    table_name=f"{GOLD_SCHEMA}.dim_project",
+    table_type="dim",
+    key_column="Project_Key",
+    columns={
+        "Project_Id":      {"type": "string", "merge_field": True},
+        "Project_Code":    {"type": "string", "default": "Unknown"},
+        "Project_Name":    {"type": "string", "default": "Unknown"},
+        "Project_Type":    {"type": "string", "default": "Unknown"},
+        "Project_Style":   {"type": "string", "default": "Unknown"},
+        "Is_Private":      {"type": "string", "default": "false"},
+        "Lead_Account_Id": {"type": "string", "default": "Unknown"},
+        "Lead_Name":       {"type": "string", "default": "Unassigned"},
+        "Lead_Active":     {"type": "string", "default": "false"},
+    },
+)
+
+# MARKDOWN ********************
+
+# ## Build the dimension from Silver
+
+# CELL ********************
+df = spark.sql("""
     SELECT
-        CAST(id AS STRING) AS Project_Id,
+        id AS Project_Id,
         key AS Project_Code,
-        COALESCE(name, 'Unknown') AS Project_Name,
-        COALESCE(projectTypeKey, 'Unknown') AS Project_Type,
-        COALESCE(style, 'Unknown') AS Project_Style,
-        COALESCE(CAST(CAST(isPrivate AS boolean) AS STRING), 'false') AS Is_Private,
+        name AS Project_Name,
+        projectTypeKey AS Project_Type,
+        style AS Project_Style,
+        isPrivate AS Is_Private,
         lead_accountId AS Lead_Account_Id,
-        COALESCE(lead_displayName, 'Unassigned') AS Lead_Name,
-        COALESCE(CAST(CAST(lead_active AS boolean) AS STRING), 'false') AS Lead_Active
+        lead_displayName AS Lead_Name,
+        lead_active AS Lead_Active
     FROM Silver.jira.projects
 """)
 
-fmt.merge(spark, df, fmt.TableSchema(
-    table_name=f"{GOLD_SCHEMA}.dim_project",
-    table_type="dim",
-    merge_fields=["Project_Id"],
-    key_column="Project_Key",
-))
+# MARKDOWN ********************
 
-print("Dim_Project built")
+# ## Merge into Gold (wheel handles type coercion, defaults, key generation + MERGE)
+
+# CELL ********************
+fmt.merge(spark, df, schema)
+
+# MARKDOWN ********************
+
+# ## Task complete
+
+# CELL ********************
+print("Dim_Project built successfully")

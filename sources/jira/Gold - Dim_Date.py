@@ -1,14 +1,18 @@
 # Fabric notebook source
-# "Gold - Dim_Date" — standard calendar dimension. Synthetic (not derived
-# from Silver), end date computed dynamically from the latest known issue
-# due date so it never needs manual upkeep.
-# Attach: Gold lakehouse + env_medallion_toolkit.
+
+# MARKDOWN ********************
+
+# ## Import environment and required packages
 
 # CELL ********************
 import fabric_medallion_toolkit as fmt
 from fabric_medallion_toolkit.config import DateDimensionConfig
 
 GOLD_SCHEMA = "Gold.gold"
+
+# MARKDOWN ********************
+
+# ## Compute a dynamic end date (latest known issue due date + 24 months buffer)
 
 # CELL ********************
 end_date = spark.sql("""
@@ -19,10 +23,20 @@ end_date = spark.sql("""
     FROM Silver.jira.issues
 """).collect()[0]["end_date"]
 
+# MARKDOWN ********************
+
+# ## Build the calendar dimension
+
+# CELL ********************
 fmt.build_date_dimension(spark, DateDimensionConfig(
     table_name=f"{GOLD_SCHEMA}.dim_date",
     start_date="2020-01-01",
     end_date=end_date,
 ))
 
-print(f"Dim_Date built, end_date={end_date}")
+# MARKDOWN ********************
+
+# ## Task complete
+
+# CELL ********************
+print(f"Dim_Date built successfully, end_date={end_date}")
