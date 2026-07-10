@@ -66,19 +66,23 @@ def merge(spark, df, schema: Union[TableSchema, GoldTableConfig]) -> Optional[st
         raise ValueError(f"{schema.table_name}: include_unknown_member is for dim/scd2 tables, not fact")
 
     if include_unknown:
-        # Build a sentinel value for EVERY merge field. A field with an
-        # explicit default declared in `columns` (-> merge_field_sentinels)
-        # uses that, of its own real type -- no casting needed, the native
-        # type is preserved end to end. A field with no explicit sentinel
-        # falls back to the old behavior: cast that ONE field to string and
-        # use schema.unknown_value -- this keeps old-style schemas (plain
-        # merge_fields=[...], no `columns`) working exactly as before,
-        # without requiring every existing table to be rewritten just to
-        # declare a sentinel.
+        # Every merge field is cast to its DECLARED type (from `columns`,
+        # falling back to "string" for old-style schemas that don't use
+        # `columns` at all) -- unconditionally, whether "missing" was
+        # explicitly set or falls back to schema.unknown_value. This
+        # matters even when "missing" IS declared: declaring a sentinel
+        # doesn't by itself guarantee the column already matches that
+        # type at the source (e.g. a genuinely numeric Board_Id with
+        # "type": "string", "missing": "Unknown" declared, but never
+        # actually cast anywhere upstream) -- without this, that case
+        # still fails inserting a string into a still-numeric column,
+        # despite having done everything the schema seems to ask for.
         declared_sentinels = dict(getattr(schema, "merge_field_sentinels", None) or {})
+        columns_spec = getattr(schema, "columns", None) or {}
         for col in schema.merge_fields:
+            declared_type = columns_spec.get(col, {}).get("type", "string")
+            df = df.withColumn(col, F.col(col).cast(declared_type))
             if col not in declared_sentinels:
-                df = df.withColumn(col, F.col(col).cast("string"))
                 declared_sentinels[col] = getattr(schema, "unknown_value", "Unknown")
         df = add_unknown_member(df, declared_sentinels)
 
