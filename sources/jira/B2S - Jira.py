@@ -304,6 +304,27 @@ else:
     comments_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.comments")
     print(f"[comments] {comments_df.count()} rows -> {SILVER_SCHEMA}.comments")
 
+    # People Involved -- a genuine array of MULTIPLE people per issue
+    # (fields.people_involved), distinct from the single assignee. Needs
+    # its own explosion table (not the auto-flattened comma-joined string
+    # auto_standardize gives every other multi-select field) specifically
+    # because a proper Gold bridge table needs each person's accountId to
+    # join against Dim_User -- the flattened display-name string loses that.
+    issue_people_involved_df = fmt.explode_nested_array(
+        bronze_issues_df, array_json_path="fields.people_involved",
+        parent_key_column="issue_key", parent_key_json_path="key",
+        carry_through_columns=["issue_id", "issue_created"],
+        column_mappings=[
+            fmt.ColumnMapping("person_account_id", "accountId", "string"),
+            fmt.ColumnMapping("person_name", "displayName", "string"),
+            fmt.ColumnMapping("person_email", "emailAddress", "string"),
+            fmt.ColumnMapping("person_active", "active", "boolean"),
+        ],
+    )
+    issue_people_involved_df = issue_people_involved_df.select(*sorted(issue_people_involved_df.columns))
+    issue_people_involved_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{SILVER_SCHEMA}.issue_people_involved")
+    print(f"[issue_people_involved] {issue_people_involved_df.count()} rows -> {SILVER_SCHEMA}.issue_people_involved")
+
     # Worklogs -- same free-embedded-data situation as comments:
     # fields.worklog.worklogs comes back with the issue payload itself, no
     # extra API calls needed.
