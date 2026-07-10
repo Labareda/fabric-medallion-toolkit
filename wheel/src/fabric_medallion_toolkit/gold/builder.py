@@ -96,7 +96,7 @@ def merge(spark, df, schema: Union[TableSchema, GoldTableConfig]) -> Optional[st
                 f"type/fill missing VALUES, but the column itself must already exist -- check your SELECT."
             )
         for col, spec in column_defaults.items():
-            df = df.withColumn(col, F.coalesce(F.col(col).cast(spec["type"]), F.lit(spec["default"])))
+            df = df.withColumn(col, F.coalesce(F.col(col).cast(spec["type"]), F.lit(spec["default"]).cast(spec["type"])))
 
     lookup_fallbacks = getattr(schema, "lookup_fallbacks", None)
     if lookup_fallbacks:
