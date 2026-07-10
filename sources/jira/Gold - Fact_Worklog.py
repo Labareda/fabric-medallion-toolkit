@@ -21,36 +21,34 @@ schema = fmt.TableSchema(
     columns={
         "Worklog_Id":  {"type": "string", "merge_field": True},
         "Hours_Spent": {"type": "double", "default": 0.0},
+        "Logged_Date": {"type": "date"},
+        "Resource_Key": {
+            "type": "string",
+            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_resource",
+                                     "natural_key_column": "Resource_Account_Id", "key_column": "Resource_Key"},
+        },
     },
 )
 
 # MARKDOWN ********************
 
-# ## Build the fact from Silver
+# ## Build the fact from Silver, joining Dim_Resource directly
 
 # CELL ********************
-df = spark.sql("""
+# Logged_Date relates directly to Dim_Date.date -- no join needed for
+# dates (see Fact_Issue for the full reasoning), just a plain COALESCE
+# for the rare case "started" is somehow null.
+df = spark.sql(f"""
     SELECT
-        worklog_id AS Worklog_Id,
-        issue_key AS Issue_Key,
-        author_account_id,
-        CAST(started AS date) AS logged_date,
-        time_spent_seconds / 3600.0 AS Hours_Spent
-    FROM Silver.jira.worklogs
+        w.worklog_id AS Worklog_Id,
+        w.issue_key AS Issue_Key,
+        w.time_spent_seconds / 3600.0 AS Hours_Spent,
+        COALESCE(CAST(w.started AS date), CAST('1900-01-01' AS date)) AS Logged_Date,
+        resource.Resource_Key AS Resource_Key
+    FROM Silver.jira.worklogs w
+    LEFT JOIN {GOLD_SCHEMA}.dim_resource resource
+        ON w.author_account_id = resource.Resource_Account_Id
 """)
-
-# MARKDOWN ********************
-
-# ## Resolve foreign keys
-
-# CELL ********************
-df = fmt.lookup_key(spark, df, dim_table_name=f"{GOLD_SCHEMA}.dim_resource",
-                     dim_natural_key_column="Resource_Account_Id", dim_key_column="Resource_Key",
-                     fact_join_column="author_account_id", output_column="Resource_Key", default_to_unknown=True)
-
-df = fmt.lookup_key(spark, df, dim_table_name=f"{GOLD_SCHEMA}.dim_date",
-                     dim_natural_key_column="date", dim_key_column="date_key",
-                     fact_join_column="logged_date", output_column="Date_Key", default_to_unknown=True)
 
 # MARKDOWN ********************
 

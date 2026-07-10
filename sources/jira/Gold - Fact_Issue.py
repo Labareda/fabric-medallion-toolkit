@@ -14,94 +14,91 @@ GOLD_SCHEMA = "Gold.gold"
 # ## Declare the table schema
 
 # CELL ********************
-# Issue_Key is both the merge field AND how this fact relates to Dim_Issue
-# (which carries the hierarchy/parent-child structure) -- everything else
-# here is either a measure or a foreign key to an already-built dimension.
-# Time tracking fields are converted from Jira's native seconds to hours.
+# Project/Assignee/Status/Priority/IssueType are resolved by a plain JOIN
+# below, with lookup_missing_from filling in the Unknown row's key
+# wherever that join finds nothing. Dates are different: Dim_Date covers
+# every day exhaustively, so a date almost never fails to "match" the way
+# a user/project genuinely can -- the only real gap is the SOURCE value
+# itself being null, which a plain COALESCE handles directly, no join
+# needed at all. The date value itself (not a separate integer key) is
+# what relates to Dim_Date.date in Power BI.
 schema = fmt.TableSchema(
     table_name=f"{GOLD_SCHEMA}.fact_issue",
     table_type="fact",
     key_column="Issue_Fact_Key",
     columns={
-        "Issue_Key":               {"type": "string", "merge_field": True},
-        "Story_Points":            {"type": "double"},
-        "Original_Estimate_Hours": {"type": "double"},
+        "Issue_Key":                {"type": "string", "merge_field": True},
+        "Story_Points":             {"type": "double"},
+        "Original_Estimate_Hours":  {"type": "double"},
         "Remaining_Estimate_Hours": {"type": "double"},
-        "Time_Spent_Hours":        {"type": "double"},
-        "Rank":                    {"type": "string", "default": ""},
+        "Time_Spent_Hours":         {"type": "double"},
+        "Rank":                     {"type": "string", "default": ""},
+        "Start_Date":    {"type": "date"},
+        "Due_Date":      {"type": "date"},
+        "Created_Date":  {"type": "date"},
+        "Resolved_Date": {"type": "date"},
+        "Project_Key": {
+            "type": "string",
+            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_project",
+                                     "natural_key_column": "Project_Id", "key_column": "Project_Key"},
+        },
+        "Assignee_Key": {
+            "type": "string",
+            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_resource",
+                                     "natural_key_column": "Resource_Account_Id", "key_column": "Resource_Key"},
+        },
+        "Status_Key": {
+            "type": "string",
+            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_status",
+                                     "natural_key_column": "Status_Id", "key_column": "Status_Key"},
+        },
+        "Priority_Key": {
+            "type": "string",
+            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_priority",
+                                     "natural_key_column": "Priority_Id", "key_column": "Priority_Key"},
+        },
+        "IssueType_Key": {
+            "type": "string",
+            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_issue_type",
+                                     "natural_key_column": "IssueType_Id", "key_column": "IssueType_Key"},
+        },
     },
 )
 
 # MARKDOWN ********************
 
-# ## Build the fact from Silver
+# ## Build the fact from Silver, joining every dimension directly
 
 # CELL ********************
-df = spark.sql("""
+df = spark.sql(f"""
     SELECT
-        key AS Issue_Key,
-        fields_project_id AS project_id,
-        fields_assignee_accountId AS assignee_account_id,
-        fields_status_id AS status_id,
-        fields_priority_id AS priority_id,
-        fields_issuetype_id AS issue_type_id,
-        CAST(fields_start_date AS date) AS start_date,
-        CAST(fields_duedate AS date) AS due_date,
-        CAST(fields_created AS date) AS created_date,
-        CAST(fields_resolutiondate AS date) AS resolved_date,
-        fields_story_point_estimate AS Story_Points,
-        fields_timeoriginalestimate / 3600.0 AS Original_Estimate_Hours,
-        fields_timeestimate / 3600.0 AS Remaining_Estimate_Hours,
-        fields_timespent / 3600.0 AS Time_Spent_Hours,
-        fields_rank AS Rank
-    FROM Silver.jira.issues
+        i.key AS Issue_Key,
+        project.Project_Key AS Project_Key,
+        assignee.Resource_Key AS Assignee_Key,
+        status.Status_Key AS Status_Key,
+        priority.Priority_Key AS Priority_Key,
+        issue_type.IssueType_Key AS IssueType_Key,
+        COALESCE(CAST(i.fields_start_date AS date), CAST('1900-01-01' AS date)) AS Start_Date,
+        COALESCE(CAST(i.fields_duedate AS date), CAST('1900-01-01' AS date)) AS Due_Date,
+        COALESCE(CAST(i.fields_created AS date), CAST('1900-01-01' AS date)) AS Created_Date,
+        COALESCE(CAST(i.fields_resolutiondate AS date), CAST('1900-01-01' AS date)) AS Resolved_Date,
+        i.fields_story_point_estimate AS Story_Points,
+        i.fields_timeoriginalestimate / 3600.0 AS Original_Estimate_Hours,
+        i.fields_timeestimate / 3600.0 AS Remaining_Estimate_Hours,
+        i.fields_timespent / 3600.0 AS Time_Spent_Hours,
+        i.fields_rank AS Rank
+    FROM Silver.jira.issues i
+    LEFT JOIN {GOLD_SCHEMA}.dim_project project
+        ON i.fields_project_id = project.Project_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_resource assignee
+        ON i.fields_assignee_accountId = assignee.Resource_Account_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_status status
+        ON i.fields_status_id = status.Status_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_priority priority
+        ON i.fields_priority_id = priority.Priority_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_issue_type issue_type
+        ON i.fields_issuetype_id = issue_type.IssueType_Id
 """)
-
-# MARKDOWN ********************
-
-# ## Resolve every dimension foreign key
-
-# CELL ********************
-df = fmt.lookup_key(spark, df, dim_table_name=f"{GOLD_SCHEMA}.dim_project",
-                     dim_natural_key_column="Project_Id", dim_key_column="Project_Key",
-                     fact_join_column="project_id", output_column="Project_Key", default_to_unknown=True)
-
-df = fmt.lookup_key(spark, df, dim_table_name=f"{GOLD_SCHEMA}.dim_resource",
-                     dim_natural_key_column="Resource_Account_Id", dim_key_column="Resource_Key",
-                     fact_join_column="assignee_account_id", output_column="Assignee_Key", default_to_unknown=True)
-
-df = fmt.lookup_key(spark, df, dim_table_name=f"{GOLD_SCHEMA}.dim_status",
-                     dim_natural_key_column="Status_Id", dim_key_column="Status_Key",
-                     fact_join_column="status_id", output_column="Status_Key", default_to_unknown=True)
-
-df = fmt.lookup_key(spark, df, dim_table_name=f"{GOLD_SCHEMA}.dim_priority",
-                     dim_natural_key_column="Priority_Id", dim_key_column="Priority_Key",
-                     fact_join_column="priority_id", output_column="Priority_Key", default_to_unknown=True)
-
-df = fmt.lookup_key(spark, df, dim_table_name=f"{GOLD_SCHEMA}.dim_issue_type",
-                     dim_natural_key_column="IssueType_Id", dim_key_column="IssueType_Key",
-                     fact_join_column="issue_type_id", output_column="IssueType_Key", default_to_unknown=True)
-
-# MARKDOWN ********************
-
-# ## Resolve every date foreign key against Dim_Date
-
-# CELL ********************
-df = fmt.lookup_key(spark, df, dim_table_name=f"{GOLD_SCHEMA}.dim_date",
-                     dim_natural_key_column="date", dim_key_column="date_key",
-                     fact_join_column="start_date", output_column="Start_Date_Key", default_to_unknown=True)
-
-df = fmt.lookup_key(spark, df, dim_table_name=f"{GOLD_SCHEMA}.dim_date",
-                     dim_natural_key_column="date", dim_key_column="date_key",
-                     fact_join_column="due_date", output_column="Due_Date_Key", default_to_unknown=True)
-
-df = fmt.lookup_key(spark, df, dim_table_name=f"{GOLD_SCHEMA}.dim_date",
-                     dim_natural_key_column="date", dim_key_column="date_key",
-                     fact_join_column="created_date", output_column="Created_Date_Key", default_to_unknown=True)
-
-df = fmt.lookup_key(spark, df, dim_table_name=f"{GOLD_SCHEMA}.dim_date",
-                     dim_natural_key_column="date", dim_key_column="date_key",
-                     fact_join_column="resolved_date", output_column="Resolved_Date_Key", default_to_unknown=True)
 
 # MARKDOWN ********************
 

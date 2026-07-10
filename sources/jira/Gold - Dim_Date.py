@@ -28,11 +28,23 @@ end_date = spark.sql("""
 # ## Build the calendar dimension
 
 # CELL ********************
-fmt.build_date_dimension(spark, DateDimensionConfig(
+calendar_schema = fmt.build_date_dimension(spark, DateDimensionConfig(
     table_name=f"{GOLD_SCHEMA}.dim_date",
     start_date="2020-01-01",
     end_date=end_date,
 ))
+
+# MARKDOWN ********************
+
+# ## Add a single sentinel row for missing/unknown dates
+
+# CELL ********************
+# Rather than extending the whole calendar back to 1900 (which would mean
+# generating ~44,000 unnecessary daily rows just to have that one date
+# exist), add ONLY that one row directly -- same idea as
+# add_unknown_member for other dimensions, just done by hand here since
+# build_date_dimension doesn't have that built in.
+fmt.add_date_dimension_sentinel(spark, f"{GOLD_SCHEMA}.dim_date")
 
 # MARKDOWN ********************
 

@@ -26,6 +26,11 @@ schema = fmt.TableSchema(
         "Issue_Key":       {"type": "string", "merge_field": True},
         "Allocation_Date": {"type": "date", "merge_field": True},
         "Allocated_Hours": {"type": "double", "default": 0.0},
+        "Resource_Key": {
+            "type": "string",
+            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_resource",
+                                     "natural_key_column": "Resource_Account_Id", "key_column": "Resource_Key"},
+        },
     },
 )
 
@@ -39,7 +44,12 @@ schema = fmt.TableSchema(
 # (including weekends), remove the "WHERE dayofweek(...) NOT IN (1, 7)"
 # filter below and recompute accordingly. Spark's dayofweek(): 1=Sunday,
 # 7=Saturday.
-df = spark.sql("""
+#
+# Allocation_Date always comes from a real generated day within the
+# issue's own start/due range (never null by construction), so no
+# COALESCE needed here the way Fact_Issue/Fact_Worklog need one for their
+# raw source date fields.
+spread_df = spark.sql("""
     WITH issue_range AS (
         SELECT
             key AS Issue_Key,
@@ -74,19 +84,23 @@ df = spark.sql("""
         total_estimate_hours / total_working_days AS Allocated_Hours
     FROM with_day_count
 """)
+spread_df.createOrReplaceTempView("spread_allocation")
 
 # MARKDOWN ********************
 
-# ## Resolve foreign keys
+# ## Join Dim_Resource directly
 
 # CELL ********************
-df = fmt.lookup_key(spark, df, dim_table_name=f"{GOLD_SCHEMA}.dim_resource",
-                     dim_natural_key_column="Resource_Account_Id", dim_key_column="Resource_Key",
-                     fact_join_column="assignee_account_id", output_column="Resource_Key", default_to_unknown=True)
-
-df = fmt.lookup_key(spark, df, dim_table_name=f"{GOLD_SCHEMA}.dim_date",
-                     dim_natural_key_column="date", dim_key_column="date_key",
-                     fact_join_column="Allocation_Date", output_column="Date_Key", default_to_unknown=True)
+df = spark.sql(f"""
+    SELECT
+        s.Issue_Key,
+        s.Allocation_Date,
+        s.Allocated_Hours,
+        resource.Resource_Key AS Resource_Key
+    FROM spread_allocation s
+    LEFT JOIN {GOLD_SCHEMA}.dim_resource resource
+        ON s.assignee_account_id = resource.Resource_Account_Id
+""")
 
 # MARKDOWN ********************
 
