@@ -98,6 +98,38 @@ def merge(spark, df, schema: Union[TableSchema, GoldTableConfig]) -> Optional[st
         for col, spec in column_defaults.items():
             df = df.withColumn(col, F.coalesce(F.col(col).cast(spec["type"]), F.lit(spec["default"])))
 
+    lookup_fallbacks = getattr(schema, "lookup_fallbacks", None)
+    if lookup_fallbacks:
+        missing_for_fallbacks = sorted(set(lookup_fallbacks) - set(df.columns))
+        if missing_for_fallbacks:
+            raise ValueError(
+                f"{schema.table_name}: lookup_fallbacks references column(s) not present in the "
+                f"DataFrame at all: {missing_for_fallbacks}. This resolves a null in a column YOUR "
+                f"SELECT already joined and produced -- the column itself must already exist."
+            )
+        # Cache each unique (table, natural_key_column, unknown_value)
+        # lookup so pointing several columns at the SAME dimension (e.g.
+        # Author_Key and Update_Author_Key both -> Dim_Resource) only
+        # queries that dimension once, not once per column.
+        unknown_value_cache = {}
+        for col, ref in lookup_fallbacks.items():
+            unknown_value = ref.get("unknown_value", "Unknown")
+            cache_key = (ref["table"], ref["natural_key_column"], ref["key_column"], unknown_value)
+            if cache_key not in unknown_value_cache:
+                unknown_row = (
+                    spark.table(ref["table"])
+                    .filter(F.col(ref["natural_key_column"]) == unknown_value)
+                    .select(ref["key_column"]).limit(1).collect()
+                )
+                if not unknown_row:
+                    raise ValueError(
+                        f"{schema.table_name}: lookup_fallbacks for '{col}' points at {ref['table']}, "
+                        f"but it has no row where {ref['natural_key_column']} = '{unknown_value}'. "
+                        f"Build that dimension with include_unknown_member=True first."
+                    )
+                unknown_value_cache[cache_key] = unknown_row[0][ref["key_column"]]
+            df = df.withColumn(col, F.coalesce(F.col(col), F.lit(unknown_value_cache[cache_key])))
+
     expected_columns = getattr(schema, "expected_columns", None)
     if expected_columns:
         actual_types = {f.name: f.dataType.simpleString() for f in df.schema.fields}

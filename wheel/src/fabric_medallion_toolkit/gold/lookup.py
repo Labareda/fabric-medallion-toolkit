@@ -102,3 +102,31 @@ def lookup_key(spark, fact_df: DataFrame, dim_table_name: str, dim_natural_key_c
         joined = joined.withColumn(output_column, F.coalesce(F.col(output_column), F.lit(unknown_key_value)))
 
     return joined
+
+
+def lookup_keys(spark, fact_df: DataFrame, dim_table_name: str, dim_natural_key_column: str,
+                 dim_key_column: str, mappings: list, as_of_column: Optional[str] = None,
+                 default_to_unknown: bool = True, unknown_value: str = "Unknown") -> DataFrame:
+    """
+    Same as lookup_key, but for resolving the SAME dimension multiple
+    times under different role names in one call -- e.g. a comment's
+    author AND update_author both against Dim_Resource -- instead of
+    repeating dim_table_name/dim_natural_key_column/dim_key_column for
+    each one.
+
+    mappings: list of (fact_join_column, output_column) tuples, e.g.
+        [("author_account_id", "Author_Key"), ("update_author_account_id", "Update_Author_Key")]
+
+    Everything else (as_of_column, default_to_unknown, unknown_value)
+    applies identically to every mapping in the list -- if different
+    roles genuinely need different settings for these, call lookup_key
+    directly for those instead.
+    """
+    for fact_join_column, output_column in mappings:
+        fact_df = lookup_key(
+            spark, fact_df, dim_table_name=dim_table_name,
+            dim_natural_key_column=dim_natural_key_column, dim_key_column=dim_key_column,
+            fact_join_column=fact_join_column, output_column=output_column,
+            as_of_column=as_of_column, default_to_unknown=default_to_unknown, unknown_value=unknown_value,
+        )
+    return fact_df

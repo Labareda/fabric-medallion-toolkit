@@ -71,6 +71,7 @@ ENTITY_EXCLUDE_COLUMNS = {
         "fields_worklog_worklogs",    # -> worklogs
         "fields_subtasks",            # -> issue_subtasks
         "fields_customfield_10020",   # Sprint -- a custom field in this instance, not built-in. -> issue_sprints. Excludes MUST use the pre-friendly-rename name, since exclusion runs before renaming.
+        "fields_customfield_10956",   # People Involved -- same situation as Sprint above. -> issue_people_involved.
         # Pagination-envelope metadata for the above (maxResults/startAt/
         # total) -- these describe the API's paging, not actual data, so
         # they're noise same as "expand" (see run_auto_silver_standardize).
@@ -305,13 +306,15 @@ else:
     print(f"[comments] {comments_df.count()} rows -> {SILVER_SCHEMA}.comments")
 
     # People Involved -- a genuine array of MULTIPLE people per issue
-    # (fields.people_involved), distinct from the single assignee. Needs
+    # (fields.customfield_10956 -- confirmed via Silver.jira.fields lookup;
+    # NOT a literal "fields.people_involved" path, same class of gap as
+    # Sprint being customfield_10020), distinct from the single assignee. Needs
     # its own explosion table (not the auto-flattened comma-joined string
     # auto_standardize gives every other multi-select field) specifically
     # because a proper Gold bridge table needs each person's accountId to
     # join against Dim_User -- the flattened display-name string loses that.
     issue_people_involved_df = fmt.explode_nested_array(
-        bronze_issues_df, array_json_path="fields.people_involved",
+        bronze_issues_df, array_json_path="fields.customfield_10956",
         parent_key_column="issue_key", parent_key_json_path="key",
         carry_through_columns=["issue_id", "issue_created"],
         column_mappings=[

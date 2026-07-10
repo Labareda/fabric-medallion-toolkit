@@ -202,6 +202,28 @@ class TableSchema:
         # null" is what you actually want. Real joins, computed expressions, and other
         # substantive transformation logic still belongs in your own SELECT -- this is
         # only for the mechanical type+default part.
+    lookup_fallbacks: Optional[Dict[str, Dict[str, str]]] = None
+        # For a foreign-key column YOU resolved yourself with a plain SQL
+        # JOIN (not lookup_key()) -- if that join finds no match and the
+        # column comes back null, automatically fill it from the referenced
+        # dimension's own Unknown/missing row instead of leaving it null.
+        # Declared per column in `columns`:
+        #
+        #   "Author_Key": {"type": "string", "lookup_missing_from": {
+        #       "table": "Gold.gold.dim_resource",
+        #       "natural_key_column": "Resource_Account_Id",
+        #       "key_column": "Resource_Key",
+        #   }}
+        #
+        # merge() queries each REFERENCED dimension once (not once per
+        # column -- Author_Key and Update_Author_Key both pointing at
+        # Dim_Resource only costs one lookup) for the row where
+        # natural_key_column equals "Unknown" (override via "unknown_value"
+        # in the same dict if that dimension's sentinel is something else),
+        # then coalesces any null in that column to the dimension's own key
+        # for that row. Your own SELECT stays a plain, ordinary JOIN --
+        # this only replaces the COALESCE/subquery boilerplate you'd
+        # otherwise write by hand for the same fallback.
 
     def __post_init__(self):
         if self.columns:
@@ -229,12 +251,19 @@ class TableSchema:
                 for col, spec in self.columns.items()
                 if spec.get("merge_field") and "missing" in spec
             }
+            derived_lookup_fallbacks = {
+                col: spec["lookup_missing_from"]
+                for col, spec in self.columns.items()
+                if "lookup_missing_from" in spec
+            }
             if not self.merge_fields:
                 self.merge_fields = derived_merge_fields
             if not self.column_defaults:
                 self.column_defaults = derived_defaults
             if not self.merge_field_sentinels:
                 self.merge_field_sentinels = derived_sentinels
+            if not self.lookup_fallbacks:
+                self.lookup_fallbacks = derived_lookup_fallbacks
 
         if not self.merge_fields:
             raise ValueError(

@@ -14,11 +14,10 @@ GOLD_SCHEMA = "Gold.gold"
 # ## Declare the table schema
 
 # CELL ********************
-# Comment_Id is already unique on its own -- no composite merge field
-# needed here, unlike the bridge/explosion tables. Issue_Key stays a
-# plain attribute (not resolved through lookup_key) since there's no
-# separate Dim_Issue -- it relates to Fact_Issue directly via that
-# shared business key.
+# Author_Key/Update_Author_Key: you write the plain JOIN yourself below
+# (so you can see/check it), and lookup_missing_from handles the "join
+# found nothing, use Dim_Resource's own Unknown row's key instead of
+# leaving null" part automatically -- no COALESCE/subquery to write by hand.
 schema = fmt.TableSchema(
     table_name=f"{GOLD_SCHEMA}.fact_comment",
     table_type="fact",
@@ -28,51 +27,49 @@ schema = fmt.TableSchema(
         "Issue_Key":    {"type": "string", "default": "Unknown"},
         "Comment_Body": {"type": "string", "default": ""},
         "Is_Public":    {"type": "string", "default": "true"},
+        "Author_Key": {
+            "type": "string",
+            "lookup_missing_from": {
+                "table": f"{GOLD_SCHEMA}.dim_resource",
+                "natural_key_column": "Resource_Account_Id",
+                "key_column": "Resource_Key",
+            },
+        },
+        "Update_Author_Key": {
+            "type": "string",
+            "lookup_missing_from": {
+                "table": f"{GOLD_SCHEMA}.dim_resource",
+                "natural_key_column": "Resource_Account_Id",
+                "key_column": "Resource_Key",
+            },
+        },
     },
 )
 
 # MARKDOWN ********************
 
-# ## Build the fact from Silver
+# ## Build the fact from Silver, joining Dim_Resource directly
 
 # CELL ********************
-df = spark.sql("""
+# Plain JOINs -- nothing hidden, check them here directly. Any row where
+# a join doesn't find a match comes back null for that key, and
+# lookup_missing_from (declared above) fills it in automatically.
+df = spark.sql(f"""
     SELECT
-        comment_id AS Comment_Id,
-        issue_key AS Issue_Key,
-        comment_body AS Comment_Body,
-        is_public AS Is_Public,
-        created AS Created,
-        updated AS Updated,
-        author_account_id,
-        update_author_account_id
-    FROM Silver.jira.comments
+        c.comment_id AS Comment_Id,
+        c.issue_key AS Issue_Key,
+        c.comment_body AS Comment_Body,
+        c.is_public AS Is_Public,
+        c.created AS Created,
+        c.updated AS Updated,
+        author.Resource_Key AS Author_Key,
+        update_author.Resource_Key AS Update_Author_Key
+    FROM Silver.jira.comments c
+    LEFT JOIN {GOLD_SCHEMA}.dim_resource author
+        ON c.author_account_id = author.Resource_Account_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_resource update_author
+        ON c.update_author_account_id = update_author.Resource_Account_Id
 """)
-
-# MARKDOWN ********************
-
-# ## Resolve author foreign keys against Dim_User
-
-# CELL ********************
-df = fmt.lookup_key(
-    spark, df,
-    dim_table_name=f"{GOLD_SCHEMA}.dim_resource",
-    dim_natural_key_column="User_Account_Id",
-    dim_key_column="User_Key",
-    fact_join_column="author_account_id",
-    output_column="Author_Key",
-    default_to_unknown=True,
-)
-
-df = fmt.lookup_key(
-    spark, df,
-    dim_table_name=f"{GOLD_SCHEMA}.dim_resource",
-    dim_natural_key_column="User_Account_Id",
-    dim_key_column="User_Key",
-    fact_join_column="update_author_account_id",
-    output_column="Update_Author_Key",
-    default_to_unknown=True,
-)
 
 # MARKDOWN ********************
 
