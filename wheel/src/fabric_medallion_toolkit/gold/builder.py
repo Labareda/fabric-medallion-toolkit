@@ -48,6 +48,40 @@ def merge(spark, df, schema: Union[TableSchema, GoldTableConfig]) -> Optional[st
     if not schema.merge_fields:
         raise ValueError(f"{schema.table_name}: merge_fields must be set (used for both MERGE matching and the key column)")
 
+    missing_merge_cols_early = sorted(set(schema.merge_fields) - set(df.columns))
+    if missing_merge_cols_early:
+        raise ValueError(f"{schema.table_name}: merge field(s) not found in the DataFrame at all: {missing_merge_cols_early}")
+
+    # include_unknown_member=None (the default) means "auto": True for
+    # dim/scd2, False for fact -- so you never need to type it out for an
+    # ordinary dimension, but a fact table (where it's never valid at all)
+    # doesn't error out just from using the default. Pass True/False
+    # explicitly only if you want to override the automatic choice.
+    # Resolved early (not just where it's applied further down) because it
+    # also determines whether merge fields need string-casting -- see below.
+    include_unknown = getattr(schema, "include_unknown_member", None)
+    if include_unknown is None:
+        include_unknown = table_type in ("dim", "scd2")
+    if include_unknown and table_type == "fact":
+        raise ValueError(f"{schema.table_name}: include_unknown_member is for dim/scd2 tables, not fact")
+
+    if include_unknown:
+        # Build a sentinel value for EVERY merge field. A field with an
+        # explicit default declared in `columns` (-> merge_field_sentinels)
+        # uses that, of its own real type -- no casting needed, the native
+        # type is preserved end to end. A field with no explicit sentinel
+        # falls back to the old behavior: cast that ONE field to string and
+        # use schema.unknown_value -- this keeps old-style schemas (plain
+        # merge_fields=[...], no `columns`) working exactly as before,
+        # without requiring every existing table to be rewritten just to
+        # declare a sentinel.
+        declared_sentinels = dict(getattr(schema, "merge_field_sentinels", None) or {})
+        for col in schema.merge_fields:
+            if col not in declared_sentinels:
+                df = df.withColumn(col, F.col(col).cast("string"))
+                declared_sentinels[col] = getattr(schema, "unknown_value", "Unknown")
+        df = add_unknown_member(df, declared_sentinels)
+
     column_defaults = getattr(schema, "column_defaults", None)
     if column_defaults:
         missing_for_defaults = sorted(set(column_defaults) - set(df.columns))
@@ -86,9 +120,7 @@ def merge(spark, df, schema: Union[TableSchema, GoldTableConfig]) -> Optional[st
     # would collide into the SAME generated key -- either corrupts the
     # table silently if left unchecked, so both are checked unconditionally,
     # not something you opt into.
-    missing_merge_cols = sorted(set(schema.merge_fields) - set(df.columns))
-    if missing_merge_cols:
-        raise ValueError(f"{schema.table_name}: merge field(s) not found in the DataFrame at all: {missing_merge_cols}")
+    # (existence already checked earlier, before the string-cast step)
 
     null_filter = " OR ".join(f"`{col}` IS NULL" for col in schema.merge_fields)
     null_rows = df.filter(null_filter).limit(1).count()
@@ -108,20 +140,6 @@ def merge(spark, df, schema: Union[TableSchema, GoldTableConfig]) -> Optional[st
         )
 
     logger.info(f"Building {schema.table_name} (table_type={table_type})")
-
-    # include_unknown_member=None (the default) means "auto": True for
-    # dim/scd2, False for fact -- so you never need to type it out for an
-    # ordinary dimension, but a fact table (where it's never valid at all)
-    # doesn't error out just from using the default. Pass True/False
-    # explicitly only if you want to override the automatic choice.
-    include_unknown = getattr(schema, "include_unknown_member", None)
-    if include_unknown is None:
-        include_unknown = table_type in ("dim", "scd2")
-
-    if include_unknown:
-        if table_type == "fact":
-            raise ValueError(f"{schema.table_name}: include_unknown_member is for dim/scd2 tables, not fact")
-        df = add_unknown_member(df, schema.merge_fields, getattr(schema, "unknown_value", "Unknown"))
 
     if table_type == "scd2":
         merge_scd2(spark, df, merge_fields=schema.merge_fields, table_name=schema.table_name,

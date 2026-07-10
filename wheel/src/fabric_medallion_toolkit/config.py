@@ -129,35 +129,55 @@ class TableSchema:
     columns: Optional[Dict[str, Dict[str, Any]]] = None
         # The recommended way to declare a table going forward -- ONE place
         # per column for its type, whether it's a merge field, and its
-        # default, instead of repeating a column name across separate
-        # merge_fields/column_defaults structures:
+        # default/sentinel, instead of repeating a column name across
+        # separate merge_fields/column_defaults structures:
         #
         #   columns={
-        #       "Project_Id":   {"type": "string", "merge_field": True},
+        #       "Project_Id":   {"type": "string", "merge_field": True, "missing": "Unknown"},
         #       "Project_Name": {"type": "string", "default": "Unknown"},
         #       "Is_Private":   {"type": "string", "default": "false"},
         #   }
         #
-        # merge_fields and column_defaults are DERIVED from this
-        # automatically in __post_init__ (see below) -- you don't set
-        # them yourself when using columns. Every column entry needs at
-        # least "type"; "merge_field": True marks it as feeding the
-        # MERGE match + key hash (a column can be both a merge field AND
-        # have a default, though that's unusual -- an unexpectedly-null
-        # natural key is normally something you WANT to catch, not
-        # silently paper over).
+        # merge_fields, column_defaults, and merge_field_sentinels are all
+        # DERIVED from this automatically in __post_init__ (see below) --
+        # you don't set them yourself when using columns.
+        #
+        # "default" and "missing" are deliberately different keys, for
+        # different situations -- not interchangeable:
+        #   - "default" is for an ordinary attribute column: if a REAL
+        #     row's value is null, coalesce it to this.
+        #   - "missing" is ONLY for a merge_field column: the sentinel
+        #     value (of that column's own real type -- a string like
+        #     "Unknown", an int like -1, a date like date(1900, 1, 1))
+        #     used for the ONE deliberately-added Unknown-placeholder row,
+        #     so that column never has to be forced to string just to
+        #     hold the word "Unknown". It does NOT get applied to real
+        #     rows -- an unexpectedly-null natural key in real data is
+        #     something merge()'s integrity check is supposed to catch
+        #     and error on loudly, not something to silently paper over.
         #
         # Do NOT list the table's own generated surrogate key (whatever
         # you set key_column to, e.g. "Project_Key") as an entry here --
         # it isn't an input column at all; the wheel creates it as
         # OUTPUT, from whichever column(s) you mark "merge_field": True.
         #
-        # merge_fields/column_defaults still work exactly as before if you
-        # prefer to set them directly instead of using columns -- both
-        # styles are supported, not one replacing the other.
+        # merge_fields/column_defaults/merge_field_sentinels still work
+        # exactly as before if you prefer to set them directly instead of
+        # using columns -- both styles are supported, not one replacing
+        # the other.
     tracked_columns: Optional[List[str]] = None  # scd2 only; None = track every non-merge-field column
     include_unknown_member: Optional[bool] = None  # None = auto (True for dim/scd2, False for fact); set explicitly to override
-    unknown_value: str = "Unknown"         # the sentinel merge_fields get on that placeholder row
+    unknown_value: str = "Unknown"         # fallback sentinel for merge fields with no per-column default declared (see merge_field_sentinels) -- only used for OLD-style schemas not using `columns`
+    merge_field_sentinels: Optional[Dict[str, Any]] = None
+        # Per-merge-field Unknown-row values, of each column's OWN real
+        # type -- e.g. {"Project_Id": "Unknown", "Some_Int_Key": -1,
+        # "Some_Date_Key": date(1900, 1, 1)}. Derived automatically from
+        # `columns` (see __post_init__ below) when a merge field there
+        # has a "default" -- you don't usually set this directly. Every
+        # merge field needs an entry here (or unknown_value is used as a
+        # same-type-coercion fallback) whenever include_unknown_member
+        # ends up True for this table -- merge() raises clearly if one's
+        # missing, rather than guessing an arbitrary value for an unknown type.
     expected_columns: Optional[Dict[str, str]] = None
         # Optional drift-detection contract: {"Project_Id": "string", "Is_Private": "string", ...}
         # -- column name -> its expected Spark type (as df.schema[col].dataType.simpleString()
@@ -186,15 +206,35 @@ class TableSchema:
     def __post_init__(self):
         if self.columns:
             derived_merge_fields = [col for col, spec in self.columns.items() if spec.get("merge_field")]
+            # Column_defaults derivation deliberately EXCLUDES merge fields
+            # -- a merge field's sentinel is declared with "missing", not
+            # "default" (see below), specifically to avoid the two being
+            # conflated. A "default" on a merge field is simply ignored: it
+            # would otherwise silently coalesce a null natural key in REAL
+            # rows, defeating merge()'s own integrity check before it ever
+            # runs and hiding a genuine data problem instead of surfacing it.
             derived_defaults = {
                 col: {"type": spec["type"], "default": spec["default"]}
                 for col, spec in self.columns.items()
-                if "default" in spec
+                if "default" in spec and not spec.get("merge_field")
+            }
+            # "missing" on a merge field column is that field's OWN sentinel
+            # for the Unknown-placeholder row, in its own real type -- a
+            # string field gets a string like "Unknown", an int field gets
+            # e.g. -1, a date field gets e.g. date(1900, 1, 1) -- rather
+            # than forcing every merge field to become a string just to
+            # hold the word "Unknown".
+            derived_sentinels = {
+                col: spec["missing"]
+                for col, spec in self.columns.items()
+                if spec.get("merge_field") and "missing" in spec
             }
             if not self.merge_fields:
                 self.merge_fields = derived_merge_fields
             if not self.column_defaults:
                 self.column_defaults = derived_defaults
+            if not self.merge_field_sentinels:
+                self.merge_field_sentinels = derived_sentinels
 
         if not self.merge_fields:
             raise ValueError(

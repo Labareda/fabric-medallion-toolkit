@@ -8,33 +8,37 @@ grouping — they show up under "Unknown" instead, which is visible and
 investigable.
 """
 
-from typing import List
+from typing import Any, Dict
 
 from pyspark.sql import DataFrame
 from pyspark.sql.types import StructType, StructField
 
 
-def add_unknown_member(df: DataFrame, merge_fields: List[str], unknown_value: str = "Unknown") -> DataFrame:
+def add_unknown_member(df: DataFrame, merge_field_sentinels: Dict[str, Any]) -> DataFrame:
     """
-    Appends one row to df where every column in merge_fields is set to
-    unknown_value and everything else is null — UNLESS a row with that
-    natural key combination already exists in df (idempotent: safe to call
-    every run without creating duplicates).
+    Appends one row to df where every merge field is set to its own
+    sentinel value (merge_field_sentinels[col], already of that column's
+    real type -- a string field gets a string like "Unknown", an int
+    field gets e.g. -1, a date field gets e.g. date(1900, 1, 1)) and
+    everything else is null — UNLESS a row with that exact combination
+    already exists in df (idempotent: safe to call every run without
+    creating duplicates).
 
-    Assumes merge_fields are string-typed (the common case — a natural key
-    is usually a code/name). If one of them isn't a string, cast unknown_value
-    to that column's type yourself before calling, or open an issue in your
-    own fork if this needs to support mixed types more generally.
+    merge_field_sentinels must have an entry for every merge field --
+    merge() is responsible for building this dict (including any
+    same-type-coercion fallback) before calling this function.
     """
     spark = df.sparkSession
+    merge_fields = list(merge_field_sentinels.keys())
+
     already_exists = df
     for c in merge_fields:
-        already_exists = already_exists.filter(df[c] == unknown_value)
+        already_exists = already_exists.filter(df[c] == merge_field_sentinels[c])
     if already_exists.limit(1).count() > 0:
         return df
 
     row_values = tuple(
-        unknown_value if field.name in merge_fields else None
+        merge_field_sentinels[field.name] if field.name in merge_fields else None
         for field in df.schema.fields
     )
     # Force every field nullable=True for this one row's schema, regardless
