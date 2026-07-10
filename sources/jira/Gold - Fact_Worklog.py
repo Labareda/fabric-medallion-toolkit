@@ -25,7 +25,8 @@ schema = fmt.TableSchema(
         "Resource_Key": {
             "type": "string",
             "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_resource",
-                                     "natural_key_column": "Resource_Account_Id", "key_column": "Resource_Key"},
+                                     "natural_key_column": "Resource_Account_Id", "key_column": "Resource_Key",
+                                     "unknown_value": "Unknown"},
         },
     },
 )

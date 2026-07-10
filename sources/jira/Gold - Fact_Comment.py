@@ -33,6 +33,7 @@ schema = fmt.TableSchema(
                 "table": f"{GOLD_SCHEMA}.dim_resource",
                 "natural_key_column": "Resource_Account_Id",
                 "key_column": "Resource_Key",
+                "unknown_value": "Unknown",
             },
         },
         "Update_Author_Key": {
@@ -41,6 +42,7 @@ schema = fmt.TableSchema(
                 "table": f"{GOLD_SCHEMA}.dim_resource",
                 "natural_key_column": "Resource_Account_Id",
                 "key_column": "Resource_Key",
+                "unknown_value": "Unknown",
             },
         },
     },

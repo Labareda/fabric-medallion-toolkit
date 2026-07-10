@@ -40,27 +40,32 @@ schema = fmt.TableSchema(
         "Project_Key": {
             "type": "string",
             "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_project",
-                                     "natural_key_column": "Project_Id", "key_column": "Project_Key"},
+                                     "natural_key_column": "Project_Id", "key_column": "Project_Key",
+                                     "unknown_value": "Unknown"},
         },
         "Assignee_Key": {
             "type": "string",
             "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_resource",
-                                     "natural_key_column": "Resource_Account_Id", "key_column": "Resource_Key"},
+                                     "natural_key_column": "Resource_Account_Id", "key_column": "Resource_Key",
+                                     "unknown_value": "Unknown"},
         },
         "Status_Key": {
             "type": "string",
             "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_status",
-                                     "natural_key_column": "Status_Id", "key_column": "Status_Key"},
+                                     "natural_key_column": "Status_Id", "key_column": "Status_Key",
+                                     "unknown_value": "Unknown"},
         },
         "Priority_Key": {
             "type": "string",
             "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_priority",
-                                     "natural_key_column": "Priority_Id", "key_column": "Priority_Key"},
+                                     "natural_key_column": "Priority_Id", "key_column": "Priority_Key",
+                                     "unknown_value": "Unknown"},
         },
         "IssueType_Key": {
             "type": "string",
             "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_issue_type",
-                                     "natural_key_column": "IssueType_Id", "key_column": "IssueType_Key"},
+                                     "natural_key_column": "IssueType_Id", "key_column": "IssueType_Key",
+                                     "unknown_value": "Unknown"},
         },
     },
 )
