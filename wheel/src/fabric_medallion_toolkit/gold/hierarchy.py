@@ -1,22 +1,32 @@
 """
-Converts a self-referencing parent-child hierarchy (one row per entity,
-with its own id, parent id, and a business code/name) into a flattened,
-multi-column "levels" representation -- Level_1 (the topmost ancestor)
-through Level_N (the entity's own code), left-aligned by each row's ACTUAL
-depth, not padded to a fixed position.
+Converts a self-referencing parent-child hierarchy into a flattened,
+multi-column "levels" representation -- Level_1 (topmost) through
+Level_N -- for Power BI custom visuals (e.g. xViz Gantt Chart) that
+expect a hierarchy as separate columns per level rather than a recursive
+parent/child pair.
 
-Not Jira-specific -- any self-referencing parent-child table has this
-same shape. Built specifically because some Power BI custom visuals
-(e.g. xViz Gantt Chart) expect a hierarchy as separate columns per level,
-rather than the recursive parent-child pattern Power BI's own native
-hierarchy visual uses -- this is the standard way of bridging the two.
+Two placement strategies, because they answer different questions:
 
-Implemented as a fixed number of self-joins (one per level) rather than a
-true recursive query, since Spark SQL doesn't support recursive CTEs the
-way some other engines do. This is fine given a small, known max_depth --
-each join is a normal, well-optimized operation, not something that scales
-badly for realistic hierarchy depths (a handful of levels, not hundreds).
+build_hierarchy_levels()
+    Places each row by its DEPTH IN THE PARENT CHAIN. Row with three
+    ancestors lands in Level_4, regardless of what it is. Correct for
+    hierarchies where depth IS the meaning (folder trees, org charts).
+
+build_typed_hierarchy_levels()
+    Places each row by its TYPE'S OWN RANK, ignoring how deep its parent
+    chain happens to run. This is what Jira's timeline does: a "Task"
+    always renders at the Task tier whether its parent is an Epic or the
+    project root. An issue can therefore skip tiers -- a Task parented
+    directly to a Release leaves the Initiative/Workstream/Epic levels
+    blank -- which is a "ragged" hierarchy and is CORRECT, not a defect.
+    Visuals that render these need their blank-row filter enabled.
+
+Both are implemented as a bounded number of self-joins (one per level)
+rather than a recursive query, since Spark SQL has no recursive CTE.
+Fine for realistic depths -- a handful of levels, not hundreds.
 """
+
+from typing import Dict
 
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
@@ -25,18 +35,12 @@ from pyspark.sql import functions as F
 def build_hierarchy_levels(df: DataFrame, id_column: str, parent_id_column: str,
                             code_column: str, max_depth: int = 10) -> DataFrame:
     """
-    df: one row per entity, with id_column/parent_id_column/code_column
-        already present (parent_id_column may be null for root entities).
-    max_depth: the maximum number of hierarchy levels to support -- must be
-        at least as deep as your real data's deepest branch, or that
-        branch's deepest levels get silently truncated. Extra depth
-        beyond what's actually used just means trailing Level_N columns
-        come back null for shallower branches -- harmless, not an error.
+    Depth-based placement. See module docstring for when to prefer
+    build_typed_hierarchy_levels instead.
 
-    Returns a DataFrame with id_column plus Level_1 (topmost ancestor)
-    through Level_{max_depth} (the entity's own code) -- shallower
-    branches simply have null in their unused trailing Level_N columns,
-    rather than being padded into the wrong position.
+    Returns id_column plus Level_1 (topmost ancestor) .. Level_{max_depth}
+    (the row's own code), left-aligned by actual chain depth -- shallower
+    branches leave trailing Level_N null rather than being padded.
     """
     result = df.select(
         F.col(id_column).alias("_id0"),
@@ -57,14 +61,6 @@ def build_hierarchy_levels(df: DataFrame, id_column: str, parent_id_column: str,
         )
         result = result.join(renamed_lookup, result[f"_parent{i - 1}"] == F.col(f"_id{i}"), "left")
 
-    # Safety check: if the DEEPEST ancestor this walk reached still has a
-    # non-null parent, max_depth ran out before reaching the true root --
-    # without this check, that failure is silent and actively misleading:
-    # the result shows the BOTTOM of that branch instead of the top (e.g.
-    # "Epic > Task > Sub-task" instead of "Programme > Release > Epic"),
-    # which loses exactly the context a hierarchy view exists to show.
-    # Raising here is much better than a report silently missing the roots
-    # of its deepest branches.
     truncated_count = result.filter(F.col(f"_parent{max_depth - 1}").isNotNull()).limit(1).count()
     if truncated_count > 0:
         raise ValueError(
@@ -74,12 +70,6 @@ def build_hierarchy_levels(df: DataFrame, id_column: str, parent_id_column: str,
             f"Increase max_depth to safely cover your data's real maximum hierarchy depth."
         )
 
-    # Each row now has _level0 (its own code) through _level{max_depth-1}
-    # (the deepest ancestor this specific branch's walk reached, null
-    # beyond that). Collect into an array (bottom-up), drop the nulls
-    # (that's what makes shallower branches correctly left-align instead
-    # of leaving gaps), reverse to get top-down order, then pull out each
-    # position as its own column.
     level_cols = [F.col(f"_level{i}") for i in range(max_depth)]
     path_array = F.reverse(F.filter(F.array(*level_cols), lambda x: x.isNotNull()))
 
@@ -88,3 +78,121 @@ def build_hierarchy_levels(df: DataFrame, id_column: str, parent_id_column: str,
         final_cols.append(F.element_at(path_array, level_num).alias(f"Level_{level_num}"))
 
     return result.select(*final_cols)
+
+
+def build_typed_hierarchy_levels(df: DataFrame, id_column: str, parent_id_column: str,
+                                  code_column: str, type_rank_column: str,
+                                  rank_to_level: Dict[int, int], max_chain_walk: int = 15) -> DataFrame:
+    """
+    Type-based placement -- each row lands in the Level_N its TYPE maps to,
+    not the depth its parent chain happens to reach.
+
+    type_rank_column: a numeric column on df giving each row's type rank
+        (e.g. Jira's Hierarchy_Level: Programme=5 .. Task=0, Sub-task=-1).
+
+    rank_to_level: maps each type rank to its 1-based Level_N slot, e.g.
+        {5: 1, 4: 2, 3: 3, 2: 4, 1: 5, 0: 6, -1: 7}
+        meaning Programme -> Level_1, ... Sub-task -> Level_7. The number
+        of levels produced is len(rank_to_level). Ranks in the data that
+        are absent from this dict raise, rather than silently vanishing
+        from the hierarchy.
+
+    max_chain_walk: how many ancestors to walk while resolving each row's
+        ancestry. Must be at least as deep as the longest real parent
+        chain -- note this can EXCEED the number of levels, since a chain
+        may pass through several issues of the same type. Raises if a
+        chain is still unresolved after this many steps.
+
+    An ancestor whose type maps to a level at or below the row's own
+    level is ignored for placement purposes (it cannot be an ancestor in
+    the type hierarchy even if it is one in the parent chain) -- this is
+    what keeps a Task parented to another Task from producing two Task
+    levels.
+    """
+    if not rank_to_level:
+        raise ValueError("build_typed_hierarchy_levels: rank_to_level must not be empty")
+
+    num_levels = len(rank_to_level)
+    levels_present = sorted(rank_to_level.values())
+    if levels_present != list(range(1, num_levels + 1)):
+        raise ValueError(
+            f"build_typed_hierarchy_levels: rank_to_level's values must be exactly the levels "
+            f"1..{num_levels} with no gaps or duplicates, got {levels_present}."
+        )
+
+    known_ranks = set(rank_to_level.keys())
+    actual_ranks = {r[type_rank_column] for r in df.select(type_rank_column).distinct().collect()
+                    if r[type_rank_column] is not None}
+    unmapped = sorted(actual_ranks - known_ranks)
+    if unmapped:
+        raise ValueError(
+            f"build_typed_hierarchy_levels: the data contains type rank(s) {unmapped} that are "
+            f"not in rank_to_level (which covers {sorted(known_ranks)}). Rows with an unmapped "
+            f"rank would silently drop out of the hierarchy -- add them to rank_to_level."
+        )
+
+    # Map each row's own rank to its level slot, once.
+    level_expr = F.lit(None).cast("int")
+    for rank, level in rank_to_level.items():
+        level_expr = F.when(F.col(type_rank_column) == rank, F.lit(level)).otherwise(level_expr)
+
+    base = df.select(
+        F.col(id_column).alias("_id"),
+        F.col(code_column).alias("_code"),
+        F.col(parent_id_column).alias("_parent"),
+        level_expr.alias("_level"),
+    )
+
+    lookup = base.select(
+        F.col("_id").alias("_lk_id"),
+        F.col("_code").alias("_lk_code"),
+        F.col("_parent").alias("_lk_parent"),
+        F.col("_level").alias("_lk_level"),
+    )
+
+    # Walk up the chain, collecting (level, code) pairs for every ancestor
+    # AND the row itself. Structs keep each ancestor's level bound to its
+    # code, so the final step can drop each one into the right slot
+    # regardless of the order they were encountered.
+    walk = base.select(
+        F.col("_id").alias("_row_id"),
+        F.array(F.struct(F.col("_level").alias("lvl"), F.col("_code").alias("code"))).alias("_pairs"),
+        F.col("_parent").alias("_ptr"),
+    )
+
+    for _ in range(max_chain_walk):
+        walk = (
+            walk.alias("w")
+            .join(lookup.alias("a"), F.col("w._ptr") == F.col("a._lk_id"), "left")
+            .select(
+                F.col("w._row_id").alias("_row_id"),
+                F.when(
+                    F.col("a._lk_code").isNotNull(),
+                    F.concat(
+                        F.col("w._pairs"),
+                        F.array(F.struct(F.col("a._lk_level").alias("lvl"), F.col("a._lk_code").alias("code"))),
+                    ),
+                ).otherwise(F.col("w._pairs")).alias("_pairs"),
+                F.col("a._lk_parent").alias("_ptr"),
+            )
+        )
+
+    unresolved = walk.filter(F.col("_ptr").isNotNull()).limit(1).count()
+    if unresolved > 0:
+        raise ValueError(
+            f"build_typed_hierarchy_levels: max_chain_walk={max_chain_walk} was not enough to "
+            f"reach the root of every parent chain. Increase it (note it counts CHAIN STEPS, "
+            f"which can exceed the number of type levels when a chain passes through several "
+            f"issues of the same type)."
+        )
+
+    # Drop each collected pair into its own level column. Taking the FIRST
+    # match per level is deliberate: _pairs is built row-first then upward,
+    # so if a chain contains two issues of the same type, the one NEAREST
+    # the row wins -- the closer ancestor is the more meaningful one.
+    final_cols = [F.col("_row_id").alias(id_column)]
+    for level_num in range(1, num_levels + 1):
+        matches = F.filter(F.col("_pairs"), lambda p: p["lvl"] == F.lit(level_num))
+        final_cols.append(F.element_at(matches, 1)["code"].alias(f"Level_{level_num}"))
+
+    return walk.select(*final_cols)
