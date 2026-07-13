@@ -6,8 +6,8 @@
 # a time -- never in parallel), rather than mixing a flat list for
 # Bronze/Silver with a different mechanism for Gold.
 #
-# Needs env_medallion_toolkit attached (for fmt.topological_sort and
-# fmt.refresh_sql_endpoint) -- no lakehouse attached itself, since each
+# Needs env_medallion_toolkit attached (for fmt.build_medallion_run_order
+# and fmt.refresh_sql_endpoint) -- no lakehouse attached itself, since each
 # step notebook it calls already has its own attachments configured.
 
 # CELL ********************
@@ -25,40 +25,35 @@ BRONZE_TO_SILVER_STEPS = ["B2S - Jira"]   # same idea, per source
 DIMENSION_NOTEBOOKS = [
     "Gold - Dim_Date",
     "Gold - Dim_Project",
-    "Gold - Dim_User",
+    "Gold - Dim_Resource",
     "Gold - Dim_IssueType",
     "Gold - Dim_Status",
     "Gold - Dim_Priority",
     "Gold - Dim_Board",
+    "Gold - Dim_Issue",
 ]
 
 # Facts only declare dependencies on OTHER FACTS here -- depending on every
-# dimension is automatic (see the merge step below), not restated per fact.
+# dimension is automatic (handled inside build_medallion_run_order below),
+# not restated per fact.
 FACT_NOTEBOOKS = {
     "Gold - Fact_Issue": [],
-    # "Gold - Fact_ResourceAllocation": ["Gold - Fact_Issue"],  # add once built
+    "Gold - Fact_Comment": [],
+    "Gold - Fact_Worklog": [],
+    "Gold - Fact_ResourceAllocation": ["Gold - Fact_Issue"],
+    "Gold - Bridge_IssuePeopleInvolved": [],
+    "Gold - Bridge_IssueLink": [],
 }
 
 LAKEHOUSES_TO_REFRESH = ["Silver", "Gold"]
 
 # CELL ********************
-# --- Merge everything into ONE dependency graph, ONE execution model ---
-
-full_dependencies = {}
-
-for step in SOURCE_TO_BRONZE_STEPS:
-    full_dependencies[step] = []
-
-for step in BRONZE_TO_SILVER_STEPS:
-    full_dependencies[step] = list(SOURCE_TO_BRONZE_STEPS)
-
-for dim in DIMENSION_NOTEBOOKS:
-    full_dependencies[dim] = list(BRONZE_TO_SILVER_STEPS)
-
-for fact, fact_deps in FACT_NOTEBOOKS.items():
-    full_dependencies[fact] = DIMENSION_NOTEBOOKS + fact_deps
-
-run_order = fmt.topological_sort(full_dependencies)
+run_order = fmt.build_medallion_run_order(
+    source_to_bronze=SOURCE_TO_BRONZE_STEPS,
+    bronze_to_silver=BRONZE_TO_SILVER_STEPS,
+    dimensions=DIMENSION_NOTEBOOKS,
+    facts=FACT_NOTEBOOKS,
+)
 print("Computed run order:", run_order)
 
 # CELL ********************

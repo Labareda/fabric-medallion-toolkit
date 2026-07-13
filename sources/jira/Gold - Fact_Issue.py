@@ -14,20 +14,20 @@ GOLD_SCHEMA = "Gold.gold"
 # ## Declare the table schema
 
 # CELL ********************
-# Project/Assignee/Status/Priority/IssueType are resolved by a plain JOIN
-# below, with lookup_missing_from filling in the Unknown row's key
-# wherever that join finds nothing. Dates are different: Dim_Date covers
-# every day exhaustively, so a date almost never fails to "match" the way
-# a user/project genuinely can -- the only real gap is the SOURCE value
-# itself being null, which a plain COALESCE handles directly, no join
-# needed at all. The date value itself (not a separate integer key) is
-# what relates to Dim_Date.date in Power BI.
+# Issue_Id is the fact's own grain (matches Dim_Issue's merge field
+# exactly) -- Issue_Code is a plain readable attribute, and Issue_Key is
+# resolved as a proper foreign key to Dim_Issue via lookup_missing_from,
+# same pattern as every other dimension link below. This replaces the
+# earlier version, which related to Dim_Issue via a plain shared natural
+# key rather than a resolved surrogate -- an inconsistency worth fixing
+# now that Dim_Issue itself has a clean id/code/key split.
 schema = fmt.TableSchema(
     table_name=f"{GOLD_SCHEMA}.fact_issue",
     table_type="fact",
     key_column="Issue_Fact_Key",
     columns={
-        "Issue_Key":                {"type": "string", "merge_field": True},
+        "Issue_Id":                 {"type": "string", "merge_field": True},
+        "Issue_Code":               {"type": "string", "default": "Unknown"},
         "Story_Points":             {"type": "double"},
         "Original_Estimate_Hours":  {"type": "double"},
         "Remaining_Estimate_Hours": {"type": "double"},
@@ -37,6 +37,12 @@ schema = fmt.TableSchema(
         "Due_Date":      {"type": "date", "default": "1900-01-01"},
         "Created_Date":  {"type": "date", "default": "1900-01-01"},
         "Resolved_Date": {"type": "date", "default": "1900-01-01"},
+        "Issue_Key": {
+            "type": "string",
+            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_issue",
+                                     "natural_key_column": "Issue_Id", "key_column": "Issue_Key",
+                                     "unknown_value": "Unknown"},
+        },
         "Project_Key": {
             "type": "string",
             "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_project",
@@ -77,7 +83,9 @@ schema = fmt.TableSchema(
 # CELL ********************
 df = spark.sql(f"""
     SELECT
-        i.key AS Issue_Key,
+        i.id AS Issue_Id,
+        i.key AS Issue_Code,
+        dim_issue.Issue_Key AS Issue_Key,
         project.Project_Key AS Project_Key,
         assignee.Resource_Key AS Assignee_Key,
         status.Status_Key AS Status_Key,
@@ -93,6 +101,8 @@ df = spark.sql(f"""
         i.fields_timespent / 3600.0 AS Time_Spent_Hours,
         i.fields_rank AS Rank
     FROM Silver.jira.issues i
+    LEFT JOIN {GOLD_SCHEMA}.dim_issue dim_issue
+        ON i.id = dim_issue.Issue_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_project project
         ON i.fields_project_id = project.Project_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_resource assignee

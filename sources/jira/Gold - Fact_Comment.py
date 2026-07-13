@@ -14,19 +14,29 @@ GOLD_SCHEMA = "Gold.gold"
 # ## Declare the table schema
 
 # CELL ********************
-# Author_Key/Update_Author_Key: you write the plain JOIN yourself below
-# (so you can see/check it), and lookup_missing_from handles the "join
-# found nothing, use Dim_Resource's own Unknown row's key instead of
-# leaving null" part automatically -- no COALESCE/subquery to write by hand.
+# Issue_Code (the plain Jira business code, e.g. "PROJ-123") is a regular
+# attribute; Issue_Key is now a REAL resolved foreign key to Dim_Issue's
+# surrogate, joined below on Silver's issue_id (which comments already
+# carries) -- not just the business code passed through misleadingly
+# named "Issue_Key" the way it was before.
 schema = fmt.TableSchema(
     table_name=f"{GOLD_SCHEMA}.fact_comment",
     table_type="fact",
     key_column="Comment_Key",
     columns={
         "Comment_Id":   {"type": "string", "merge_field": True, "missing": "Unknown"},
-        "Issue_Key":    {"type": "string", "default": "Unknown"},
+        "Issue_Code":   {"type": "string", "default": "Unknown"},
         "Comment_Body": {"type": "string", "default": ""},
         "Is_Public":    {"type": "string", "default": "true"},
+        "Issue_Key": {
+            "type": "string",
+            "lookup_missing_from": {
+                "table": f"{GOLD_SCHEMA}.dim_issue",
+                "natural_key_column": "Issue_Id",
+                "key_column": "Issue_Key",
+                "unknown_value": "Unknown",
+            },
+        },
         "Author_Key": {
             "type": "string",
             "lookup_missing_from": {
@@ -50,7 +60,7 @@ schema = fmt.TableSchema(
 
 # MARKDOWN ********************
 
-# ## Build the fact from Silver, joining Dim_Resource directly
+# ## Build the fact from Silver, joining every dimension directly
 
 # CELL ********************
 # Plain JOINs -- nothing hidden, check them here directly. Any row where
@@ -59,7 +69,8 @@ schema = fmt.TableSchema(
 df = spark.sql(f"""
     SELECT
         c.comment_id AS Comment_Id,
-        c.issue_key AS Issue_Key,
+        c.issue_key AS Issue_Code,
+        dim_issue.Issue_Key AS Issue_Key,
         c.comment_body AS Comment_Body,
         c.is_public AS Is_Public,
         c.created AS Created,
@@ -67,6 +78,8 @@ df = spark.sql(f"""
         author.Resource_Key AS Author_Key,
         update_author.Resource_Key AS Update_Author_Key
     FROM Silver.jira.comments c
+    LEFT JOIN {GOLD_SCHEMA}.dim_issue dim_issue
+        ON c.issue_id = dim_issue.Issue_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_resource author
         ON c.author_account_id = author.Resource_Account_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_resource update_author

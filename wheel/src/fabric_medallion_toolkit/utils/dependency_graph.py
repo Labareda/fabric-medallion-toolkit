@@ -61,3 +61,42 @@ def topological_sort(dependencies: Dict[str, List[str]]) -> List[str]:
             deps.difference_update(ready)
 
     return ordered
+
+
+def build_medallion_run_order(
+    source_to_bronze: List[str],
+    bronze_to_silver: List[str],
+    dimensions: List[str],
+    facts: Dict[str, List[str]],
+) -> List[str]:
+    """
+    Builds the standard medallion dependency shape and returns the
+    topologically-sorted run order in one call, instead of hand-building
+    the merged dependency dict yourself every time:
+
+    - Every bronze step has no dependencies (the start of the pipeline).
+    - Every silver step depends on ALL bronze steps.
+    - Every dimension depends on ALL silver steps.
+    - Every fact depends on ALL dimensions, PLUS whatever OTHER facts it
+      declares in its own entry in `facts` (empty list if none).
+
+    This is the "barrier" pattern most medallion pipelines share --
+    generic regardless of which actual notebooks you're running, unlike
+    the notebook names themselves (source_to_bronze, bronze_to_silver,
+    dimensions, facts), which stay specific to your own pipeline and are
+    passed in here as plain data.
+
+    facts: {fact_notebook_name: [other_fact_notebook_names_it_depends_on]}
+    """
+    full_dependencies: Dict[str, List[str]] = {}
+
+    for step in source_to_bronze:
+        full_dependencies[step] = []
+    for step in bronze_to_silver:
+        full_dependencies[step] = list(source_to_bronze)
+    for dim in dimensions:
+        full_dependencies[dim] = list(bronze_to_silver)
+    for fact, fact_deps in facts.items():
+        full_dependencies[fact] = dimensions + fact_deps
+
+    return topological_sort(full_dependencies)

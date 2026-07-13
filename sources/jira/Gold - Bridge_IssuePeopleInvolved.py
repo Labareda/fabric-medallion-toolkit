@@ -14,30 +14,43 @@ GOLD_SCHEMA = "Gold.gold"
 # ## Declare the table schema
 
 # CELL ********************
-# Purely the many-to-many "people involved" relationship -- the "Lead"
-# role was dropped since it's redundant with Fact_Issue.Assignee_Key
-# (a one-to-many relationship, already correctly handled there).
+# Issue_Key (the resolved surrogate) is used directly as the merge field
+# -- no separate Issue_Code needed here, since nobody browses a bridge
+# table directly; a report author gets the human-readable code by
+# relating through Dim_Issue itself. lookup_missing_from is STILL
+# declared here even though Issue_Key is a merge field -- it runs before
+# merge()'s null-check validation, so if the join below ever fails to
+# find a match, this falls back gracefully to Dim_Issue's Unknown row's
+# key instead of hard-erroring on a null merge field.
 schema = fmt.TableSchema(
     table_name=f"{GOLD_SCHEMA}.bridge_issue_people_involved",
     table_type="fact",
     key_column="Issue_Resource_Key",
     columns={
-        "Issue_Key":          {"type": "string", "merge_field": True},
+        "Issue_Key": {
+            "type": "string",
+            "merge_field": True,
+            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_issue",
+                                     "natural_key_column": "Issue_Id", "key_column": "Issue_Key",
+                                     "unknown_value": "Unknown"},
+        },
         "Resource_Account_Id": {"type": "string", "merge_field": True},
     },
 )
 
 # MARKDOWN ********************
 
-# ## Build the bridge from Silver
+# ## Build the bridge from Silver, joining Dim_Issue directly
 
 # CELL ********************
-df = spark.sql("""
+df = spark.sql(f"""
     SELECT
-        issue_key AS Issue_Key,
-        person_account_id AS Resource_Account_Id
-    FROM Silver.jira.issue_people_involved
-    WHERE person_account_id IS NOT NULL
+        dim_issue.Issue_Key AS Issue_Key,
+        p.person_account_id AS Resource_Account_Id
+    FROM Silver.jira.issue_people_involved p
+    LEFT JOIN {GOLD_SCHEMA}.dim_issue dim_issue
+        ON p.issue_id = dim_issue.Issue_Id
+    WHERE p.person_account_id IS NOT NULL
 """).distinct()
 
 # MARKDOWN ********************

@@ -18,14 +18,25 @@ GOLD_SCHEMA = "Gold.gold"
 # across the issue's start_date -> due_date range, with the original
 # estimate spread evenly across those working days. This is the
 # "planned" half of resourcing -- Fact_Worklog is the "actual" half.
+#
+# Issue_Code (the business code) stays part of the merge field, since
+# it's already what uniquely identifies the row together with
+# Allocation_Date -- Issue_Key is a separate, properly resolved surrogate
+# attribute, not part of the grain itself.
 schema = fmt.TableSchema(
     table_name=f"{GOLD_SCHEMA}.fact_resource_allocation",
     table_type="fact",
     key_column="Allocation_Key",
     columns={
-        "Issue_Key":       {"type": "string", "merge_field": True},
+        "Issue_Code":      {"type": "string", "merge_field": True},
         "Allocation_Date": {"type": "date", "merge_field": True},
         "Allocated_Hours": {"type": "double", "default": 0.0},
+        "Issue_Key": {
+            "type": "string",
+            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_issue",
+                                     "natural_key_column": "Issue_Id", "key_column": "Issue_Key",
+                                     "unknown_value": "Unknown"},
+        },
         "Resource_Key": {
             "type": "string",
             "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_resource",
@@ -49,11 +60,28 @@ schema = fmt.TableSchema(
 # Allocation_Date always comes from a real generated day within the
 # issue's own start/due range (never null by construction), so no
 # COALESCE needed here the way Fact_Issue/Fact_Worklog need one for their
-# raw source date fields.
+# raw source date fields. issue_id is carried through the whole CTE chain
+# so the final step can resolve Dim_Issue's real surrogate key.
+#
+# Issues where start_date is AFTER due_date are excluded entirely (see
+# the extra WHERE condition in issue_range below) -- this is a genuine
+# data quality problem in the source, not something this notebook can
+# meaningfully resolve (there's no valid ascending date range to spread
+# hours across when the start comes after the end). Reported below so
+# it's visible, not silently dropped.
+bad_range_count = spark.sql("""
+    SELECT COUNT(*) AS cnt FROM Silver.jira.issues
+    WHERE fields_start_date IS NOT NULL AND fields_duedate IS NOT NULL
+      AND CAST(fields_start_date AS date) > CAST(fields_duedate AS date)
+""").collect()[0]["cnt"]
+if bad_range_count > 0:
+    print(f"WARNING: {bad_range_count} issue(s) have a start_date AFTER due_date -- excluded from resource allocation entirely (see Silver.jira.issues to identify and fix these)")
+
 spread_df = spark.sql("""
     WITH issue_range AS (
         SELECT
-            key AS Issue_Key,
+            id AS issue_id,
+            key AS Issue_Code,
             fields_assignee_accountId AS assignee_account_id,
             CAST(fields_start_date AS date) AS range_start,
             CAST(fields_duedate AS date) AS range_end,
@@ -63,10 +91,11 @@ spread_df = spark.sql("""
           AND fields_duedate IS NOT NULL
           AND fields_assignee_accountId IS NOT NULL
           AND fields_timeoriginalestimate IS NOT NULL
+          AND CAST(fields_start_date AS date) <= CAST(fields_duedate AS date)
     ),
     exploded AS (
         SELECT
-            Issue_Key, assignee_account_id, total_estimate_hours,
+            issue_id, Issue_Code, assignee_account_id, total_estimate_hours,
             explode(sequence(range_start, range_end, interval 1 day)) AS Allocation_Date
         FROM issue_range
     ),
@@ -75,11 +104,12 @@ spread_df = spark.sql("""
         WHERE dayofweek(Allocation_Date) NOT IN (1, 7)
     ),
     with_day_count AS (
-        SELECT *, COUNT(*) OVER (PARTITION BY Issue_Key) AS total_working_days
+        SELECT *, COUNT(*) OVER (PARTITION BY Issue_Code) AS total_working_days
         FROM working_days_only
     )
     SELECT
-        Issue_Key,
+        issue_id,
+        Issue_Code,
         assignee_account_id,
         Allocation_Date,
         total_estimate_hours / total_working_days AS Allocated_Hours
@@ -89,16 +119,19 @@ spread_df.createOrReplaceTempView("spread_allocation")
 
 # MARKDOWN ********************
 
-# ## Join Dim_Resource directly
+# ## Join every dimension directly
 
 # CELL ********************
 df = spark.sql(f"""
     SELECT
-        s.Issue_Key,
+        s.Issue_Code,
+        dim_issue.Issue_Key AS Issue_Key,
         s.Allocation_Date,
         s.Allocated_Hours,
         resource.Resource_Key AS Resource_Key
     FROM spread_allocation s
+    LEFT JOIN {GOLD_SCHEMA}.dim_issue dim_issue
+        ON s.issue_id = dim_issue.Issue_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_resource resource
         ON s.assignee_account_id = resource.Resource_Account_Id
 """)
