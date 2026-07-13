@@ -32,7 +32,6 @@ schema = fmt.TableSchema(
         "Original_Estimate_Hours":  {"type": "double"},
         "Remaining_Estimate_Hours": {"type": "double"},
         "Time_Spent_Hours":         {"type": "double"},
-        "Rank":                     {"type": "string", "default": ""},
         "Start_Date":    {"type": "date", "default": "1900-01-01"},
         "Due_Date":      {"type": "date", "default": "1900-01-01"},
         "Created_Date":  {"type": "date", "default": "1900-01-01"},
@@ -98,8 +97,7 @@ df = spark.sql(f"""
         i.fields_story_point_estimate AS Story_Points,
         i.fields_timeoriginalestimate / 3600.0 AS Original_Estimate_Hours,
         i.fields_timeestimate / 3600.0 AS Remaining_Estimate_Hours,
-        i.fields_timespent / 3600.0 AS Time_Spent_Hours,
-        i.fields_rank AS Rank
+        i.fields_timespent / 3600.0 AS Time_Spent_Hours
     FROM Silver.jira.issues i
     LEFT JOIN {GOLD_SCHEMA}.dim_issue dim_issue
         ON i.id = dim_issue.Issue_Id
