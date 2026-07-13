@@ -70,3 +70,33 @@ def refresh_sql_endpoint(mssparkutils, lakehouse_name: str, timeout_minutes: int
         raise TimeoutError(f"SQL Endpoint refresh for {lakehouse_name} did not complete within {max_poll_seconds}s")
 
     raise RuntimeError(f"Unexpected status {resp.status_code} refreshing {lakehouse_name}: {resp.text}")
+
+
+def refresh_sql_endpoints(mssparkutils, lakehouse_names, **kwargs) -> Dict[str, Any]:
+    """
+    Refreshes the SQL Analytics Endpoint for each lakehouse in
+    lakehouse_names, one at a time -- BEST-EFFORT: a failure on any one
+    is caught and reported, not raised, since a sync-lag issue here means
+    the endpoint's own metadata cache hasn't caught up yet, not that the
+    underlying data is wrong. Doesn't stop a whole orchestration run over
+    this the way a real pipeline-step failure should.
+
+    kwargs are passed through to refresh_sql_endpoint for every lakehouse
+    (timeout_minutes, poll_interval_seconds, max_poll_seconds) -- pass
+    these if you need something other than that function's own defaults.
+
+    Returns {lakehouse_name: "ok" or the error message} for every name in
+    lakehouse_names, so a caller can inspect what happened per lakehouse
+    afterward rather than only seeing printed output.
+    """
+    print("--- Refreshing SQL Analytics Endpoint metadata ---")
+    results = {}
+    for lh_name in lakehouse_names:
+        try:
+            result = refresh_sql_endpoint(mssparkutils, lh_name, **kwargs)
+            print(f"[{lh_name}] SQL Endpoint refresh result: {result}")
+            results[lh_name] = "ok"
+        except Exception as exc:
+            print(f"[{lh_name}] SQL Endpoint refresh WARNING (data itself is unaffected): {exc}")
+            results[lh_name] = str(exc)
+    return results

@@ -79,15 +79,7 @@ for step_name in run_order:
         raise RuntimeError(f"Failed at step '{step_name}': {exc}") from exc
 
 # CELL ********************
-print("--- Refreshing SQL Analytics Endpoint metadata ---")
-for lh_name in LAKEHOUSES_TO_REFRESH:
-    try:
-        result = fmt.refresh_sql_endpoint(mssparkutils, lh_name)
-        print(f"[{lh_name}] SQL Endpoint refresh result: {result}")
-    except Exception as exc:
-        # Best-effort: don't fail the whole orchestration over a sync lag
-        # issue -- the underlying data is already correct either way.
-        print(f"[{lh_name}] SQL Endpoint refresh WARNING (data itself is unaffected): {exc}")
+fmt.refresh_sql_endpoints(mssparkutils, LAKEHOUSES_TO_REFRESH)
 
 # CELL ********************
 print("Orchestration complete. All steps succeeded.")
