@@ -14,36 +14,65 @@ GOLD_SCHEMA = "Gold.gold"
 # ## Declare the table schema
 
 # CELL ********************
-# Issue_Id is the fact's own grain (matches Dim_Issue's merge field
-# exactly) -- Issue_Code is a plain readable attribute, and Issue_Key is
-# resolved as a proper foreign key to Dim_Issue via lookup_missing_from,
-# same pattern as every other dimension link below. This replaces the
-# earlier version, which related to Dim_Issue via a plain shared natural
-# key rather than a resolved surrogate -- an inconsistency worth fixing
-# now that Dim_Issue itself has a clean id/code/key split.
+# Grain: ONE ROW PER ISSUE. This is the schedule fact -- the Gantt's dates and
+# the model's only additive measures live here.
+#
+# --- PLANNED vs ACTUAL ---
+# Jira has no "actual start" field. Planned dates are what someone typed in
+# (start date / due date). Actual dates are what the changelog PROVES happened:
+#   Actual_Start = the first transition into an In Progress status category
+#   Actual_End   = resolutiondate
+# Actual_Start is read from Fact_StatusHistory, which is why that notebook runs
+# first. Without it, "planned vs actual" is decorative -- two columns that both
+# show the plan.
+#
+# --- NO SENTINEL DATES ---
+# An unscheduled issue keeps a genuine NULL. The Gantt then renders its ROW but
+# draws NO BAR, which is what Jira does. A 1900-01-01 default instead draws a
+# phantom bar a century back and stretches the time axis to reach it. Roughly
+# 10,500 of ~12,000 issues have no dates of their own, so this matters a lot.
+#
+# --- ROLLUP ---
+# A real Gantt gives a summary row a bar spanning its children. Rollup_Start /
+# Rollup_End do that: own dates win; else min(child start)..max(child end);
+# else NULL. POINT THE GANTT AT THE ROLLUP COLUMNS, not the raw ones.
+#
+# --- NO ASSIGNEE KEY ---
+# Deliberately absent. The lead is a person, and every person-to-issue link
+# lives in Fact_Resource_Allocation with Role = 'Lead'. Putting Assignee_Key
+# here as well would give Dim_Resource a SECOND path into the model and force
+# a deactivated relationship. One path, one place.
 schema = fmt.TableSchema(
     table_name=f"{GOLD_SCHEMA}.fact_issue",
     table_type="fact",
     key_column="Issue_Fact_Key",
     columns={
-        "Issue_Id":                 {"type": "string", "merge_field": True},
-        "Issue_Code":               {"type": "string", "default": "Unknown"},
+        "Issue_Id":   {"type": "string", "merge_field": True},
+        "Issue_Code": {"type": "string", "default": "Unknown"},
+
+        # Measures -- the only additive columns in the model.
         "Story_Points":             {"type": "double"},
         "Original_Estimate_Hours":  {"type": "double"},
         "Remaining_Estimate_Hours": {"type": "double"},
         "Time_Spent_Hours":         {"type": "double"},
-        # NO 1900-01-01 default on Start/Due: an unscheduled issue must
-        # keep a genuine NULL so the Gantt renders its ROW but draws NO
-        # BAR -- which is what Jira does. A sentinel instead draws a
-        # phantom bar in 1900 and stretches the time axis a century.
-        # ~10,500 of ~12,000 issues have no dates, so this matters a lot.
-        "Start_Date":    {"type": "date"},
-        "Due_Date":      {"type": "date"},
-        "Created_Date":  {"type": "date"},
-        "Resolved_Date": {"type": "date"},
-        "Rollup_Start_Date": {"type": "date"},
-        "Rollup_End_Date":   {"type": "date"},
-        "Has_Own_Dates":     {"type": "boolean", "default": False},
+        "Issue_Count":              {"type": "int", "default": 1},
+
+        # Dates -- no defaults, by design (see note above).
+        "Planned_Start_Date": {"type": "date"},
+        "Planned_End_Date":   {"type": "date"},
+        "Actual_Start_Date":  {"type": "date"},
+        "Actual_End_Date":    {"type": "date"},
+        "Created_Date":       {"type": "date"},
+        "Rollup_Start_Date":  {"type": "date"},
+        "Rollup_End_Date":    {"type": "date"},
+        "Has_Own_Dates":      {"type": "boolean", "default": False},
+
+        # Derived schedule health -- computed here rather than in DAX so every
+        # tool (Power BI, Tableau, a SQL query) gets the same answer.
+        "Duration_Days":      {"type": "int"},
+        "Slip_Days":          {"type": "int"},
+        "Is_Overdue":         {"type": "boolean", "default": False},
+
         "Issue_Key": {
             "type": "string",
             "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_issue",
@@ -54,12 +83,6 @@ schema = fmt.TableSchema(
             "type": "string",
             "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_project",
                                      "natural_key_column": "Project_Id", "key_column": "Project_Key",
-                                     "unknown_value": "Unknown"},
-        },
-        "Assignee_Key": {
-            "type": "string",
-            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_resource",
-                                     "natural_key_column": "Resource_Account_Id", "key_column": "Resource_Key",
                                      "unknown_value": "Unknown"},
         },
         "Status_Key": {
@@ -85,40 +108,64 @@ schema = fmt.TableSchema(
 
 # MARKDOWN ********************
 
-# ## Build the fact from Silver, joining every dimension directly
+# ## Actual start, from the status history
+
+# CELL ********************
+# The FIRST time an issue entered an In Progress status category. Matching on
+# the CATEGORY, not on a hardcoded status name list -- clients rename statuses
+# constantly ("In Dev", "Building", "WIP") but the category behind them stays
+# "In Progress". Silver.jira.statuses carries that mapping.
+actual_starts = spark.sql(f"""
+    SELECT
+        h.Issue_Code,
+        MIN(h.Changed_At) AS Actual_Start_At
+    FROM {GOLD_SCHEMA}.fact_status_history h
+    INNER JOIN Silver.jira.statuses s
+        ON h.To_Status = s.name
+    WHERE s.statusCategory_name = 'In Progress'
+    GROUP BY h.Issue_Code
+""")
+actual_starts.createOrReplaceTempView("actual_starts")
+
+# MARKDOWN ********************
+
+# ## Build the fact
 
 # CELL ********************
 df = spark.sql(f"""
     SELECT
         i.id AS Issue_Id,
         i.key AS Issue_Code,
-        dim_issue.Issue_Key AS Issue_Key,
-        project.Project_Key AS Project_Key,
-        assignee.Resource_Key AS Assignee_Key,
-        status.Status_Key AS Status_Key,
-        priority.Priority_Key AS Priority_Key,
-        issue_type.IssueType_Key AS IssueType_Key,
-        CAST(i.fields_start_date AS date) AS Start_Date,
-        CAST(i.fields_duedate AS date) AS Due_Date,
-        CAST(i.fields_created AS date) AS Created_Date,
-        CAST(i.fields_resolutiondate AS date) AS Resolved_Date,
-        i.fields_story_point_estimate AS Story_Points,
-        i.fields_timeoriginalestimate / 3600.0 AS Original_Estimate_Hours,
-        i.fields_timeestimate / 3600.0 AS Remaining_Estimate_Hours,
-        i.fields_timespent / 3600.0 AS Time_Spent_Hours
+        dim_issue.Issue_Key,
+        project.Project_Key,
+        status.Status_Key,
+        priority.Priority_Key,
+        issue_type.IssueType_Key,
+
+        CAST(i.fields_start_date AS date)      AS Planned_Start_Date,
+        CAST(i.fields_duedate AS date)         AS Planned_End_Date,
+        CAST(a.Actual_Start_At AS date)        AS Actual_Start_Date,
+        CAST(i.fields_resolutiondate AS date)  AS Actual_End_Date,
+        CAST(i.fields_created AS date)         AS Created_Date,
+
+        DATEDIFF(CAST(i.fields_duedate AS date), CAST(i.fields_start_date AS date)) AS Duration_Days,
+        DATEDIFF(CAST(i.fields_resolutiondate AS date), CAST(i.fields_duedate AS date)) AS Slip_Days,
+        (i.fields_duedate IS NOT NULL
+         AND i.fields_resolutiondate IS NULL
+         AND CAST(i.fields_duedate AS date) < CURRENT_DATE()) AS Is_Overdue,
+
+        i.fields_story_point_estimate           AS Story_Points,
+        i.fields_timeoriginalestimate / 3600.0  AS Original_Estimate_Hours,
+        i.fields_timeestimate / 3600.0          AS Remaining_Estimate_Hours,
+        i.fields_timespent / 3600.0             AS Time_Spent_Hours,
+        1 AS Issue_Count
     FROM Silver.jira.issues i
-    LEFT JOIN {GOLD_SCHEMA}.dim_issue dim_issue
-        ON i.id = dim_issue.Issue_Id
-    LEFT JOIN {GOLD_SCHEMA}.dim_project project
-        ON i.fields_project_id = project.Project_Id
-    LEFT JOIN {GOLD_SCHEMA}.dim_resource assignee
-        ON i.fields_assignee_accountId = assignee.Resource_Account_Id
-    LEFT JOIN {GOLD_SCHEMA}.dim_status status
-        ON i.fields_status_id = status.Status_Id
-    LEFT JOIN {GOLD_SCHEMA}.dim_priority priority
-        ON i.fields_priority_id = priority.Priority_Id
-    LEFT JOIN {GOLD_SCHEMA}.dim_issue_type issue_type
-        ON i.fields_issuetype_id = issue_type.IssueType_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_issue dim_issue   ON i.id = dim_issue.Issue_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_project project   ON i.fields_project_id = project.Project_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_status status     ON i.fields_status_id = status.Status_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_priority priority ON i.fields_priority_id = priority.Priority_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_issue_type issue_type ON i.fields_issuetype_id = issue_type.IssueType_Id
+    LEFT JOIN actual_starts a                     ON i.key = a.Issue_Code
 """)
 
 # MARKDOWN ********************
@@ -126,45 +173,19 @@ df = spark.sql(f"""
 # ## Roll dates up the hierarchy so summary rows get bars
 
 # CELL ********************
-# Most issues have no dates of their own (~10,500 of ~12,000): parents are
-# usually undated, and so are most Stories/Bugs. A Gantt that only draws
-# an issue's OWN dates therefore leaves nearly everything blank.
-#
-# A real Gantt gives a summary row a bar spanning its children. That's
-# what this does:
-#   own dates            -> use them (Has_Own_Dates = true)
-#   none, but dated kids -> min(child start) .. max(child due)
-#   neither              -> NULL: the row still shows, with no bar
-#
-# 433 parents have dated children, so this genuinely fills the upper tiers
-# rather than being a no-op.
-#
-# Point the Gantt at Rollup_Start_Date / Rollup_End_Date. Start_Date and
-# Due_Date remain available for anything that needs the raw values.
-issue_parents = spark.sql(f"""
-    SELECT Issue_Id, Parent_Issue_Id
-    FROM {GOLD_SCHEMA}.dim_issue
-""")
-df_for_rollup = df.join(issue_parents, on="Issue_Id", how="left")
-
+issue_parents = spark.sql(f"SELECT Issue_Id, Parent_Issue_Id FROM {GOLD_SCHEMA}.dim_issue")
 df = fmt.rollup_hierarchy_dates(
-    df_for_rollup,
-    id_column="Issue_Id",
-    parent_id_column="Parent_Issue_Id",
-    start_column="Start_Date",
-    end_column="Due_Date",
+    df.join(issue_parents, on="Issue_Id", how="left"),
+    id_column="Issue_Id", parent_id_column="Parent_Issue_Id",
+    start_column="Planned_Start_Date", end_column="Planned_End_Date",
 ).drop("Parent_Issue_Id")
 
 # MARKDOWN ********************
 
-# ## Merge into Gold (wheel handles type coercion, defaults, key generation + MERGE)
+# ## Merge into Gold
 
 # CELL ********************
 fmt.merge(spark, df, schema)
-
-# MARKDOWN ********************
-
-# ## Task complete
 
 # CELL ********************
 print("Fact_Issue built successfully")
