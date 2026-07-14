@@ -22,16 +22,22 @@ import fabric_medallion_toolkit as fmt
 SOURCE_TO_BRONZE_STEPS = ["S2B - Jira"]   # add more here later, e.g. "S2B - Navision"
 BRONZE_TO_SILVER_STEPS = ["B2S - Jira"]   # same idea, per source
 
-DIMENSION_NOTEBOOKS = [
-    "Gold - Dim_Date",
-    "Gold - Dim_Project",
-    "Gold - Dim_Resource",
-    "Gold - Dim_IssueType",
-    "Gold - Dim_Status",
-    "Gold - Dim_Priority",
-    "Gold - Dim_Board",
-    "Gold - Dim_Issue",
-]
+DIMENSION_NOTEBOOKS = {
+    "Gold - Dim_Date": [],
+    "Gold - Dim_Project": [],
+    "Gold - Dim_Resource": [],
+    "Gold - Dim_IssueType": [],
+    "Gold - Dim_Status": [],
+    "Gold - Dim_Priority": [],
+    "Gold - Dim_Board": [],
+    # Dim_Issue joins to Dim_Project (for Sort_Path's project-code root
+    # prefix) -- it must run AFTER Dim_Project exists, not just after
+    # Silver. Without this declared explicitly, topological_sort's
+    # alphabetical tie-break runs "Dim - Issue" before "Dim - Project"
+    # (I < P), which is exactly the TABLE_OR_VIEW_NOT_FOUND error this
+    # notebook used to hit.
+    "Gold - Dim_Issue": ["Gold - Dim_Project"],
+}
 
 # Facts only declare dependencies on OTHER FACTS here -- depending on every
 # dimension is automatic (handled inside build_medallion_run_order below),

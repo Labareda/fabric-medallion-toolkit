@@ -66,7 +66,7 @@ def topological_sort(dependencies: Dict[str, List[str]]) -> List[str]:
 def build_medallion_run_order(
     source_to_bronze: List[str],
     bronze_to_silver: List[str],
-    dimensions: List[str],
+    dimensions,
     facts: Dict[str, List[str]],
 ) -> List[str]:
     """
@@ -76,7 +76,11 @@ def build_medallion_run_order(
 
     - Every bronze step has no dependencies (the start of the pipeline).
     - Every silver step depends on ALL bronze steps.
-    - Every dimension depends on ALL silver steps.
+    - Every dimension depends on ALL silver steps, PLUS whatever OTHER
+      dimensions it declares (see `dimensions` below) -- e.g. a dimension
+      that derives a column by joining to another dimension (grouping a
+      hierarchy's roots by project code, say) genuinely needs that other
+      dimension to already exist.
     - Every fact depends on ALL dimensions, PLUS whatever OTHER facts it
       declares in its own entry in `facts` (empty list if none).
 
@@ -86,17 +90,37 @@ def build_medallion_run_order(
     dimensions, facts), which stay specific to your own pipeline and are
     passed in here as plain data.
 
+    dimensions: EITHER
+        - a plain list of dimension names, when none of them depend on
+          each other (the common case) -- e.g. ["Dim_Date", "Dim_Project"]
+        - a dict {dimension_name: [other_dimension_names_it_depends_on]}
+          when at least one does -- e.g.
+          {"Dim_Project": [], "Dim_Issue": ["Dim_Project"]}
+          every dimension must still appear as a key even with an empty
+          list, same rule as topological_sort itself.
+
+    Without an explicit dependency, two dimensions with no relationship
+    to each other are ordered alphabetically (topological_sort's own
+    tie-breaking) -- NOT by which one happens to need the other. Declare
+    the dependency explicitly rather than relying on alphabetical order
+    coincidentally working out.
+
     facts: {fact_notebook_name: [other_fact_notebook_names_it_depends_on]}
     """
+    dimension_deps: Dict[str, List[str]] = (
+        dict(dimensions) if isinstance(dimensions, dict) else {d: [] for d in dimensions}
+    )
+    dimension_names = list(dimension_deps.keys())
+
     full_dependencies: Dict[str, List[str]] = {}
 
     for step in source_to_bronze:
         full_dependencies[step] = []
     for step in bronze_to_silver:
         full_dependencies[step] = list(source_to_bronze)
-    for dim in dimensions:
-        full_dependencies[dim] = list(bronze_to_silver)
+    for dim, dim_deps in dimension_deps.items():
+        full_dependencies[dim] = list(bronze_to_silver) + list(dim_deps)
     for fact, fact_deps in facts.items():
-        full_dependencies[fact] = dimensions + fact_deps
+        full_dependencies[fact] = dimension_names + fact_deps
 
     return topological_sort(full_dependencies)
