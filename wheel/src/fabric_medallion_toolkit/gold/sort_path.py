@@ -4,6 +4,19 @@ Sort ordering and date rollup for parent-child hierarchies.
 Both solve problems that only appear once a hierarchy is rendered as a
 Gantt/timeline, and both are generic to any self-referencing hierarchy --
 nothing Jira-specific.
+
+PERFORMANCE NOTE, important for both functions below: .cache() alone does
+NOT force Spark to materialize a DataFrame -- it only marks it eligible
+for caching; the actual computation still happens lazily on the next
+action, and until that happens the full transformation lineage stays
+attached. Inside a loop that builds each iteration on the previous one,
+skipping an explicit action after each .cache() lets the lineage compound
+every pass -- by iteration N, evaluating anything forces Spark to
+re-execute the ENTIRE chain of N prior joins/aggregations from scratch,
+not just the most recent step. At ~10 iterations over real data (~12,000
+rows) this is the difference between seconds and 30+ minutes that never
+finishes. Every .cache() below is followed by an explicit .count() for
+exactly this reason -- do not remove it as "unnecessary."
 """
 
 from typing import Optional
@@ -55,7 +68,8 @@ def build_sort_path(df: DataFrame, id_column: str, parent_id_column: str,
     (Spark SQL has none). Rows whose parent_id points at an id not
     present in df -- e.g. a cross-project parent that was never ingested
     -- are never reached by the walk; they are given a root-level path so
-    they still appear, rather than silently vanishing.
+    they still appear, rather than silently vanishing. Stops as soon as a
+    pass produces no new rows, rather than always running max_depth times.
     """
     rank_or_fallback = F.coalesce(F.col(rank_column), F.col(id_column))
 
@@ -74,12 +88,15 @@ def build_sort_path(df: DataFrame, id_column: str, parent_id_column: str,
         rank_or_fallback.alias("_rank"),
         seed_path.alias("_seed"),
     ).cache()
+    base.count()  # force full materialization now, not lazily later (see module docstring)
 
     current = base.filter(F.col("_parent").isNull()).select(
         F.col("_id"),
         F.col("_seed").alias("Sort_Path"),
         F.lit(0).alias("Depth"),
-    )
+    ).cache()
+    current.count()
+
     accumulated = current
 
     for depth in range(1, max_depth + 1):
@@ -92,15 +109,17 @@ def build_sort_path(df: DataFrame, id_column: str, parent_id_column: str,
                 F.lit(depth).alias("Depth"),
             )
         ).cache()
+        current_count = current.count()  # forces materialization AND tells us whether to stop
 
-        if current.isEmpty():
+        if current_count == 0:
             break
 
-        accumulated = accumulated.unionByName(current)
+        accumulated = accumulated.unionByName(current).cache()
+        accumulated.count()
     else:
         # Loop completed without break -- there may be deeper rows still
         # unreached, which would silently get a root-level path below.
-        if not current.isEmpty():
+        if current.count() > 0:
             raise ValueError(
                 f"build_sort_path: max_depth={max_depth} was not enough to reach every "
                 f"descendant. Rows deeper than this would be given a misleading root-level "
@@ -145,7 +164,9 @@ def rollup_hierarchy_dates(df: DataFrame, id_column: str, parent_id_column: str,
 
     Implemented as a bounded upward walk: each pass propagates one more
     generation of descendant min/max up to its parent, so after N passes
-    a row has absorbed everything within N levels below it.
+    a row has absorbed everything within N levels below it. Stops as soon
+    as a pass changes nothing, rather than always running max_depth times
+    -- most hierarchies settle in far fewer than 10 passes.
     """
     walk = df.select(
         F.col(id_column).alias("_id"),
@@ -153,6 +174,7 @@ def rollup_hierarchy_dates(df: DataFrame, id_column: str, parent_id_column: str,
         F.col(start_column).alias("_own_start"),
         F.col(end_column).alias("_own_end"),
     ).cache()
+    walk.count()  # force materialization now (see module docstring)
 
     # Running best-known min/max for each row, seeded with its own dates.
     agg = walk.select(
@@ -160,7 +182,8 @@ def rollup_hierarchy_dates(df: DataFrame, id_column: str, parent_id_column: str,
         F.col("_parent"),
         F.col("_own_start").alias("_min_start"),
         F.col("_own_end").alias("_max_end"),
-    )
+    ).cache()
+    agg.count()
 
     for _ in range(max_depth):
         # Each row's children, collapsed to one min/max per parent.
@@ -173,7 +196,7 @@ def rollup_hierarchy_dates(df: DataFrame, id_column: str, parent_id_column: str,
             )
         )
 
-        agg = (
+        new_agg = (
             agg.alias("a")
             .join(from_children.alias("c"), F.col("a._id") == F.col("c._pid"), "left")
             .select(
@@ -189,6 +212,22 @@ def rollup_hierarchy_dates(df: DataFrame, id_column: str, parent_id_column: str,
                 ).alias("_max_end"),
             )
         ).cache()
+        new_agg.count()  # force materialization now, not lazily later
+
+        # Stop as soon as a pass changes nothing -- comparing counts of
+        # rows that actually differ from the previous pass is cheap once
+        # both sides are already materialized, and avoids running the
+        # full max_depth every time regardless of the real hierarchy depth.
+        changed = new_agg.alias("n").join(
+            agg.alias("o"), F.col("n._id") == F.col("o._id"), "inner"
+        ).filter(
+            (F.col("n._min_start") != F.col("o._min_start"))
+            | (F.col("n._max_end") != F.col("o._max_end"))
+        ).limit(1).count()
+
+        agg = new_agg
+        if changed == 0:
+            break
 
     result = (
         walk.alias("w")
