@@ -53,6 +53,27 @@ FACT_NOTEBOOKS = {
 
 LAKEHOUSES_TO_REFRESH = ["Silver", "Gold"]
 
+# RUN_LOG records each step's outcome so a re-run can skip whatever
+# already succeeded, instead of repeating the whole pipeline after a
+# failure partway through.
+#
+# RUN_ID scopes what counts as "already done" -- it defaults to today's
+# date, so re-running LATER THE SAME DAY (e.g. retrying after fixing a
+# bug) skips already-succeeded steps, but a FRESH scheduled run tomorrow
+# gets a new run_id and reruns everything against today's data, which is
+# what a recurring pipeline should normally do. Set RUN_ID to a fixed
+# string manually if you want to resume a specific earlier attempt
+# instead of today's.
+#
+# FORCE_FULL_RERUN=True ignores the log entirely and reruns every step,
+# regardless of RUN_ID -- use this if you deliberately want a clean run
+# (e.g. after a schema change you know invalidates prior results).
+from datetime import date
+
+RUN_LOG = "Gold.gold.orchestration_log"
+RUN_ID = str(date.today())
+FORCE_FULL_RERUN = False
+
 # CELL ********************
 run_order = fmt.build_medallion_run_order(
     source_to_bronze=SOURCE_TO_BRONZE_STEPS,
@@ -62,8 +83,16 @@ run_order = fmt.build_medallion_run_order(
 )
 print("Computed run order:", run_order)
 
+already_completed = set() if FORCE_FULL_RERUN else fmt.get_completed_steps(spark, RUN_LOG, RUN_ID)
+if already_completed:
+    print(f"Resuming run_id '{RUN_ID}' -- already succeeded, will be skipped: {sorted(already_completed)}")
+
 # CELL ********************
 for step_name in run_order:
+    if step_name in already_completed:
+        print(f"--- Skipping {step_name} (already succeeded this run) ---")
+        continue
+
     print(f"--- Running {step_name} ---")
     # useRootDefaultLakehouse=True bypasses Fabric's default behavior of
     # blocking a child notebook run when its default lakehouse differs
@@ -71,17 +100,23 @@ for step_name in run_order:
     # attached itself, and each step below attaches its own, so without
     # this the run would be blocked outright.
     #
-    # No try/except here on purpose: if a step fails, its exception
+    # No try/except around the run itself: if a step fails, its exception
     # (which already contains that notebook's own real error) should
     # propagate all the way up unchanged, so this notebook's own failure
     # carries the real error, not a summarized/re-wrapped version of it --
     # EXCEPT we prefix which step failed, since the pipeline calling this
     # notebook can only see THIS notebook's own failure message, not which
-    # internal step actually broke.
+    # internal step actually broke. The log write on failure IS wrapped,
+    # separately, so a logging problem never masks the real step failure.
     try:
         mssparkutils.notebook.run(step_name, 3600, {"useRootDefaultLakehouse": True})
         print(f"--- {step_name} succeeded ---")
+        fmt.log_step_status(spark, RUN_LOG, RUN_ID, step_name, "succeeded")
     except Exception as exc:
+        try:
+            fmt.log_step_status(spark, RUN_LOG, RUN_ID, step_name, "failed")
+        except Exception:
+            pass  # logging the failure must never hide the real one below
         raise RuntimeError(f"Failed at step '{step_name}': {exc}") from exc
 
 # CELL ********************

@@ -13,7 +13,7 @@ submodule something lives in:
     ))
 """
 
-__version__ = "0.3.52"
+__version__ = "0.3.53"
 
 # --- config: the dataclasses used to describe sources, entities, columns, tables ---
 from fabric_medallion_toolkit.config import (
@@ -42,7 +42,7 @@ from fabric_medallion_toolkit.gold import (
 )
 
 # --- utils, for the rarer case you need them directly ---
-from fabric_medallion_toolkit.utils import get_logger, get_by_path, upsert_delta, build_merge_sql, refresh_sql_endpoint, refresh_sql_endpoints, extract_adf_text, topological_sort, build_medallion_run_order
+from fabric_medallion_toolkit.utils import get_logger, get_by_path, upsert_delta, build_merge_sql, refresh_sql_endpoint, refresh_sql_endpoints, extract_adf_text, topological_sort, build_medallion_run_order, log_step_status, get_completed_steps
 
 __all__ = [
     # config
@@ -58,5 +58,5 @@ __all__ = [
     "merge", "build_gold_table", "run_gold_model",
     "build_date_dimension", "add_date_dimension_sentinel", "merge_scd2", "add_guid_key", "lookup_key", "lookup_keys", "add_unknown_member", "build_hierarchy_levels", "build_typed_hierarchy_levels", "build_sort_path", "rollup_hierarchy_dates",
     # utils
-    "get_logger", "get_by_path", "upsert_delta", "build_merge_sql", "refresh_sql_endpoint", "refresh_sql_endpoints", "extract_adf_text", "topological_sort", "build_medallion_run_order",
+    "get_logger", "get_by_path", "upsert_delta", "build_merge_sql", "refresh_sql_endpoint", "refresh_sql_endpoints", "extract_adf_text", "topological_sort", "build_medallion_run_order", "log_step_status", "get_completed_steps",
 ]
