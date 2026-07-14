@@ -23,24 +23,29 @@ DIMENSION_NOTEBOOKS = {
     "Gold - Dim_IssueType": [],
     "Gold - Dim_Status": [],
     "Gold - Dim_Priority": [],
-    # Dim_Issue joins Dim_Project for Sort_Path's project-code root prefix, so
-    # it must run AFTER it. Without this declared, topological_sort's
-    # alphabetical tie-break runs Issue before Project (I < P) and the build
-    # dies on TABLE_OR_VIEW_NOT_FOUND.
+    "Gold - Dim_Board": [],
+    # Dim_Sprint resolves Board_Key, so Dim_Board must exist first. Without this
+    # declared, topological_sort's alphabetical tie-break runs Sprint before
+    # Board (B < S is true, so this one would happen to work today) -- but the
+    # ordering is only GUARANTEED when the dependency is declared. Don't rely on
+    # the alphabet.
+    "Gold - Dim_Sprint": ["Gold - Dim_Board"],
+    # Dim_Issue joins Dim_Project for Sort_Path's project-code root prefix. This
+    # one the alphabet actively gets WRONG (I < P), and it's the exact
+    # TABLE_OR_VIEW_NOT_FOUND this pipeline used to die on.
     "Gold - Dim_Issue": ["Gold - Dim_Project"],
-    # Dim_Sprint's notebook builds Bridge_IssueSprint in the same file, and the
-    # bridge joins Dim_Issue.
-    "Gold - Dim_Sprint": ["Gold - Dim_Issue"],
 }
 
 # Facts declare dependencies on OTHER FACTS only -- depending on every dimension
-# is automatic inside build_medallion_run_order.
+# is added automatically inside build_medallion_run_order, not restated per fact.
 FACT_NOTEBOOKS = {
     # Fact_StatusHistory FIRST: Fact_Issue reads Actual_Start_Date back out of
-    # it. This is the one non-obvious ordering constraint in the pipeline.
+    # it (Jira has no actual-start field -- it only has a changelog). This is the
+    # one non-obvious ordering constraint in the whole pipeline.
     "Gold - Fact_StatusHistory": [],
     "Gold - Fact_Issue": ["Gold - Fact_StatusHistory"],
     "Gold - Fact_ResourceAllocation": [],
+    "Gold - Bridge_IssueSprint": [],
     "Gold - Bridge_IssueLink": [],
 }
 

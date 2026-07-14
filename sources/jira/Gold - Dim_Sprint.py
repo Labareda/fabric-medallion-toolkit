@@ -11,14 +11,22 @@ GOLD_SCHEMA = "Gold.gold"
 
 # MARKDOWN ********************
 
-# ## Dim_Sprint
+# ## Declare the table schema
 
 # CELL ********************
 # Sprint is a CUSTOM field in this Jira instance (customfield_10020), not the
-# built-in "fields.sprint" -- Silver.jira.issue_sprints already handles that.
-# Sprints are deduped here: the same sprint appears on every issue that touched
-# it, so DISTINCT collapses them to one row each.
-sprint_schema = fmt.TableSchema(
+# built-in fields.sprint -- B2S already unpacks that into Silver.jira.issue_sprints.
+#
+# That Silver table is at ISSUE x SPRINT grain (a sprint repeats on every issue
+# that touched it), so DISTINCT collapses it to one row per sprint here. The
+# issue-to-sprint links live in Bridge_IssueSprint, deliberately in their own
+# notebook -- a bridge is fact-shaped and belongs in the fact phase, not bolted
+# onto the bottom of a dimension build.
+#
+# Board_Key is resolved rather than carrying the raw Board_Id, so sprints can be
+# sliced by board -- which in this Jira instance is the closest thing to a TEAM,
+# and the brief asks for team filtering.
+schema = fmt.TableSchema(
     table_name=f"{GOLD_SCHEMA}.dim_sprint",
     table_type="dim",
     key_column="Sprint_Key",
@@ -27,71 +35,47 @@ sprint_schema = fmt.TableSchema(
         "Sprint_Name":   {"type": "string", "default": "Unknown"},
         "Sprint_State":  {"type": "string", "default": "Unknown"},
         "Sprint_Goal":   {"type": "string", "default": ""},
-        "Board_Id":      {"type": "string", "default": "Unknown"},
         "Start_Date":    {"type": "date"},
         "End_Date":      {"type": "date"},
         "Complete_Date": {"type": "date"},
+        "Board_Id":      {"type": "string", "default": "Unknown"},
+        "Board_Key": {
+            "type": "string",
+            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_board",
+                                     "natural_key_column": "Board_Id", "key_column": "Board_Key",
+                                     "unknown_value": "Unknown"},
+        },
     },
 )
-
-df_sprint = spark.sql("""
-    SELECT DISTINCT
-        CAST(sprint_id AS string) AS Sprint_Id,
-        sprint_name  AS Sprint_Name,
-        state        AS Sprint_State,
-        goal         AS Sprint_Goal,
-        CAST(board_id AS string)  AS Board_Id,
-        CAST(start_date AS date)    AS Start_Date,
-        CAST(end_date AS date)      AS End_Date,
-        CAST(complete_date AS date) AS Complete_Date
-    FROM Silver.jira.issue_sprints
-    WHERE sprint_id IS NOT NULL
-""")
-
-fmt.merge(spark, df_sprint, sprint_schema)
-print("Dim_Sprint built successfully")
 
 # MARKDOWN ********************
 
-# ## Bridge_IssueSprint
+# ## Build the dimension from Silver
 
 # CELL ********************
-# An issue moves through several sprints over its life (carried over, re-scoped,
-# split). That's a genuine many-to-many, so it needs a bridge -- putting a
-# single Sprint_Key on Fact_Issue would silently keep only one of them.
-bridge_schema = fmt.TableSchema(
-    table_name=f"{GOLD_SCHEMA}.bridge_issue_sprint",
-    table_type="fact",
-    key_column="Issue_Sprint_Key",
-    columns={
-        "Issue_Key": {
-            "type": "string", "merge_field": True,
-            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_issue",
-                                     "natural_key_column": "Issue_Id", "key_column": "Issue_Key",
-                                     "unknown_value": "Unknown"},
-        },
-        "Sprint_Id": {"type": "string", "merge_field": True},
-        "Sprint_Key": {
-            "type": "string",
-            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_sprint",
-                                     "natural_key_column": "Sprint_Id", "key_column": "Sprint_Key",
-                                     "unknown_value": "Unknown"},
-        },
-    },
-)
-
-df_bridge = spark.sql(f"""
+df = spark.sql(f"""
     SELECT DISTINCT
-        dim_issue.Issue_Key,
-        CAST(s.sprint_id AS string) AS Sprint_Id,
-        dim_sprint.Sprint_Key
+        CAST(s.sprint_id AS string)   AS Sprint_Id,
+        s.sprint_name                 AS Sprint_Name,
+        s.state                       AS Sprint_State,
+        s.goal                        AS Sprint_Goal,
+        CAST(s.start_date AS date)    AS Start_Date,
+        CAST(s.end_date AS date)      AS End_Date,
+        CAST(s.complete_date AS date) AS Complete_Date,
+        CAST(s.board_id AS string)    AS Board_Id,
+        board.Board_Key               AS Board_Key
     FROM Silver.jira.issue_sprints s
-    LEFT JOIN {GOLD_SCHEMA}.dim_issue dim_issue
-        ON s.issue_id = dim_issue.Issue_Id
-    LEFT JOIN {GOLD_SCHEMA}.dim_sprint dim_sprint
-        ON CAST(s.sprint_id AS string) = dim_sprint.Sprint_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_board board
+        ON CAST(s.board_id AS string) = board.Board_Id
     WHERE s.sprint_id IS NOT NULL
 """)
 
-fmt.merge(spark, df_bridge, bridge_schema)
-print("Bridge_IssueSprint built successfully")
+# MARKDOWN ********************
+
+# ## Merge into Gold
+
+# CELL ********************
+fmt.merge(spark, df, schema)
+
+# CELL ********************
+print("Dim_Sprint built successfully")
