@@ -48,7 +48,10 @@ schema = fmt.TableSchema(
         "Summary":          {"type": "string", "default": "No summary"},
         "Display_Label":    {"type": "string", "default": "Unknown"},
         "Rank":             {"type": "string", "default": ""},
+        "Sort_Path":        {"type": "string", "default": ""},
+        "Depth":            {"type": "int", "default": 0},
         "Issue_Type_Id":    {"type": "string", "default": "Unknown"},
+        "Project_Id":       {"type": "string", "default": "Unknown"},
         "Parent_Issue_Id":  {"type": "string"},
         "Parent_Issue_Key": {"type": "string"},
         "Level_1": {"type": "string"},
@@ -74,7 +77,8 @@ df = spark.sql("""
         CONCAT(key, ': ', COALESCE(fields_summary, 'No summary')) AS Display_Label,
         fields_rank AS Rank,
         fields_parent_id AS Parent_Issue_Id,
-        fields_issuetype_id AS Issue_Type_Id
+        fields_issuetype_id AS Issue_Type_Id,
+        fields_project_id AS Project_Id
     FROM Silver.jira.issues
 """)
 
@@ -123,22 +127,56 @@ df = df_with_hashed_parent.withColumn(
 # "Filter blank" setting so those gaps don't render as empty rows.
 RANK_TO_LEVEL = {5: 1, 4: 2, 3: 3, 2: 4, 1: 5, 0: 6, -1: 7}
 
-issue_types = spark.sql("SELECT issue_type_id, hierarchy_level FROM Silver.jira.issuetypes")
+issue_types = spark.sql("""
+    SELECT
+        id AS Type_Id,
+        hierarchylevel AS Hierarchy_Level
+    FROM Silver.jira.issuetypes
+""")
 df_typed = df.join(
     issue_types,
-    df["Issue_Type_Id"] == issue_types["issue_type_id"],
+    df["Issue_Type_Id"] == issue_types["Type_Id"],
     "left",
-).drop("issue_type_id")
+).drop("Type_Id")
 
 levels_df = fmt.build_typed_hierarchy_levels(
     df_typed,
     id_column="Issue_Id",
     parent_id_column="Parent_Issue_Id",
     code_column="Issue_Code",
-    type_rank_column="hierarchy_level",
+    type_rank_column="Hierarchy_Level",
     rank_to_level=RANK_TO_LEVEL,
 )
 df = df.join(levels_df, on="Issue_Id", how="left")
+
+# MARKDOWN ********************
+
+# ## Compute Sort_Path -- the single column that orders the whole tree
+
+# CELL ********************
+# Rank alone does NOT order a tree correctly: it ranks every issue against
+# every OTHER issue globally, so a child can sort nowhere near its parent
+# (this is why PSP-2/PSP-3/PSP-4 ended up stranded at the bottom of the
+# Gantt instead of near the top). Sort_Path concatenates each ancestor's
+# rank from the root down, so a parent's path is a literal prefix of its
+# children's -- a plain ascending sort then reproduces the tree exactly:
+# children immediately after their parent, siblings in rank order.
+#
+# Roots are prefixed with their Project_Code so separate projects group
+# together rather than interleaving. Children inherit it via the path.
+#
+# Sort by Sort_Path ASC in the visual. That is the ONLY sort needed.
+project_codes = spark.sql(f"SELECT Project_Id, Project_Code FROM {GOLD_SCHEMA}.dim_project")
+df_with_project = df.join(project_codes, on="Project_Id", how="left")
+
+paths_df = fmt.build_sort_path(
+    df_with_project,
+    id_column="Issue_Id",
+    parent_id_column="Parent_Issue_Id",
+    rank_column="Rank",
+    root_prefix_column="Project_Code",
+)
+df = df.join(paths_df, on="Issue_Id", how="left")
 
 # MARKDOWN ********************
 

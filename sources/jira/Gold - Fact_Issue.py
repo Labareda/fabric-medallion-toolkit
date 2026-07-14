@@ -32,10 +32,18 @@ schema = fmt.TableSchema(
         "Original_Estimate_Hours":  {"type": "double"},
         "Remaining_Estimate_Hours": {"type": "double"},
         "Time_Spent_Hours":         {"type": "double"},
-        "Start_Date":    {"type": "date", "default": "1900-01-01"},
-        "Due_Date":      {"type": "date", "default": "1900-01-01"},
-        "Created_Date":  {"type": "date", "default": "1900-01-01"},
-        "Resolved_Date": {"type": "date", "default": "1900-01-01"},
+        # NO 1900-01-01 default on Start/Due: an unscheduled issue must
+        # keep a genuine NULL so the Gantt renders its ROW but draws NO
+        # BAR -- which is what Jira does. A sentinel instead draws a
+        # phantom bar in 1900 and stretches the time axis a century.
+        # ~10,500 of ~12,000 issues have no dates, so this matters a lot.
+        "Start_Date":    {"type": "date"},
+        "Due_Date":      {"type": "date"},
+        "Created_Date":  {"type": "date"},
+        "Resolved_Date": {"type": "date"},
+        "Rollup_Start_Date": {"type": "date"},
+        "Rollup_End_Date":   {"type": "date"},
+        "Has_Own_Dates":     {"type": "boolean", "default": False},
         "Issue_Key": {
             "type": "string",
             "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_issue",
@@ -112,6 +120,40 @@ df = spark.sql(f"""
     LEFT JOIN {GOLD_SCHEMA}.dim_issue_type issue_type
         ON i.fields_issuetype_id = issue_type.IssueType_Id
 """)
+
+# MARKDOWN ********************
+
+# ## Roll dates up the hierarchy so summary rows get bars
+
+# CELL ********************
+# Most issues have no dates of their own (~10,500 of ~12,000): parents are
+# usually undated, and so are most Stories/Bugs. A Gantt that only draws
+# an issue's OWN dates therefore leaves nearly everything blank.
+#
+# A real Gantt gives a summary row a bar spanning its children. That's
+# what this does:
+#   own dates            -> use them (Has_Own_Dates = true)
+#   none, but dated kids -> min(child start) .. max(child due)
+#   neither              -> NULL: the row still shows, with no bar
+#
+# 433 parents have dated children, so this genuinely fills the upper tiers
+# rather than being a no-op.
+#
+# Point the Gantt at Rollup_Start_Date / Rollup_End_Date. Start_Date and
+# Due_Date remain available for anything that needs the raw values.
+issue_parents = spark.sql(f"""
+    SELECT Issue_Id, Parent_Issue_Id
+    FROM {GOLD_SCHEMA}.dim_issue
+""")
+df_for_rollup = df.join(issue_parents, on="Issue_Id", how="left")
+
+df = fmt.rollup_hierarchy_dates(
+    df_for_rollup,
+    id_column="Issue_Id",
+    parent_id_column="Parent_Issue_Id",
+    start_column="Start_Date",
+    end_column="Due_Date",
+).drop("Parent_Issue_Id")
 
 # MARKDOWN ********************
 

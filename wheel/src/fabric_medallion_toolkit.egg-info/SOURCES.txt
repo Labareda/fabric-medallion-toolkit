@@ -19,6 +19,7 @@ src/fabric_medallion_toolkit/gold/hierarchy.py
 src/fabric_medallion_toolkit/gold/keys.py
 src/fabric_medallion_toolkit/gold/lookup.py
 src/fabric_medallion_toolkit/gold/scd2.py
+src/fabric_medallion_toolkit/gold/sort_path.py
 src/fabric_medallion_toolkit/gold/unknown.py
 src/fabric_medallion_toolkit/silver/__init__.py
 src/fabric_medallion_toolkit/silver/auto_standardize.py

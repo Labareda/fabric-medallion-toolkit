@@ -13,7 +13,7 @@ submodule something lives in:
     ))
 """
 
-__version__ = "0.3.50"
+__version__ = "0.3.51"
 
 # --- config: the dataclasses used to describe sources, entities, columns, tables ---
 from fabric_medallion_toolkit.config import (
@@ -38,7 +38,7 @@ from fabric_medallion_toolkit.silver import (
 # --- gold: merge, keys, lookups, date dimension ---
 from fabric_medallion_toolkit.gold import (
     merge, build_gold_table, run_gold_model,
-    build_date_dimension, add_date_dimension_sentinel, merge_scd2, add_guid_key, lookup_key, lookup_keys, add_unknown_member, build_hierarchy_levels, build_typed_hierarchy_levels,
+    build_date_dimension, add_date_dimension_sentinel, merge_scd2, add_guid_key, lookup_key, lookup_keys, add_unknown_member, build_hierarchy_levels, build_typed_hierarchy_levels, build_sort_path, rollup_hierarchy_dates,
 )
 
 # --- utils, for the rarer case you need them directly ---
@@ -56,7 +56,7 @@ __all__ = [
     "auto_standardize", "run_auto_silver_standardize", "clean_adf_columns", "rename_customfield_columns", "build_field_id_to_name",
     # gold
     "merge", "build_gold_table", "run_gold_model",
-    "build_date_dimension", "add_date_dimension_sentinel", "merge_scd2", "add_guid_key", "lookup_key", "lookup_keys", "add_unknown_member", "build_hierarchy_levels", "build_typed_hierarchy_levels",
+    "build_date_dimension", "add_date_dimension_sentinel", "merge_scd2", "add_guid_key", "lookup_key", "lookup_keys", "add_unknown_member", "build_hierarchy_levels", "build_typed_hierarchy_levels", "build_sort_path", "rollup_hierarchy_dates",
     # utils
     "get_logger", "get_by_path", "upsert_delta", "build_merge_sql", "refresh_sql_endpoint", "refresh_sql_endpoints", "extract_adf_text", "topological_sort", "build_medallion_run_order",
 ]
