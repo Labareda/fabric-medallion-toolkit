@@ -46,9 +46,19 @@ FACT_NOTEBOOKS = {
     "Gold - Fact_Issue": [],
     "Gold - Fact_Comment": [],
     "Gold - Fact_Worklog": [],
-    "Gold - Fact_ResourceAllocation": ["Gold - Fact_Issue"],
-    "Gold - Bridge_IssuePeopleInvolved": [],
+    # Bridge_IssueResource replaces the old Bridge_IssuePeopleInvolved: same
+    # idea, but it now carries the LEAD (assignee) as well as the people
+    # involved, one row per issue x person with Is_Lead/Is_Involved flags.
+    "Gold - Bridge_IssueResource": [],
     "Gold - Bridge_IssueLink": [],
+    # Fact_ResourceAllocation now joins Bridge_IssueResource to pick up
+    # Issue_Resource_Key (its FK to the bridge, and the model's single
+    # resource path) -- so the bridge must exist BEFORE it runs. Declaring
+    # this is not optional: without it, topological_sort's alphabetical
+    # tie-break happily runs Fact_ResourceAllocation first (B < F is only
+    # true for the bridge, but nothing GUARANTEES the ordering), and the
+    # join hits TABLE_OR_VIEW_NOT_FOUND on a clean build.
+    "Gold - Fact_ResourceAllocation": ["Gold - Fact_Issue", "Gold - Bridge_IssueResource"],
 }
 
 LAKEHOUSES_TO_REFRESH = ["Silver", "Gold"]

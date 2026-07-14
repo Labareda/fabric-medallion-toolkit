@@ -38,6 +38,30 @@ GOLD_SCHEMA = "Gold.gold"
 # Parent_Issue_Id -- since the hash is a pure function of the input value
 # alone, hashing "35025" via Parent_Issue_Id produces the IDENTICAL GUID
 # that hashing "35025" via Issue_Id would, with no lookup needed at all.
+#
+# --- Lead_Name / Involved_Names / Resource_Names / Resource_Count ---
+# These are SCALAR TEXT columns, deliberately denormalized onto the issue
+# row, and they exist for one reason: a Gantt bar is a single row, so the
+# only way xViz can PRINT "Ana, Rupert, Diogo" on it is if that string
+# already exists as a column. A relationship to Dim_Resource cannot
+# produce it -- a many-to-many relationship filters, it doesn't
+# concatenate.
+#
+# They do NOT replace Bridge_IssueResource, and the two do not conflict:
+#   - THIS column   -> DISPLAY. Always shows everyone on the task, and
+#                      is unaffected by a Dim_Resource slicer (it's a
+#                      plain attribute, not a related measure). Slice to
+#                      Rupert and the bar still reads "Ana, Rupert,
+#                      Diogo" -- which is what the client asked for.
+#   - THE BRIDGE    -> SLICING. "Show me Rupert's tasks" needs a real
+#                      relationship; a comma-joined string can't filter.
+# Both are needed. Neither is redundant.
+#
+# Resource_Count is the count of DISTINCT NAMES shown, matching what the
+# label displays. Fact_ResourceAllocation computes its own headcount
+# independently from account ids -- deliberately not read from here, so
+# the allocation maths never silently depends on two people sharing a
+# display name.
 schema = fmt.TableSchema(
     table_name=f"{GOLD_SCHEMA}.dim_issue",
     table_type="dim",
@@ -54,6 +78,11 @@ schema = fmt.TableSchema(
         "Project_Id":       {"type": "string", "default": "Unknown"},
         "Parent_Issue_Id":  {"type": "string"},
         "Parent_Issue_Key": {"type": "string"},
+        # --- resource display columns (see the long note above) ---
+        "Lead_Name":        {"type": "string", "default": "Unassigned"},
+        "Involved_Names":   {"type": "string", "default": ""},
+        "Resource_Names":   {"type": "string", "default": ""},
+        "Resource_Count":   {"type": "int", "default": 0},
         "Level_1": {"type": "string"},
         "Level_2": {"type": "string"},
         "Level_3": {"type": "string"},
@@ -69,17 +98,54 @@ schema = fmt.TableSchema(
 # ## Build the dimension from Silver
 
 # CELL ********************
+# involved_people collapses People Involved to ONE array per issue before
+# joining, so the join below stays 1:1 with the issue row -- exploding it
+# into the main SELECT instead would multiply issue rows by their people
+# count and break the merge field's uniqueness check.
+#
+# Resource_Names puts the lead FIRST, then everyone else, then dedupes --
+# so the common "Ana leads and is also involved" case reads
+# "Ana, Rupert, Diogo", not "Ana, Ana, Rupert, Diogo". array_compact drops
+# the null that array(fields_assignee_displayName) leaves behind on an
+# unassigned issue, so an unassigned task with two people involved still
+# reads "Rupert, Diogo" rather than ", Rupert, Diogo".
 df = spark.sql("""
+    WITH involved_people AS (
+        SELECT
+            issue_id,
+            array_sort(collect_set(person_name)) AS involved_names_arr
+        FROM Silver.jira.issue_people_involved
+        WHERE person_name IS NOT NULL
+        GROUP BY issue_id
+    )
     SELECT
-        id AS Issue_Id,
-        key AS Issue_Code,
-        fields_summary AS Summary,
-        CONCAT(key, ': ', COALESCE(fields_summary, 'No summary')) AS Display_Label,
-        fields_rank AS Rank,
-        fields_parent_id AS Parent_Issue_Id,
-        fields_issuetype_id AS Issue_Type_Id,
-        fields_project_id AS Project_Id
-    FROM Silver.jira.issues
+        i.id AS Issue_Id,
+        i.key AS Issue_Code,
+        i.fields_summary AS Summary,
+        CONCAT(i.key, ': ', COALESCE(i.fields_summary, 'No summary')) AS Display_Label,
+        i.fields_rank AS Rank,
+        i.fields_parent_id AS Parent_Issue_Id,
+        i.fields_issuetype_id AS Issue_Type_Id,
+        i.fields_project_id AS Project_Id,
+
+        i.fields_assignee_displayName AS Lead_Name,
+        ARRAY_JOIN(COALESCE(p.involved_names_arr, ARRAY(CAST(NULL AS STRING))), ', ') AS Involved_Names,
+        ARRAY_JOIN(
+            ARRAY_DISTINCT(ARRAY_COMPACT(CONCAT(
+                ARRAY(i.fields_assignee_displayName),
+                COALESCE(p.involved_names_arr, ARRAY(CAST(NULL AS STRING)))
+            ))),
+            ', '
+        ) AS Resource_Names,
+        SIZE(
+            ARRAY_DISTINCT(ARRAY_COMPACT(CONCAT(
+                ARRAY(i.fields_assignee_displayName),
+                COALESCE(p.involved_names_arr, ARRAY(CAST(NULL AS STRING)))
+            )))
+        ) AS Resource_Count
+    FROM Silver.jira.issues i
+    LEFT JOIN involved_people p
+        ON i.id = p.issue_id
 """)
 
 # MARKDOWN ********************
