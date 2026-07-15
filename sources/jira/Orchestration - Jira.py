@@ -39,11 +39,7 @@ DIMENSION_NOTEBOOKS = {
 # Facts declare dependencies on OTHER FACTS only -- depending on every dimension
 # is added automatically inside build_medallion_run_order, not restated per fact.
 FACT_NOTEBOOKS = {
-    # Fact_StatusHistory FIRST: Fact_Issue reads Actual_Start_Date back out of
-    # it (Jira has no actual-start field -- it only has a changelog). This is the
-    # one non-obvious ordering constraint in the whole pipeline.
-    "Gold - Fact_StatusHistory": [],
-    "Gold - Fact_Issue": ["Gold - Fact_StatusHistory"],
+    "Gold - Fact_Issue": [],
     "Gold - Fact_ResourceAllocation": [],
     "Gold - Bridge_IssueSprint": [],
     "Gold - Bridge_IssueLink": [],
