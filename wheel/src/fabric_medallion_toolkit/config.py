@@ -224,6 +224,16 @@ class TableSchema:
         # for that row. Your own SELECT stays a plain, ordinary JOIN --
         # this only replaces the COALESCE/subquery boilerplate you'd
         # otherwise write by hand for the same fallback.
+    write_mode: str = "merge"
+        # "merge" (default): incremental upsert via MERGE INTO -- preserves
+        # existing rows, updates matched, inserts new. Use for tables loaded
+        # incrementally (only changed rows arrive each run).
+        # "overwrite": replace the whole table every run. Use for tables
+        # REBUILT IN FULL each run -- every row recomputed from source, so
+        # there's nothing to preserve and MERGE's row-by-row match-vs-insert
+        # comparison is pure overhead. Dramatically faster for a full-rebuild
+        # dimension like Dim_Issue. Not valid with table_type="scd2" (which
+        # has its own versioning write path) -- merge() raises if combined.
 
     def __post_init__(self):
         if self.columns:

@@ -75,6 +75,13 @@ schema = fmt.TableSchema(
     table_name=f"{GOLD_SCHEMA}.dim_issue",
     table_type="dim",
     key_column="Issue_Key",
+    # Rebuilt in full every run (every issue recomputed from Silver), so
+    # overwrite instead of MERGE -- there's nothing to preserve, and MERGE's
+    # per-row match-vs-insert comparison against the existing table is pure
+    # overhead. This is one of the two big wins for Dim_Issue's runtime (the
+    # other is materializing df before build_sort_path / merge so the
+    # hierarchy walks don't re-run on every downstream read).
+    write_mode="overwrite",
     columns={
         "Issue_Id":         {"type": "string", "merge_field": True, "missing": "Unknown"},
         "Issue_Code":       {"type": "string", "default": "Unknown"},
@@ -311,6 +318,11 @@ paths = fmt.build_sort_path(
     df.join(project_codes, on="Project_Id", how="left"),
     id_column="Issue_Id", parent_id_column="Parent_Issue_Id",
     rank_column="Rank", root_prefix_column="Project_Code",
+    # The hierarchy is at most 7 tiers deep (same ceiling as the dense walk
+    # above). Default max_depth is 10 -- capping at 7 stops the walk running
+    # empty extra passes past the deepest real level. Still raises clearly if
+    # a chain genuinely exceeds it.
+    max_depth=7,
 )
 paths = paths.cache()
 print(f"[TIMING] 4. build_sort_path: {time.time() - _sp_t0:.1f}s ({paths.count():,} rows)")
