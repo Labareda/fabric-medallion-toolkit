@@ -7,8 +7,20 @@
 # CELL ********************
 from pyspark.sql import functions as F
 import fabric_medallion_toolkit as fmt
+import time
 
 GOLD_SCHEMA = "Gold.gold"
+
+# Lightweight stage timer. Each _timed(...) call forces a materialization
+# (count) and prints wall-clock seconds for that stage, so a slow run tells
+# us EXACTLY which stage is expensive instead of guessing. Remove these
+# calls once the bottleneck is identified and fixed -- they add a few
+# actions of their own, so they're a diagnostic aid, not permanent code.
+def _timed(label, dataframe):
+    t0 = time.time()
+    n = dataframe.count()
+    print(f"[TIMING] {label}: {time.time() - t0:.1f}s ({n:,} rows)")
+    return n
 
 # MARKDOWN ********************
 
@@ -171,6 +183,42 @@ df = spark.sql("""
     LEFT JOIN children c                ON i.id = c.parent_id
 """)
 
+# Time the base query before anything else touches df.
+df = df.cache()
+_timed("1. Base Silver query", df)
+
+# MARKDOWN ********************
+
+# ## Sanity check: one row per issue, before anything downstream assumes it
+
+# CELL ********************
+# build_typed_hierarchy_levels, build_hierarchy_levels, and build_sort_path
+# below all assume EXACTLY ONE ROW PER Issue_Id. If Silver.jira.issues ever
+# has more than one row for the same issue id (duplicate ingestion, a bad
+# Bronze-to-Silver merge key, etc.), none of the CTEs above can cause it --
+# involved_people/predecessors are GROUP BY'd and children is DISTINCT, so
+# none of them can multiply rows on their own. A duplicate here means it
+# came in from Silver.jira.issues itself.
+#
+# Left uncaught, that duplicate doesn't fail cleanly -- it fans out
+# MULTIPLICATIVELY through three different self-join/recursive-walk
+# functions in a row, which looks like a notebook that never finishes (or
+# finishes after 30+ minutes) rather than a clear error. Checking here,
+# on the small base df, is nearly free and fails immediately with the
+# actual offending issue(s) instead.
+duplicate_issues = (
+    df.groupBy("Issue_Id", "Issue_Code").count().filter("count > 1")
+)
+duplicate_count = duplicate_issues.limit(1).count()
+if duplicate_count > 0:
+    examples = [r["Issue_Code"] for r in duplicate_issues.select("Issue_Code").limit(10).collect()]
+    raise ValueError(
+        f"Dim_Issue: Silver.jira.issues has more than one row for at least one issue id "
+        f"(examples: {examples}). Fix the duplicate at the Silver layer before re-running -- "
+        f"do not dedupe here, since silently picking one row would hide whichever Bronze/Silver "
+        f"bug produced the duplicate in the first place."
+    )
+
 # MARKDOWN ********************
 
 # ## Parent surrogate key
@@ -205,13 +253,21 @@ typed = fmt.build_typed_hierarchy_levels(
     df, id_column="Issue_Id", parent_id_column="Parent_Issue_Id",
     code_column="Summary", type_rank_column="Hierarchy_Level",
     rank_to_level=RANK_TO_LEVEL,
+    # A Jira hierarchy is ~5-7 tiers deep; the chain can be a little longer
+    # than that where it passes through several issues of the same type, but
+    # nowhere near the default ceiling of 15. Setting it to 9 halves the
+    # number of self-joins the planner has to build versus the default. If a
+    # chain ever genuinely exceeds this, the function raises a clear error
+    # telling you to raise it -- it will never silently truncate.
+    max_chain_walk=9,
 )
 # Level_6/Level_7 from the typed walk are the issue's own Task/Sub-task name --
 # already on the row as Summary, so they're dropped rather than duplicated.
 typed = typed.drop("Level_6", "Level_7")
 for old, new in TYPED_NAMES.items():
     typed = typed.withColumnRenamed(old, new)
-df = df.join(typed, on="Issue_Id", how="left")
+df = df.join(typed, on="Issue_Id", how="left").cache()
+_timed("2. Typed hierarchy walk (15-step)", df)
 
 # MARKDOWN ********************
 
@@ -231,6 +287,12 @@ df = df.join(dense, on="Issue_Id", how="left")
 level_cols = [F.col(f"Level_{n}").isNotNull().cast("int") for n in range(1, 8)]
 df = df.withColumn("Depth", sum(level_cols[1:], level_cols[0]))
 
+# Materialize after both walks. df is read multiple times downstream
+# (build_sort_path reads it twice, merge() once); caching here means the
+# two hierarchy walks above run once, not per-read.
+df = df.cache()
+_timed("3. Dense hierarchy walk (7-level) + Depth", df)
+
 # MARKDOWN ********************
 
 # ## Sort_Path -- the single column that orders the whole tree
@@ -244,11 +306,14 @@ df = df.withColumn("Depth", sum(level_cols[1:], level_cols[0]))
 #
 # Sort by Sort_Path ASC in the visual. That is the ONLY sort needed.
 project_codes = spark.sql(f"SELECT Project_Id, Project_Code FROM {GOLD_SCHEMA}.dim_project")
+_sp_t0 = time.time()
 paths = fmt.build_sort_path(
     df.join(project_codes, on="Project_Id", how="left"),
     id_column="Issue_Id", parent_id_column="Parent_Issue_Id",
     rank_column="Rank", root_prefix_column="Project_Code",
 )
+paths = paths.cache()
+print(f"[TIMING] 4. build_sort_path: {time.time() - _sp_t0:.1f}s ({paths.count():,} rows)")
 # build_sort_path() also returns its own "Depth" (0-indexed parent-chain
 # depth, used internally while walking the tree) -- take ONLY Sort_Path from
 # it here. df already has the Depth this table actually documents and
@@ -264,7 +329,13 @@ df = df.join(paths.select("Issue_Id", "Sort_Path"), on="Issue_Id", how="left").d
 # ## Merge into Gold
 
 # CELL ********************
+_merge_t0 = time.time()
 fmt.merge(spark, df, schema)
+print(f"[TIMING] 5. merge into Gold: {time.time() - _merge_t0:.1f}s")
+
+# df's cache has served its purpose (build_sort_path reads + merge) -- free it.
+df.unpersist()
+paths.unpersist()
 
 # CELL ********************
 print("Dim_Issue built successfully")
