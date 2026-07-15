@@ -42,6 +42,16 @@ def build_hierarchy_levels(df: DataFrame, id_column: str, parent_id_column: str,
     (the row's own code), left-aligned by actual chain depth -- shallower
     branches leave trailing Level_N null rather than being padded.
     """
+    dup_count = df.groupBy(id_column).count().filter("count > 1").limit(1).count()
+    if dup_count > 0:
+        raise ValueError(
+            f"build_hierarchy_levels: '{id_column}' is not unique in the input DataFrame -- at "
+            f"least one id has more than one row. Every one of this function's self-joins "
+            f"assumes one row per id; duplicates fan out MULTIPLICATIVELY at each of the "
+            f"max_depth={max_depth} levels, which looks like a runaway job rather than a clean "
+            f"error. Find and fix the duplicate(s) upstream before calling this."
+        )
+
     result = df.select(
         F.col(id_column).alias("_id0"),
         F.col(code_column).alias("_level0"),
@@ -111,6 +121,16 @@ def build_typed_hierarchy_levels(df: DataFrame, id_column: str, parent_id_column
     """
     if not rank_to_level:
         raise ValueError("build_typed_hierarchy_levels: rank_to_level must not be empty")
+
+    dup_count = df.groupBy(id_column).count().filter("count > 1").limit(1).count()
+    if dup_count > 0:
+        raise ValueError(
+            f"build_typed_hierarchy_levels: '{id_column}' is not unique in the input DataFrame "
+            f"-- at least one id has more than one row. The chain walk assumes one row per id; "
+            f"duplicates fan out MULTIPLICATIVELY at every one of the max_chain_walk="
+            f"{max_chain_walk} steps, which looks like a runaway job rather than a clean error. "
+            f"Find and fix the duplicate(s) upstream before calling this."
+        )
 
     num_levels = len(rank_to_level)
     levels_present = sorted(rank_to_level.values())

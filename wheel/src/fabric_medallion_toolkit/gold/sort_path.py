@@ -114,6 +114,17 @@ def build_sort_path(df: DataFrame, id_column: str, parent_id_column: str,
     """
     rank_or_fallback = F.coalesce(F.col(rank_column), F.col(id_column))
 
+    dup_count = df.groupBy(id_column).count().filter("count > 1").limit(1).count()
+    if dup_count > 0:
+        raise ValueError(
+            f"build_sort_path: '{id_column}' is not unique in the input DataFrame -- at least "
+            f"one id has more than one row. This function's walk assumes exactly one row per "
+            f"id; duplicates fan the join out MULTIPLICATIVELY at every depth, which looks like "
+            f"a runaway/never-finishing job, not a clean error, until it hits max_depth. Find "
+            f"and fix the duplicate(s) upstream (e.g. `df.groupBy('{id_column}').count()."
+            f"filter('count > 1')`) before calling this."
+        )
+
     if root_prefix_column is not None:
         seed_path = F.concat(
             F.coalesce(F.col(root_prefix_column), F.lit("~")),

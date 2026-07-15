@@ -173,6 +173,38 @@ df = spark.sql("""
 
 # MARKDOWN ********************
 
+# ## Sanity check: one row per issue, before anything downstream assumes it
+
+# CELL ********************
+# build_typed_hierarchy_levels, build_hierarchy_levels, and build_sort_path
+# below all assume EXACTLY ONE ROW PER Issue_Id. If Silver.jira.issues ever
+# has more than one row for the same issue id (duplicate ingestion, a bad
+# Bronze-to-Silver merge key, etc.), none of the CTEs above can cause it --
+# involved_people/predecessors are GROUP BY'd and children is DISTINCT, so
+# none of them can multiply rows on their own. A duplicate here means it
+# came in from Silver.jira.issues itself.
+#
+# Left uncaught, that duplicate doesn't fail cleanly -- it fans out
+# MULTIPLICATIVELY through three different self-join/recursive-walk
+# functions in a row, which looks like a notebook that never finishes (or
+# finishes after 30+ minutes) rather than a clear error. Checking here,
+# on the small base df, is nearly free and fails immediately with the
+# actual offending issue(s) instead.
+duplicate_issues = (
+    df.groupBy("Issue_Id", "Issue_Code").count().filter("count > 1")
+)
+duplicate_count = duplicate_issues.limit(1).count()
+if duplicate_count > 0:
+    examples = [r["Issue_Code"] for r in duplicate_issues.select("Issue_Code").limit(10).collect()]
+    raise ValueError(
+        f"Dim_Issue: Silver.jira.issues has more than one row for at least one issue id "
+        f"(examples: {examples}). Fix the duplicate at the Silver layer before re-running -- "
+        f"do not dedupe here, since silently picking one row would hide whichever Bronze/Silver "
+        f"bug produced the duplicate in the first place."
+    )
+
+# MARKDOWN ********************
+
 # ## Parent surrogate key
 
 # CELL ********************
