@@ -50,6 +50,16 @@ GOLD_SCHEMA = "Gold.gold"
 # no Unknown-member fallback for people who aren't in Silver.jira.users
 # (deactivated accounts and app/bot users routinely aren't) and an
 # inconsistent relationship shape versus every other fact in the model.
+#
+# PROJECTED FROM Fact_ResourceAllocation, NOT RE-DERIVED FROM SILVER.
+# The Lead/Involved union used to be computed independently here AND in
+# Gold - Fact_ResourceAllocation.py -- identical logic, duplicated in two
+# places, one silent-divergence risk away from the bridge and the fact
+# disagreeing about who's on an issue. Fact_ResourceAllocation is already
+# at this exact grain (issue x person) and already resolves both keys, so
+# this notebook now just selects the bridge's columns off it. This
+# notebook must therefore run AFTER Fact_ResourceAllocation -- see the
+# added dependency in Orchestration - Jira.py.
 schema = fmt.TableSchema(
     table_name=f"{GOLD_SCHEMA}.bridge_issue_resource",
     table_type="fact",
@@ -77,62 +87,30 @@ schema = fmt.TableSchema(
 
 # MARKDOWN ********************
 
-# ## Build the union of leads and involved people, one row per issue x person
+# ## Project the bridge straight off Fact_ResourceAllocation
 
 # CELL ********************
-# UNION ALL then GROUP BY, rather than a FULL OUTER JOIN: a person can
-# arrive from either side (or both), and grouping is what collapses the
-# both-sides case into the single row with two flags set.
-#
-# MAX(CAST(... AS INT)) = 1 rather than MAX(boolean) -- Spark will accept
-# max() on a boolean, but casting to int makes the "did this person
-# appear as a lead ANYWHERE in the group" intent explicit and avoids
-# depending on boolean ordering semantics.
+# Fact_ResourceAllocation already computed the Lead/Involved union at
+# EXACTLY this grain (issue x person) and already resolved both surrogate
+# keys with the same Unknown-member fallback. Re-deriving that union here
+# from Silver a second time was the duplication risk this refactor removes
+# -- a future change to the "who counts as involved" rule now only has to
+# happen in one place (Gold - Fact_ResourceAllocation.py) to stay correct
+# everywhere. DISTINCT guards against this notebook being re-run before
+# that dependency in a misconfigured orchestration.
 df = spark.sql(f"""
-    WITH resource_union AS (
-        SELECT
-            i.id  AS Issue_Id,
-            i.fields_assignee_accountId AS Resource_Account_Id,
-            1 AS is_lead_flag,
-            0 AS is_involved_flag
-        FROM Silver.jira.issues i
-        WHERE i.fields_assignee_accountId IS NOT NULL
-
-        UNION ALL
-
-        SELECT
-            p.issue_id AS Issue_Id,
-            p.person_account_id AS Resource_Account_Id,
-            0 AS is_lead_flag,
-            1 AS is_involved_flag
-        FROM Silver.jira.issue_people_involved p
-        WHERE p.person_account_id IS NOT NULL
-    ),
-    resource_roles AS (
-        SELECT
-            Issue_Id,
-            Resource_Account_Id,
-            MAX(is_lead_flag)     = 1 AS Is_Lead,
-            MAX(is_involved_flag) = 1 AS Is_Involved
-        FROM resource_union
-        GROUP BY Issue_Id, Resource_Account_Id
-    )
-    SELECT
-        dim_issue.Issue_Key AS Issue_Key,
-        r.Resource_Account_Id,
-        resource.Resource_Key AS Resource_Key,
-        r.Is_Lead,
-        r.Is_Involved,
+    SELECT DISTINCT
+        Issue_Key,
+        Resource_Account_Id,
+        Resource_Key,
+        Is_Lead,
+        Is_Involved,
         CASE
-            WHEN r.Is_Lead AND r.Is_Involved THEN 'Lead & Involved'
-            WHEN r.Is_Lead                   THEN 'Lead'
-            ELSE                                  'Involved'
+            WHEN Is_Lead AND Is_Involved THEN 'Lead & Involved'
+            WHEN Is_Lead                 THEN 'Lead'
+            ELSE                               'Involved'
         END AS Role_Label
-    FROM resource_roles r
-    LEFT JOIN {GOLD_SCHEMA}.dim_issue dim_issue
-        ON r.Issue_Id = dim_issue.Issue_Id
-    LEFT JOIN {GOLD_SCHEMA}.dim_resource resource
-        ON r.Resource_Account_Id = resource.Resource_Account_Id
+    FROM {GOLD_SCHEMA}.fact_resource_allocation
 """)
 
 # MARKDOWN ********************
@@ -142,15 +120,13 @@ df = spark.sql(f"""
 # CELL ********************
 # Not a failure -- deactivated users and app/bot accounts genuinely don't
 # come back from /users/search, so they legitimately land on Dim_Resource's
-# Unknown row via lookup_missing_from. Printed rather than silently
-# swallowed, because a SPIKE here usually means the users extract is
-# incomplete rather than that a few people left the company.
+# Unknown row. This should never actually fire now (Fact_ResourceAllocation
+# already reports the same condition when it builds), but it's kept as a
+# cheap sanity check on the assumption that source table is complete.
 unresolved = df.filter("Resource_Key IS NULL").count()
 if unresolved > 0:
-    print(f"NOTE: {unresolved} issue-resource link(s) reference an account id that isn't in "
-          f"Silver.jira.users -- these resolve to Dim_Resource's Unknown row. Deactivated or "
-          f"app accounts are the usual explanation; a large number here suggests the users "
-          f"extract is incomplete.")
+    print(f"NOTE: {unresolved} issue-resource link(s) resolve to Dim_Resource's Unknown row "
+          f"-- check Gold - Fact_ResourceAllocation.py's own build log for the underlying cause.")
 
 # MARKDOWN ********************
 

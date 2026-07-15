@@ -45,6 +45,10 @@ FACT_NOTEBOOKS = {
     "Gold - Fact_StatusHistory": [],
     "Gold - Fact_Issue": ["Gold - Fact_StatusHistory"],
     "Gold - Fact_ResourceAllocation": [],
+    # Bridge_IssueResource now projects its rows straight off
+    # Fact_ResourceAllocation instead of re-deriving the Lead/Involved
+    # union from Silver independently -- must run after it.
+    "Gold - Bridge_IssueResource": ["Gold - Fact_ResourceAllocation"],
     "Gold - Bridge_IssueSprint": [],
     "Gold - Bridge_IssueLink": [],
 }
