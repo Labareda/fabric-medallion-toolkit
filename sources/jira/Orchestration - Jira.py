@@ -9,7 +9,6 @@
 
 # CELL ********************
 from notebookutils import mssparkutils
-from datetime import datetime, timezone
 import fabric_medallion_toolkit as fmt
 
 # CELL ********************
@@ -52,20 +51,12 @@ LAKEHOUSES_TO_REFRESH = ["Silver", "Gold"]
 
 # PARAMETERS CELL -- a Fabric pipeline "Execute Notebook" activity can inject
 # a value for RUN_ID_OVERRIDE here (tag this cell as a parameters cell in the
-# notebook's cell properties). Leave it None for normal scheduled runs.
-# Set it to a failed run's exact run_id (visible in orchestration_log) to
-# resume that specific run instead of starting a fresh one.
+# notebook's cell properties). Leave it None for normal runs. Set it only for
+# the rare case of resuming ONE specific older run_id by hand -- normal
+# resume-after-failure is automatic (see below), so you almost never need this.
 RUN_ID_OVERRIDE = None
 
-# RUN_ID must be unique PER TRIGGER, not per day, since this pipeline can run
-# more than once a day. date-only run_ids broke that: a second same-day
-# trigger would find every step already marked "succeeded" under that same
-# date and skip the ENTIRE run, refreshing nothing. Timestamp-to-the-second
-# gives every trigger its own run_id, so an intra-day re-run always does a
-# full fresh pass -- unless RUN_ID_OVERRIDE is explicitly set to resume a
-# specific earlier (failed) run.
 RUN_LOG = "Gold.gold.orchestration_log"
-RUN_ID = RUN_ID_OVERRIDE or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 FORCE_FULL_RERUN = False
 
 # CELL ********************
@@ -77,9 +68,22 @@ run_order = fmt.build_medallion_run_order(
 )
 print("Computed run order:", run_order)
 
+# resolve_run_id decides fresh-vs-resume automatically:
+#   - if the LAST run in the log didn't finish every step (it failed or was
+#     interrupted), REUSE its run_id -> this trigger resumes it and skips
+#     what already succeeded. So a failure at 09:00 re-triggered at 10:00
+#     picks up where it stopped, NOT a full rerun.
+#   - if the last run completed everything (or there's no log yet), get a
+#     NEW run_id -> a full fresh pass. So a successful 09:00 run followed by
+#     a deliberate 10:00 run reprocesses everything.
+# No date-vs-timestamp tradeoff, and no manual run_id bookkeeping.
+RUN_ID = fmt.resolve_run_id(spark, RUN_LOG, run_order, override=RUN_ID_OVERRIDE)
+
 already_completed = set() if FORCE_FULL_RERUN else fmt.get_completed_steps(spark, RUN_LOG, RUN_ID)
 if already_completed:
     print(f"Resuming run_id '{RUN_ID}' -- skipping: {sorted(already_completed)}")
+else:
+    print(f"Starting fresh run_id '{RUN_ID}'")
 
 # CELL ********************
 for step_name in run_order:

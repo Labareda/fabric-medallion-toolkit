@@ -56,7 +56,7 @@ from fabric_medallion_toolkit.gold import (
 )
 
 # --- utils, for the rarer case you need them directly ---
-from fabric_medallion_toolkit.utils import get_logger, get_by_path, upsert_delta, build_merge_sql, refresh_sql_endpoint, refresh_sql_endpoints, extract_adf_text, topological_sort, build_medallion_run_order, log_step_status, get_completed_steps
+from fabric_medallion_toolkit.utils import get_logger, get_by_path, upsert_delta, build_merge_sql, refresh_sql_endpoint, refresh_sql_endpoints, extract_adf_text, topological_sort, build_medallion_run_order, log_step_status, get_completed_steps, resolve_run_id
 
 __all__ = [
     # config
@@ -72,5 +72,5 @@ __all__ = [
     "merge", "build_gold_table", "run_gold_model",
     "build_date_dimension", "add_date_dimension_sentinel", "merge_scd2", "add_guid_key", "lookup_key", "lookup_keys", "add_unknown_member", "build_hierarchy_levels", "build_typed_hierarchy_levels", "build_sort_path", "rollup_hierarchy_dates", "enrich_issue_hierarchy", "assert_unique",
     # utils
-    "get_logger", "get_by_path", "upsert_delta", "build_merge_sql", "refresh_sql_endpoint", "refresh_sql_endpoints", "extract_adf_text", "topological_sort", "build_medallion_run_order", "log_step_status", "get_completed_steps",
+    "get_logger", "get_by_path", "upsert_delta", "build_merge_sql", "refresh_sql_endpoint", "refresh_sql_endpoints", "extract_adf_text", "topological_sort", "build_medallion_run_order", "log_step_status", "get_completed_steps", "resolve_run_id",
 ]
