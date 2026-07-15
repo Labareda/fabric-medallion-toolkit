@@ -9,7 +9,7 @@
 
 # CELL ********************
 from notebookutils import mssparkutils
-from datetime import date
+from datetime import datetime, timezone
 import fabric_medallion_toolkit as fmt
 
 # CELL ********************
@@ -54,11 +54,22 @@ FACT_NOTEBOOKS = {
 
 LAKEHOUSES_TO_REFRESH = ["Silver", "Gold"]
 
-# RUN_ID defaults to today, so a retry later the same day skips what already
-# succeeded, but tomorrow's scheduled run reruns everything against fresh data.
-# FORCE_FULL_RERUN ignores the log entirely.
+# PARAMETERS CELL -- a Fabric pipeline "Execute Notebook" activity can inject
+# a value for RUN_ID_OVERRIDE here (tag this cell as a parameters cell in the
+# notebook's cell properties). Leave it None for normal scheduled runs.
+# Set it to a failed run's exact run_id (visible in orchestration_log) to
+# resume that specific run instead of starting a fresh one.
+RUN_ID_OVERRIDE = None
+
+# RUN_ID must be unique PER TRIGGER, not per day, since this pipeline can run
+# more than once a day. date-only run_ids broke that: a second same-day
+# trigger would find every step already marked "succeeded" under that same
+# date and skip the ENTIRE run, refreshing nothing. Timestamp-to-the-second
+# gives every trigger its own run_id, so an intra-day re-run always does a
+# full fresh pass -- unless RUN_ID_OVERRIDE is explicitly set to resume a
+# specific earlier (failed) run.
 RUN_LOG = "Gold.gold.orchestration_log"
-RUN_ID = str(date.today())
+RUN_ID = RUN_ID_OVERRIDE or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 FORCE_FULL_RERUN = False
 
 # CELL ********************
