@@ -29,11 +29,16 @@ GOLD_SCHEMA = "Gold.gold"
 # 'Lead & Involved', not two rows -- two rows would double them in every
 # headcount and every utilisation measure.
 #
-# THIS IS THE ONLY TABLE Dim_Resource TOUCHES. That's what keeps the semantic
-# model unambiguous: one path from a person to everything else, no deactivated
-# relationships, no USERELATIONSHIP measures. It's only possible because the
-# client doesn't use Jira worklogs -- if they ever start, Fact_Worklog gives
-# Dim_Resource a second path and that simplicity is gone.
+# THIS IS THE ONLY TABLE Dim_Resource TOUCHES -- relate Dim_Resource directly
+# to THIS fact in the semantic model (Resource_Key -> Resource_Key). There is
+# no separate Bridge_IssueResource table: it used to exist purely as a
+# read-only projection of this exact table at this exact grain, which meant
+# two tables doing one job. A fact CAN serve as its own bridge in a star
+# schema -- that's what this is. One path from a person to everything else,
+# no deactivated relationships, no USERELATIONSHIP measures, one fewer table
+# for a report author to ever need to know exists. It's only possible because
+# the client doesn't use Jira worklogs -- if they ever start, Fact_Worklog
+# gives Dim_Resource a second path and this simplicity is gone.
 #
 # Start/End are the ISSUE's planned dates, carried here so the allocation fact
 # can answer "who was busy in March" without joining back to Fact_Issue.

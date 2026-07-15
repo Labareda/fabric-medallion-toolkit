@@ -48,6 +48,17 @@ GOLD_SCHEMA = "Gold.gold"
 #
 # Use Level_N for the visual. Use the named columns for filtering and grouping.
 # ---------------------------------------------------------------------------
+#
+# NO STATUS/PRIORITY/ISSUETYPE HERE -- NEITHER AS TEXT NOR AS KEYS.
+# An earlier pass put Status_Key/Priority_Key/IssueType_Key on THIS table,
+# resolving them against Dim_Status/Dim_Priority/Dim_IssueType. That's wrong
+# in a star schema: foreign keys into dimension tables belong on FACT
+# tables, not on other dimensions -- a dimension holding keys into other
+# dimensions is snowflaking, which the brief explicitly asks to minimise.
+# Status/Priority/IssueType keys live on Fact_Issue instead (see that
+# notebook) -- Dim_Issue carries none of these attributes, in any form.
+# A report gets Status/Priority/Type by relating Dim_Status/Dim_Priority/
+# Dim_IssueType -> Fact_Issue -> Dim_Issue, exactly as a star schema expects.
 schema = fmt.TableSchema(
     table_name=f"{GOLD_SCHEMA}.dim_issue",
     table_type="dim",
@@ -58,14 +69,6 @@ schema = fmt.TableSchema(
         "Summary":          {"type": "string", "default": "No summary"},
         "Display_Label":    {"type": "string", "default": "Unknown"},
 
-        # Attributes folded onto the dimension. Status/Priority/Issue Type keep
-        # their own small dims for conformed slicing (see Fact_Issue), but the
-        # TEXT is denormalised here too, because a Gantt row label and a tooltip
-        # can only read columns on the row being drawn.
-        "Status":           {"type": "string", "default": "Unknown"},
-        "Status_Category":  {"type": "string", "default": "Unknown"},
-        "Priority":         {"type": "string", "default": "Unknown"},
-        "Issue_Type":       {"type": "string", "default": "Unknown"},
         "Is_Milestone":     {"type": "boolean", "default": False},
 
         # Structure
@@ -142,10 +145,6 @@ df = spark.sql("""
         i.key AS Issue_Code,
         i.fields_summary AS Summary,
         CONCAT(i.key, ': ', COALESCE(i.fields_summary, 'No summary')) AS Display_Label,
-        i.fields_status_name AS Status,
-        i.fields_status_statusCategory_name AS Status_Category,
-        i.fields_priority_name AS Priority,
-        it.name AS Issue_Type,
         LOWER(it.name) = 'milestone' AS Is_Milestone,
         i.fields_rank AS Rank,
         i.fields_parent_id AS Parent_Issue_Id,
@@ -250,7 +249,15 @@ paths = fmt.build_sort_path(
     id_column="Issue_Id", parent_id_column="Parent_Issue_Id",
     rank_column="Rank", root_prefix_column="Project_Code",
 )
-df = df.join(paths, on="Issue_Id", how="left").drop("Hierarchy_Level")
+# build_sort_path() also returns its own "Depth" (0-indexed parent-chain
+# depth, used internally while walking the tree) -- take ONLY Sort_Path from
+# it here. df already has the Depth this table actually documents and
+# exposes (the Level_N-populated-count computed above, used for Is_Leaf
+# checks and "collapse to N tiers"). Joining paths' Depth in as well would
+# put two differently-defined columns on the DataFrame under the identical
+# name "Depth" -- an ambiguous reference the moment anything (including
+# merge() resolving the schema below) tries to read it.
+df = df.join(paths.select("Issue_Id", "Sort_Path"), on="Issue_Id", how="left").drop("Hierarchy_Level")
 
 # MARKDOWN ********************
 

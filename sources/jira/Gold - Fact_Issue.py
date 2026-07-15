@@ -42,6 +42,13 @@ GOLD_SCHEMA = "Gold.gold"
 # lives in Fact_Resource_Allocation with Role = 'Lead'. Putting Assignee_Key
 # here as well would give Dim_Resource a SECOND path into the model and force
 # a deactivated relationship. One path, one place.
+#
+# --- STATUS_KEY / PRIORITY_KEY / ISSUETYPE_KEY LIVE HERE, NOT ON DIM_ISSUE ---
+# Foreign keys into dimension tables belong on FACT tables in a star schema.
+# Dim_Issue carries none of these -- no keys, no denormalised text -- purely
+# the issue's own hierarchy/rank/Gantt-display attributes. A report gets
+# Status/Priority/Type by relating Dim_Status/Dim_Priority/Dim_IssueType to
+# THIS fact, same as every other dimension here.
 schema = fmt.TableSchema(
     table_name=f"{GOLD_SCHEMA}.fact_issue",
     table_type="fact",
