@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: fabric-medallion-toolkit
-Version: 0.3.54
+Version: 0.3.56
 Summary: Reusable, source-agnostic Bronze/Silver/Gold ingestion toolkit for Microsoft Fabric
 Author: Ana
 Requires-Python: >=3.10
