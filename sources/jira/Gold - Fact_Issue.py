@@ -19,12 +19,17 @@ GOLD_SCHEMA = "Gold.gold"
 #
 # --- PLANNED vs ACTUAL ---
 # Jira has no "actual start" field. Planned dates are what someone typed in
-# (start date / due date). Actual dates are what the changelog PROVES happened:
-#   Actual_Start = the first transition into an In Progress status category
-#   Actual_End   = resolutiondate
-# Actual_Start is read from Fact_StatusHistory, which is why that notebook runs
-# first. Without it, "planned vs actual" is decorative -- two columns that both
-# show the plan.
+# (start date / due date). Actual END is what the changelog proves: the
+# resolutiondate.
+#   Actual_End = resolutiondate
+# NO Actual_Start: deriving it needs a per-transition timestamp (when did this
+# issue first enter an "In Progress" status), and this instance's
+# Silver.jira.history_items has no such timestamp column -- only issue_created
+# (the issue's creation, identical on every changelog row for that issue). So
+# there's nothing to derive a real actual-start FROM. If a per-change
+# timestamp is added to the changelog extract later, reintroduce Actual_Start
+# (and Fact_StatusHistory) then. Planned-vs-actual reporting therefore compares
+# planned dates against actual END only.
 #
 # --- NO SENTINEL DATES ---
 # An unscheduled issue keeps a genuine NULL. The Gantt then renders its ROW but
@@ -62,12 +67,10 @@ schema = fmt.TableSchema(
         "Original_Estimate_Hours":  {"type": "double"},
         "Remaining_Estimate_Hours": {"type": "double"},
         "Time_Spent_Hours":         {"type": "double"},
-        "Issue_Count":              {"type": "int", "default": 1},
 
         # Dates -- no defaults, by design (see note above).
         "Planned_Start_Date": {"type": "date"},
         "Planned_End_Date":   {"type": "date"},
-        "Actual_Start_Date":  {"type": "date"},
         "Actual_End_Date":    {"type": "date"},
         "Created_Date":       {"type": "date"},
         "Rollup_Start_Date":  {"type": "date"},
@@ -117,23 +120,6 @@ schema = fmt.TableSchema(
 
 # ## Actual start, from the status history
 
-# CELL ********************
-# The FIRST time an issue entered an In Progress status category. Matching on
-# the CATEGORY, not on a hardcoded status name list -- clients rename statuses
-# constantly ("In Dev", "Building", "WIP") but the category behind them stays
-# "In Progress". Silver.jira.statuses carries that mapping.
-actual_starts = spark.sql(f"""
-    SELECT
-        h.Issue_Code,
-        MIN(h.Changed_At) AS Actual_Start_At
-    FROM {GOLD_SCHEMA}.fact_status_history h
-    INNER JOIN Silver.jira.statuses s
-        ON h.To_Status = s.name
-    WHERE s.statusCategory_name = 'In Progress'
-    GROUP BY h.Issue_Code
-""")
-actual_starts.createOrReplaceTempView("actual_starts")
-
 # MARKDOWN ********************
 
 # ## Build the fact
@@ -151,7 +137,6 @@ df = spark.sql(f"""
 
         CAST(i.fields_start_date AS date)      AS Planned_Start_Date,
         CAST(i.fields_duedate AS date)         AS Planned_End_Date,
-        CAST(a.Actual_Start_At AS date)        AS Actual_Start_Date,
         CAST(i.fields_resolutiondate AS date)  AS Actual_End_Date,
         CAST(i.fields_created AS date)         AS Created_Date,
 
@@ -164,15 +149,13 @@ df = spark.sql(f"""
         i.fields_story_point_estimate           AS Story_Points,
         i.fields_timeoriginalestimate / 3600.0  AS Original_Estimate_Hours,
         i.fields_timeestimate / 3600.0          AS Remaining_Estimate_Hours,
-        i.fields_timespent / 3600.0             AS Time_Spent_Hours,
-        1 AS Issue_Count
+        i.fields_timespent / 3600.0             AS Time_Spent_Hours
     FROM Silver.jira.issues i
     LEFT JOIN {GOLD_SCHEMA}.dim_issue dim_issue   ON i.id = dim_issue.Issue_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_project project   ON i.fields_project_id = project.Project_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_status status     ON i.fields_status_id = status.Status_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_priority priority ON i.fields_priority_id = priority.Priority_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_issue_type issue_type ON i.fields_issuetype_id = issue_type.IssueType_Id
-    LEFT JOIN actual_starts a                     ON i.key = a.Issue_Code
 """)
 
 # MARKDOWN ********************

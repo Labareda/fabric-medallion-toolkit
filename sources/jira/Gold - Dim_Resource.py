@@ -61,23 +61,25 @@ schema = fmt.TableSchema(
 df = spark.sql("""
     WITH directory AS (
         SELECT
-            accountId    AS Resource_Account_Id,
-            displayName  AS Resource_Name,
-            emailAddress AS Email,
-            active       AS Is_Active,
-            accountType  AS Account_Type,
-            timeZone     AS Time_Zone
+            accountId                    AS Resource_Account_Id,
+            CAST(displayName AS STRING)  AS Resource_Name,
+            CAST(emailAddress AS STRING) AS Email,
+            CAST(active AS STRING)       AS Is_Active,
+            CAST(accountType AS STRING)  AS Account_Type,
+            CAST(timeZone AS STRING)     AS Time_Zone
         FROM Silver.jira.users
         WHERE accountId IS NOT NULL
     ),
     -- Everyone who appears on an issue, from either people-involved or as an
     -- assignee, with whatever display name travels with them there.
     involved AS (
-        SELECT person_account_id AS Resource_Account_Id, person_name AS Resource_Name
+        SELECT CAST(person_account_id AS STRING) AS Resource_Account_Id,
+               CAST(person_name AS STRING)        AS Resource_Name
         FROM Silver.jira.issue_people_involved
         WHERE person_account_id IS NOT NULL
         UNION
-        SELECT fields_assignee_accountId, fields_assignee_displayName
+        SELECT CAST(fields_assignee_accountId AS STRING),
+               CAST(fields_assignee_displayName AS STRING)
         FROM Silver.jira.issues
         WHERE fields_assignee_accountId IS NOT NULL
     ),
