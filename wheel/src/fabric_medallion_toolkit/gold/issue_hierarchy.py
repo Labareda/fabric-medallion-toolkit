@@ -78,8 +78,8 @@ def enrich_issue_hierarchy(
     typed_code_column: str = "Display_Label",
     dense_code_column: str = "Display_Label",
     build_dense_levels: bool = False,
-    rank_to_level: Dict[int, int],
-    typed_level_names: Dict[str, str],
+    rank_to_level: Optional[Dict[int, int]] = None,
+    typed_level_names: Optional[Dict[str, str]] = None,
     root_prefix_lookup: Optional[DataFrame] = None,
     root_prefix_join_column: Optional[str] = None,
     max_depth: int = 7,
@@ -129,20 +129,28 @@ def enrich_issue_hierarchy(
     ).drop("_parent_key_raw")
 
     # --- Typed ancestor columns (slicers, ragged) -----------------------------
-    typed = build_typed_hierarchy_levels(
-        df, id_column=id_column, parent_id_column=parent_id_column,
-        code_column=typed_code_column, type_rank_column=type_rank_column,
-        rank_to_level=rank_to_level, max_chain_walk=max_chain_walk,
-    )
-    # Keep only the typed levels that map to a named tier; drop the rest
-    # (they're the issue's own name, already a column on df).
-    keep = set(typed_level_names)
-    for col in typed.columns:
-        if col.startswith("Level_") and col not in keep:
-            typed = typed.drop(col)
-    for old, new in typed_level_names.items():
-        typed = typed.withColumnRenamed(old, new)
-    df = df.join(typed, on=id_column, how="left")
+    # --- Typed ancestor columns (slicers, ragged) -----------------------------
+    # Optional: only built when typed_level_names is provided. When the Gantt is
+    # driven by the dense Level_N columns and tier filtering uses a single
+    # Hierarchy_Level_Name column, these per-tier columns (Programme, Release,
+    # ...) are redundant -- pass typed_level_names=None to skip the walk.
+    if typed_level_names:
+        if not rank_to_level:
+            raise ValueError("enrich_issue_hierarchy: typed_level_names requires rank_to_level")
+        typed = build_typed_hierarchy_levels(
+            df, id_column=id_column, parent_id_column=parent_id_column,
+            code_column=typed_code_column, type_rank_column=type_rank_column,
+            rank_to_level=rank_to_level, max_chain_walk=max_chain_walk,
+        )
+        # Keep only the typed levels that map to a named tier; drop the rest
+        # (they're the issue's own name, already a column on df).
+        keep = set(typed_level_names)
+        for col in typed.columns:
+            if col.startswith("Level_") and col not in keep:
+                typed = typed.drop(col)
+        for old, new in typed_level_names.items():
+            typed = typed.withColumnRenamed(old, new)
+        df = df.join(typed, on=id_column, how="left")
 
     # --- Dense level columns (contiguous) + Depth -----------------------------
     # OFF by default. These were built for xViz Gantt nesting, but in practice
