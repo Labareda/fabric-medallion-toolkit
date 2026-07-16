@@ -45,7 +45,11 @@ schema = fmt.TableSchema(
     table_name=f"{GOLD_SCHEMA}.dim_issue",
     table_type="dim",
     key_column="Issue_Key",
-    write_mode="overwrite",   # rebuilt in full every run -- cheaper than MERGE
+    # MERGE (default), NOT overwrite. Silver full-replaces its tables each run
+    # (current snapshot only), so if Gold overwrote too, any issue that leaves
+    # Silver -- deleted, or aged out of the extract -- would vanish from Gold.
+    # Merge accumulates: rows that drop out of Silver still persist here. That
+    # retention is worth more than the small build-time saving overwrite gave.
     columns={
         "Issue_Id":         {"type": "string", "merge_field": True, "missing": "Unknown"},
         "Issue_Code":       {"type": "string", "default": "Unknown"},
@@ -69,6 +73,13 @@ schema = fmt.TableSchema(
         "Epic":             {"type": "string"},
         "Task":             {"type": "string"},
         "Sub_Task":         {"type": "string"},
+        # Dense levels -- drive the xViz Gantt Task Name (nest correctly there).
+        # Depth-placed, contiguous, each shows "KEY: Summary".
+        "Level_1": {"type": "string"}, "Level_2": {"type": "string"},
+        "Level_3": {"type": "string"}, "Level_4": {"type": "string"},
+        "Level_5": {"type": "string"}, "Level_6": {"type": "string"},
+        "Level_7": {"type": "string"},
+        "Depth":   {"type": "int", "default": 1},
         # Gantt display / dependency affordances
         "Resource_Names":         {"type": "string", "default": ""},
         "Lead_Name":              {"type": "string", "default": "Unassigned"},
@@ -149,6 +160,10 @@ df = fmt.enrich_issue_hierarchy(
     root_prefix_lookup=spark.sql(f"SELECT Project_Id, Project_Code FROM {GOLD_SCHEMA}.dim_project"),
     root_prefix_join_column="Project_Id",
     label_column="Issue_Code",
+    # Level_1..7 (dense, depth-placed) drive the xViz Gantt Task Name -- these
+    # nest correctly in the visual (verified in Power BI) where nothing else
+    # does. Sorted by Sort_Path with the rollup dates, the Gantt matches Jira.
+    build_dense_levels=True,
 )
 
 # MARKDOWN ********************
