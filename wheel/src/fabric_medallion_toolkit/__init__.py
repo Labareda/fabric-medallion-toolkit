@@ -13,7 +13,21 @@ submodule something lives in:
     ))
 """
 
-__version__ = "0.3.54"
+from importlib.metadata import version as _pkg_version, PackageNotFoundError
+
+try:
+    # Single source of truth: pyproject.toml's [project].version, read back
+    # from the installed wheel's own metadata. A hardcoded second copy here
+    # is exactly how this drifted before -- __init__.py said 0.3.54 while
+    # pyproject.toml said 0.3.55, so checking fmt.__version__ to confirm a
+    # new wheel had actually been deployed was unreliable. There is now
+    # only one place version is ever written.
+    __version__ = _pkg_version("fabric-medallion-toolkit")
+except PackageNotFoundError:
+    # Only hit if the package is being imported from source without being
+    # pip-installed first (e.g. running straight out of a repo checkout) --
+    # not the normal path in Fabric, where the built wheel is installed.
+    __version__ = "0.0.0+unknown"
 
 # --- config: the dataclasses used to describe sources, entities, columns, tables ---
 from fabric_medallion_toolkit.config import (
@@ -38,11 +52,11 @@ from fabric_medallion_toolkit.silver import (
 # --- gold: merge, keys, lookups, date dimension ---
 from fabric_medallion_toolkit.gold import (
     merge, build_gold_table, run_gold_model,
-    build_date_dimension, add_date_dimension_sentinel, merge_scd2, add_guid_key, lookup_key, lookup_keys, add_unknown_member, build_hierarchy_levels, build_typed_hierarchy_levels, build_sort_path, rollup_hierarchy_dates,
+    build_date_dimension, add_date_dimension_sentinel, merge_scd2, add_guid_key, lookup_key, lookup_keys, add_unknown_member, build_hierarchy_levels, build_typed_hierarchy_levels, build_sort_path, rollup_hierarchy_dates, enrich_issue_hierarchy, assert_unique,
 )
 
 # --- utils, for the rarer case you need them directly ---
-from fabric_medallion_toolkit.utils import get_logger, get_by_path, upsert_delta, build_merge_sql, refresh_sql_endpoint, refresh_sql_endpoints, extract_adf_text, topological_sort, build_medallion_run_order, log_step_status, get_completed_steps
+from fabric_medallion_toolkit.utils import get_logger, get_by_path, upsert_delta, build_merge_sql, refresh_sql_endpoint, refresh_sql_endpoints, extract_adf_text, topological_sort, build_medallion_run_order, log_step_status, get_completed_steps, resolve_run_id
 
 __all__ = [
     # config
@@ -56,7 +70,7 @@ __all__ = [
     "auto_standardize", "run_auto_silver_standardize", "clean_adf_columns", "rename_customfield_columns", "build_field_id_to_name",
     # gold
     "merge", "build_gold_table", "run_gold_model",
-    "build_date_dimension", "add_date_dimension_sentinel", "merge_scd2", "add_guid_key", "lookup_key", "lookup_keys", "add_unknown_member", "build_hierarchy_levels", "build_typed_hierarchy_levels", "build_sort_path", "rollup_hierarchy_dates",
+    "build_date_dimension", "add_date_dimension_sentinel", "merge_scd2", "add_guid_key", "lookup_key", "lookup_keys", "add_unknown_member", "build_hierarchy_levels", "build_typed_hierarchy_levels", "build_sort_path", "rollup_hierarchy_dates", "enrich_issue_hierarchy", "assert_unique",
     # utils
-    "get_logger", "get_by_path", "upsert_delta", "build_merge_sql", "refresh_sql_endpoint", "refresh_sql_endpoints", "extract_adf_text", "topological_sort", "build_medallion_run_order", "log_step_status", "get_completed_steps",
+    "get_logger", "get_by_path", "upsert_delta", "build_merge_sql", "refresh_sql_endpoint", "refresh_sql_endpoints", "extract_adf_text", "topological_sort", "build_medallion_run_order", "log_step_status", "get_completed_steps", "resolve_run_id",
 ]

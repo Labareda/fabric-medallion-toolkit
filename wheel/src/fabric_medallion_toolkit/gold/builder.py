@@ -150,6 +150,18 @@ def merge(spark, df, schema: Union[TableSchema, GoldTableConfig]) -> Optional[st
                 + "; ".join(mismatches)
             )
 
+    # MATERIALIZE ONCE before the validation scans below. Everything from here
+    # -- the null check, the duplicate check, add_guid_key, and the final
+    # write -- reads df. If df carries an expensive un-materialized lineage
+    # (e.g. Dim_Issue's two hierarchy walks + sort_path), EACH of those reads
+    # re-executes that entire lineage from scratch. Persisting once here means
+    # the upstream work runs a single time and every scan below hits the
+    # materialized result. This is often the single biggest win for a
+    # notebook where "merge is slow" -- the merge isn't slow, it's re-running
+    # the whole pipeline feeding it, several times.
+    df = df.persist()
+    df.count()  # force it now
+
     # Merge-field integrity: every row needs a COMPLETE, UNIQUE natural key.
     # A null merge field would generate a key hashing partly from nothing
     # (silently wrong), and a duplicate combination means two source rows
@@ -180,10 +192,21 @@ def merge(spark, df, schema: Union[TableSchema, GoldTableConfig]) -> Optional[st
     if table_type == "scd2":
         merge_scd2(spark, df, merge_fields=schema.merge_fields, table_name=schema.table_name,
                    key_column=schema.key_column, tracked_columns=schema.tracked_columns)
+        df.unpersist()
         return None
 
+    # write_mode defaults to "merge" (incremental-safe). A schema can set
+    # write_mode="overwrite" for a table that's fully rebuilt every run --
+    # far cheaper than MERGE, which otherwise compares every rebuilt row
+    # against the old table for no benefit. See upsert_delta.
+    write_mode = getattr(schema, "write_mode", None) or "merge"
+    if write_mode == "overwrite" and table_type == "scd2":
+        raise ValueError(f"{schema.table_name}: write_mode='overwrite' is not valid with table_type='scd2' (scd2 has its own versioning write path)")
     keyed = add_guid_key(df, schema.merge_fields, schema.key_column)
-    return upsert_delta(spark, keyed, schema.table_name, key_cols=schema.merge_fields)
+    result_sql = upsert_delta(spark, keyed, schema.table_name, key_cols=schema.merge_fields,
+                              write_mode=write_mode)
+    df.unpersist()
+    return result_sql
 
 
 def build_gold_table(spark, config: GoldTableConfig) -> Optional[str]:

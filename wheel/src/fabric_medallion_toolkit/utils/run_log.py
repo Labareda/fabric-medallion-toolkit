@@ -11,7 +11,7 @@ which is almost always what a recurring pipeline should do).
 """
 
 from datetime import datetime, timezone
-from typing import Set
+from typing import Optional, Set
 
 from pyspark.sql import functions as F
 
@@ -29,6 +29,57 @@ def log_step_status(spark, log_table: str, run_id: str, step_name: str, status: 
         schema="run_id string, step_name string, status string, logged_at timestamp",
     )
     row.write.format("delta").mode("append").saveAsTable(log_table)
+
+
+def resolve_run_id(spark, log_table: str, all_step_names, override: Optional[str] = None) -> str:
+    """
+    Decide the run_id for THIS trigger, resolving the tension between two
+    goals that a clock alone can't tell apart:
+
+      - a fresh scheduled/ad-hoc run should get a NEW run_id (so it does a
+        full pass, even if an earlier run today already finished), and
+      - a retry of a run that FAILED partway should REUSE that run's run_id
+        (so already-succeeded steps are skipped and only the rest re-runs).
+
+    Rule: look at the most recent run_id in the log. If it did NOT complete
+    every step in all_step_names (i.e. it failed or was interrupted), RESUME
+    it -- return that same run_id. If it completed everything (or there's no
+    log yet), START FRESH -- return a new timestamp run_id.
+
+    This means: a notebook that fails at 09:00 and is re-triggered at 10:00
+    automatically resumes and skips what already succeeded; but a fully
+    successful 09:00 run followed by a deliberate 10:00 run starts clean and
+    reprocesses everything. No manual bookkeeping either way.
+
+    override: if given (non-empty), it wins -- return it unchanged. For the
+    rare case of deliberately resuming a SPECIFIC older run_id by hand.
+    """
+    if override:
+        return override
+
+    fresh_run_id = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+
+    try:
+        log_df = spark.table(log_table)
+    except Exception:
+        return fresh_run_id  # no log yet -> first ever run -> fresh
+
+    if log_df.rdd.isEmpty():
+        return fresh_run_id
+
+    # Most recent run_id by its latest activity.
+    last_run_id = (
+        log_df.groupBy("run_id")
+        .agg(F.max("logged_at").alias("last_at"))
+        .orderBy(F.col("last_at").desc())
+        .limit(1)
+        .collect()[0]["run_id"]
+    )
+
+    completed = get_completed_steps(spark, log_table, last_run_id)
+    if set(all_step_names).issubset(completed):
+        return fresh_run_id       # last run finished everything -> start clean
+    return last_run_id            # last run left steps undone -> resume it
 
 
 def get_completed_steps(spark, log_table: str, run_id: str) -> Set[str]:

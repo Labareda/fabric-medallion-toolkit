@@ -20,6 +20,57 @@ import time
 from typing import Any, Dict
 
 
+def _as_dict(obj) -> Dict[str, Any]:
+    """
+    getWithProperties returns a dict on some runtimes and an object with
+    attributes on others. Normalize to a dict so callers can subscript it
+    uniformly. If it's already dict-like, return as-is.
+    """
+    if isinstance(obj, dict):
+        return obj
+    # Object form: pull the fields we use off attributes into a dict shape.
+    return {
+        "workspaceId": getattr(obj, "workspaceId", None),
+        "properties": getattr(obj, "properties", None),
+    }
+
+
+def _get_lakehouse_with_properties(mssparkutils, lakehouse_name: str) -> Dict[str, Any]:
+    """
+    Return the lakehouse's full properties (including sqlEndpointProperties),
+    coping with the mssparkutils -> notebookutils namespace migration.
+
+    getWithProperties() is a NEWER method that lives on the notebookutils
+    namespace. The legacy mssparkutils.lakehouse alias does NOT expose it on
+    many runtimes -- calling mssparkutils.lakehouse.getWithProperties there
+    raises "module ... has no attribute 'getWithProperties'", which is the
+    exact SQL-endpoint-refresh warning this fixes. So prefer notebookutils,
+    fall back to the mssparkutils alias, and only then error.
+    """
+    # 1. Modern namespace -- where getWithProperties actually lives.
+    try:
+        import notebookutils
+        if hasattr(notebookutils, "lakehouse") and hasattr(notebookutils.lakehouse, "getWithProperties"):
+            return _as_dict(notebookutils.lakehouse.getWithProperties(name=lakehouse_name))
+    except ImportError:
+        pass
+
+    # 2. Legacy alias, only if THIS runtime happens to expose it there.
+    if hasattr(mssparkutils, "lakehouse") and hasattr(mssparkutils.lakehouse, "getWithProperties"):
+        return _as_dict(mssparkutils.lakehouse.getWithProperties(name=lakehouse_name))
+
+    # 3. Neither namespace has it -- clear, actionable error instead of the
+    #    raw AttributeError, so it's obvious this is a runtime/version issue,
+    #    not a bug in the lakehouse name or workspace.
+    raise AttributeError(
+        f"getWithProperties is not available on this runtime's lakehouse utilities "
+        f"(tried notebookutils.lakehouse and mssparkutils.lakehouse). It requires a "
+        f"Fabric runtime with the newer notebookutils API (Runtime 1.2 / Spark 3.4+). "
+        f"Upgrade the environment's runtime, or refresh the '{lakehouse_name}' SQL "
+        f"endpoint another way."
+    )
+
+
 def refresh_sql_endpoint(mssparkutils, lakehouse_name: str, timeout_minutes: int = 5,
                           poll_interval_seconds: int = 5, max_poll_seconds: int = 300) -> Dict[str, Any]:
     """
@@ -39,9 +90,9 @@ def refresh_sql_endpoint(mssparkutils, lakehouse_name: str, timeout_minutes: int
     """
     import requests  # a normal pip package, fine to import at call time or module level either way
 
-    lh = mssparkutils.lakehouse.getWithProperties(name=lakehouse_name)
-    workspace_id = lh.workspaceId
-    sql_endpoint_id = lh.properties["sqlEndpointProperties"]["id"]
+    lh = _get_lakehouse_with_properties(mssparkutils, lakehouse_name)
+    workspace_id = lh["workspaceId"]
+    sql_endpoint_id = lh["properties"]["sqlEndpointProperties"]["id"]
 
     token = mssparkutils.credentials.getToken("https://api.fabric.microsoft.com")
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}

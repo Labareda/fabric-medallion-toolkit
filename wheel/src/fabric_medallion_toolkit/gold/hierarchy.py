@@ -42,6 +42,16 @@ def build_hierarchy_levels(df: DataFrame, id_column: str, parent_id_column: str,
     (the row's own code), left-aligned by actual chain depth -- shallower
     branches leave trailing Level_N null rather than being padded.
     """
+    dup_count = df.groupBy(id_column).count().filter("count > 1").limit(1).count()
+    if dup_count > 0:
+        raise ValueError(
+            f"build_hierarchy_levels: '{id_column}' is not unique in the input DataFrame -- at "
+            f"least one id has more than one row. Every one of this function's self-joins "
+            f"assumes one row per id; duplicates fan out MULTIPLICATIVELY at each of the "
+            f"max_depth={max_depth} levels, which looks like a runaway job rather than a clean "
+            f"error. Find and fix the duplicate(s) upstream before calling this."
+        )
+
     result = df.select(
         F.col(id_column).alias("_id0"),
         F.col(code_column).alias("_level0"),
@@ -60,6 +70,12 @@ def build_hierarchy_levels(df: DataFrame, id_column: str, parent_id_column: str,
             F.col("_lk_code").alias(f"_level{i}"),
         )
         result = result.join(renamed_lookup, result[f"_parent{i - 1}"] == F.col(f"_id{i}"), "left")
+        # Cut lineage partway through so the planner never sees all max_depth
+        # joins stacked into a single deeply-nested plan (which it must plan,
+        # and re-plan whenever the result is touched). A mid-walk checkpoint
+        # keeps plan depth bounded; the cost is one extra materialization.
+        if max_depth > 5 and i == max_depth // 2:
+            result = result.localCheckpoint(eager=True)
 
     truncated_count = result.filter(F.col(f"_parent{max_depth - 1}").isNotNull()).limit(1).count()
     if truncated_count > 0:
@@ -112,6 +128,16 @@ def build_typed_hierarchy_levels(df: DataFrame, id_column: str, parent_id_column
     if not rank_to_level:
         raise ValueError("build_typed_hierarchy_levels: rank_to_level must not be empty")
 
+    dup_count = df.groupBy(id_column).count().filter("count > 1").limit(1).count()
+    if dup_count > 0:
+        raise ValueError(
+            f"build_typed_hierarchy_levels: '{id_column}' is not unique in the input DataFrame "
+            f"-- at least one id has more than one row. The chain walk assumes one row per id; "
+            f"duplicates fan out MULTIPLICATIVELY at every one of the max_chain_walk="
+            f"{max_chain_walk} steps, which looks like a runaway job rather than a clean error. "
+            f"Find and fix the duplicate(s) upstream before calling this."
+        )
+
     num_levels = len(rank_to_level)
     levels_present = sorted(rank_to_level.values())
     if levels_present != list(range(1, num_levels + 1)):
@@ -160,7 +186,24 @@ def build_typed_hierarchy_levels(df: DataFrame, id_column: str, parent_id_column
         F.col("_parent").alias("_ptr"),
     )
 
-    for _ in range(max_chain_walk):
+    # Each iteration adds ONE self-join to the plan. Two things keep that from
+    # becoming an expensive, deeply-nested Catalyst plan:
+    #
+    # 1. STOP EARLY. Real parent chains terminate long before max_chain_walk
+    #    (a Jira hierarchy is ~5-7 deep, and max_chain_walk defaults high only
+    #    as a safety ceiling). As soon as no row still has a non-null _ptr, the
+    #    whole hierarchy is resolved and every further self-join would just be
+    #    a full-dataset join that changes nothing. Checking `any rows left with
+    #    a parent` each pass and breaking is far cheaper than always building
+    #    the maximum number of joins.
+    #
+    # 2. TRUNCATE LINEAGE periodically. Without this, N passes produce one
+    #    query plan N self-joins deep, which Spark must plan/optimize as a
+    #    single unit (and re-plan every time the result is touched). Calling
+    #    localCheckpoint() every few passes cuts the lineage -- the planner
+    #    only ever sees a few joins at a time, not all of them stacked.
+    checkpoint_every = 4
+    for i in range(max_chain_walk):
         walk = (
             walk.alias("w")
             .join(lookup.alias("a"), F.col("w._ptr") == F.col("a._lk_id"), "left")
@@ -176,6 +219,16 @@ def build_typed_hierarchy_levels(df: DataFrame, id_column: str, parent_id_column
                 F.col("a._lk_parent").alias("_ptr"),
             )
         )
+
+        # Every few passes, cut lineage AND check whether we're done. Both need
+        # an action; doing them together means the periodic materialization
+        # also answers "any chains left to walk?" for free. eager=True forces
+        # the checkpoint now so the plan really is truncated at this point.
+        if (i + 1) % checkpoint_every == 0 or i == max_chain_walk - 1:
+            walk = walk.localCheckpoint(eager=True)
+            remaining = walk.filter(F.col("_ptr").isNotNull()).limit(1).count()
+            if remaining == 0:
+                break
 
     unresolved = walk.filter(F.col("_ptr").isNotNull()).limit(1).count()
     if unresolved > 0:

@@ -17,8 +17,30 @@ not just the most recent step. At ~10 iterations over real data (~12,000
 rows) this is the difference between seconds and 30+ minutes that never
 finishes. Every .cache() below is followed by an explicit .count() for
 exactly this reason -- do not remove it as "unnecessary."
+
+SEPARATE PERFORMANCE NOTE: .cache() registers a DataFrame with Spark's
+block manager, but reassigning the Python variable it's bound to does NOT
+free those blocks -- only an explicit .unpersist() does. A loop that does
+`current = (...).cache()` every pass, without unpersisting the PREVIOUS
+pass's `current`/`accumulated`, leaves every prior iteration's cached data
+sitting in executor memory for the lifetime of the loop. On a small Fabric
+pool this fills available memory within a handful of passes and Spark
+starts spilling/evicting, which is a second, independent way for this to
+get slow -- distinct from the lineage-blowup problem above, and not fixed
+by it. Every DataFrame cached inside the loop below is explicitly
+unpersisted once it's no longer needed.
+
+ALSO: the default spark.sql.shuffle.partitions (200) is sized for large
+data, not a ~12,000-row hierarchy. Every join/union here triggers a
+shuffle; 200 tiny partitions per shuffle, times ~2 shuffle stages per
+loop pass, times up to max_depth passes, means task-scheduling overhead
+alone can dominate wall-clock time on data this small. Both functions
+below temporarily lower shuffle partitions for their own duration and
+restore the session's original setting afterward -- this only affects
+this function's own operations, not any other notebook or cell.
 """
 
+from contextlib import contextmanager
 from typing import Optional
 
 from pyspark.sql import DataFrame
@@ -35,6 +57,25 @@ logger = get_logger("gold.sort_path")
 # plain numeric or alphabetic ranks alike. Do not change this to "/" or
 # "-" without rechecking that property.
 PATH_SEPARATOR = "!"
+
+
+@contextmanager
+def _small_data_shuffle_partitions(spark, row_count: int):
+    """
+    Temporarily caps shuffle partitions to something sane for a hierarchy
+    this size, restoring the session's original value on exit (even if the
+    block raises). ~1 partition per 2,000 rows, floor of 8, ceiling of the
+    session default -- never INCREASES partitions beyond what the session
+    already had configured.
+    """
+    key = "spark.sql.shuffle.partitions"
+    original = spark.conf.get(key)
+    target = max(8, min(int(original), (row_count // 2000) + 1))
+    spark.conf.set(key, target)
+    try:
+        yield
+    finally:
+        spark.conf.set(key, original)
 
 
 def build_sort_path(df: DataFrame, id_column: str, parent_id_column: str,
@@ -73,6 +114,17 @@ def build_sort_path(df: DataFrame, id_column: str, parent_id_column: str,
     """
     rank_or_fallback = F.coalesce(F.col(rank_column), F.col(id_column))
 
+    dup_count = df.groupBy(id_column).count().filter("count > 1").limit(1).count()
+    if dup_count > 0:
+        raise ValueError(
+            f"build_sort_path: '{id_column}' is not unique in the input DataFrame -- at least "
+            f"one id has more than one row. This function's walk assumes exactly one row per "
+            f"id; duplicates fan the join out MULTIPLICATIVELY at every depth, which looks like "
+            f"a runaway/never-finishing job, not a clean error, until it hits max_depth. Find "
+            f"and fix the duplicate(s) upstream (e.g. `df.groupBy('{id_column}').count()."
+            f"filter('count > 1')`) before calling this."
+        )
+
     if root_prefix_column is not None:
         seed_path = F.concat(
             F.coalesce(F.col(root_prefix_column), F.lit("~")),
@@ -82,59 +134,80 @@ def build_sort_path(df: DataFrame, id_column: str, parent_id_column: str,
     else:
         seed_path = rank_or_fallback
 
+    spark = df.sparkSession
+
     base = df.select(
         F.col(id_column).alias("_id"),
         F.col(parent_id_column).alias("_parent"),
         rank_or_fallback.alias("_rank"),
         seed_path.alias("_seed"),
     ).cache()
-    base.count()  # force full materialization now, not lazily later (see module docstring)
+    row_count = base.count()  # force full materialization now, not lazily later (see module docstring)
 
-    current = base.filter(F.col("_parent").isNull()).select(
-        F.col("_id"),
-        F.col("_seed").alias("Sort_Path"),
-        F.lit(0).alias("Depth"),
-    ).cache()
-    current.count()
+    with _small_data_shuffle_partitions(spark, row_count):
+        current = base.filter(F.col("_parent").isNull()).select(
+            F.col("_id"),
+            F.col("_seed").alias("Sort_Path"),
+            F.lit(0).alias("Depth"),
+        ).cache()
+        current.count()
 
-    accumulated = current
+        accumulated = current
 
-    for depth in range(1, max_depth + 1):
-        current = (
-            base.alias("c")
-            .join(current.alias("p"), F.col("c._parent") == F.col("p._id"), "inner")
+        for depth in range(1, max_depth + 1):
+            next_current = (
+                base.alias("c")
+                .join(current.alias("p"), F.col("c._parent") == F.col("p._id"), "inner")
+                .select(
+                    F.col("c._id").alias("_id"),
+                    F.concat(F.col("p.Sort_Path"), F.lit(PATH_SEPARATOR), F.col("c._rank")).alias("Sort_Path"),
+                    F.lit(depth).alias("Depth"),
+                )
+            ).cache()
+            # ONE action per pass, not two. This count() both materializes
+            # this frontier and tells us whether to stop (no new rows = every
+            # chain resolved). The accumulated union below is built LAZILY --
+            # we deliberately do NOT count() it each pass. Forcing accumulated
+            # every iteration was a second full job per pass (up to max_depth
+            # extra jobs) for no reason: nothing reads accumulated until the
+            # single result materialization after the loop, so its lineage can
+            # stay lazy until then. Halving the actions in this loop is a large
+            # part of build_sort_path's cost.
+            next_count = next_current.count()
+
+            if next_count == 0:
+                current.unpersist()
+                current = next_current
+                break
+
+            accumulated = accumulated.unionByName(next_current)
+            current.unpersist()
+            current = next_current
+        else:
+            # Loop completed without break -- there may be deeper rows still
+            # unreached, which would silently get a root-level path below.
+            if current.count() > 0:
+                raise ValueError(
+                    f"build_sort_path: max_depth={max_depth} was not enough to reach every "
+                    f"descendant. Rows deeper than this would be given a misleading root-level "
+                    f"path. Increase max_depth."
+                )
+
+        result = (
+            df.select(F.col(id_column).alias("_bid"), seed_path.alias("_bseed"))
+            .join(accumulated.alias("a"), F.col("_bid") == F.col("a._id"), "left")
             .select(
-                F.col("c._id").alias("_id"),
-                F.concat(F.col("p.Sort_Path"), F.lit(PATH_SEPARATOR), F.col("c._rank")).alias("Sort_Path"),
-                F.lit(depth).alias("Depth"),
+                F.col("_bid").alias(id_column),
+                F.coalesce(F.col("a.Sort_Path"), F.col("_bseed")).alias("Sort_Path"),
+                F.coalesce(F.col("a.Depth"), F.lit(0)).alias("Depth"),
             )
         ).cache()
-        current_count = current.count()  # forces materialization AND tells us whether to stop
+        result.count()  # materialize before we unpersist its inputs below
 
-        if current_count == 0:
-            break
+    base.unpersist()
+    if current is not None:
+        current.unpersist()
 
-        accumulated = accumulated.unionByName(current).cache()
-        accumulated.count()
-    else:
-        # Loop completed without break -- there may be deeper rows still
-        # unreached, which would silently get a root-level path below.
-        if current.count() > 0:
-            raise ValueError(
-                f"build_sort_path: max_depth={max_depth} was not enough to reach every "
-                f"descendant. Rows deeper than this would be given a misleading root-level "
-                f"path. Increase max_depth."
-            )
-
-    result = (
-        df.select(F.col(id_column).alias("_bid"), seed_path.alias("_bseed"))
-        .join(accumulated.alias("a"), F.col("_bid") == F.col("a._id"), "left")
-        .select(
-            F.col("_bid").alias(id_column),
-            F.coalesce(F.col("a.Sort_Path"), F.col("_bseed")).alias("Sort_Path"),
-            F.coalesce(F.col("a.Depth"), F.lit(0)).alias("Depth"),
-        )
-    )
     return result
 
 
@@ -168,77 +241,92 @@ def rollup_hierarchy_dates(df: DataFrame, id_column: str, parent_id_column: str,
     as a pass changes nothing, rather than always running max_depth times
     -- most hierarchies settle in far fewer than 10 passes.
     """
+    spark = df.sparkSession
+
     walk = df.select(
         F.col(id_column).alias("_id"),
         F.col(parent_id_column).alias("_parent"),
         F.col(start_column).alias("_own_start"),
         F.col(end_column).alias("_own_end"),
     ).cache()
-    walk.count()  # force materialization now (see module docstring)
+    row_count = walk.count()  # force materialization now (see module docstring)
 
-    # Running best-known min/max for each row, seeded with its own dates.
-    agg = walk.select(
-        F.col("_id"),
-        F.col("_parent"),
-        F.col("_own_start").alias("_min_start"),
-        F.col("_own_end").alias("_max_end"),
-    ).cache()
-    agg.count()
+    with _small_data_shuffle_partitions(spark, row_count):
+        # Running best-known min/max for each row, seeded with its own dates.
+        agg = walk.select(
+            F.col("_id"),
+            F.col("_parent"),
+            F.col("_own_start").alias("_min_start"),
+            F.col("_own_end").alias("_max_end"),
+        ).cache()
+        agg.count()
 
-    for _ in range(max_depth):
-        # Each row's children, collapsed to one min/max per parent.
-        from_children = (
-            agg.filter(F.col("_parent").isNotNull())
-            .groupBy(F.col("_parent").alias("_pid"))
-            .agg(
-                F.min("_min_start").alias("_child_min_start"),
-                F.max("_max_end").alias("_child_max_end"),
+        for _ in range(max_depth):
+            # Each row's children, collapsed to one min/max per parent.
+            from_children = (
+                agg.filter(F.col("_parent").isNotNull())
+                .groupBy(F.col("_parent").alias("_pid"))
+                .agg(
+                    F.min("_min_start").alias("_child_min_start"),
+                    F.max("_max_end").alias("_child_max_end"),
+                )
             )
-        )
 
-        new_agg = (
-            agg.alias("a")
-            .join(from_children.alias("c"), F.col("a._id") == F.col("c._pid"), "left")
+            new_agg = (
+                agg.alias("a")
+                .join(from_children.alias("c"), F.col("a._id") == F.col("c._pid"), "left")
+                .select(
+                    F.col("a._id"),
+                    F.col("a._parent"),
+                    F.least(
+                        F.coalesce(F.col("a._min_start"), F.col("c._child_min_start")),
+                        F.coalesce(F.col("c._child_min_start"), F.col("a._min_start")),
+                    ).alias("_min_start"),
+                    F.greatest(
+                        F.coalesce(F.col("a._max_end"), F.col("c._child_max_end")),
+                        F.coalesce(F.col("c._child_max_end"), F.col("a._max_end")),
+                    ).alias("_max_end"),
+                )
+            ).cache()
+            new_agg.count()  # force materialization now, not lazily later
+
+            # Stop as soon as a pass changes nothing -- comparing counts of
+            # rows that actually differ from the previous pass is cheap once
+            # both sides are already materialized, and avoids running the
+            # full max_depth every time regardless of the real hierarchy depth.
+            changed = new_agg.alias("n").join(
+                agg.alias("o"), F.col("n._id") == F.col("o._id"), "inner"
+            ).filter(
+                (F.col("n._min_start") != F.col("o._min_start"))
+                | (F.col("n._max_end") != F.col("o._max_end"))
+            ).limit(1).count()
+
+            # This pass's previous `agg` is fully superseded by new_agg and
+            # never read again once we reassign below -- unpersist it
+            # explicitly, or it (and every prior pass's copy) stays cached in
+            # executor memory for the rest of the loop (see module docstring).
+            agg.unpersist()
+            agg = new_agg
+            if changed == 0:
+                break
+
+        result = (
+            walk.alias("w")
+            .join(agg.alias("g"), F.col("w._id") == F.col("g._id"), "left")
             .select(
-                F.col("a._id"),
-                F.col("a._parent"),
-                F.least(
-                    F.coalesce(F.col("a._min_start"), F.col("c._child_min_start")),
-                    F.coalesce(F.col("c._child_min_start"), F.col("a._min_start")),
-                ).alias("_min_start"),
-                F.greatest(
-                    F.coalesce(F.col("a._max_end"), F.col("c._child_max_end")),
-                    F.coalesce(F.col("c._child_max_end"), F.col("a._max_end")),
-                ).alias("_max_end"),
+                F.col("w._id").alias(id_column),
+                # Own dates win outright; otherwise fall back to the rolled-up
+                # descendant range; otherwise NULL.
+                F.coalesce(F.col("w._own_start"), F.col("g._min_start")).alias(out_start),
+                F.coalesce(F.col("w._own_end"), F.col("g._max_end")).alias(out_end),
+                (F.col("w._own_start").isNotNull() | F.col("w._own_end").isNotNull()).alias(out_flag),
             )
         ).cache()
-        new_agg.count()  # force materialization now, not lazily later
+        result.count()  # materialize before we unpersist its inputs below
 
-        # Stop as soon as a pass changes nothing -- comparing counts of
-        # rows that actually differ from the previous pass is cheap once
-        # both sides are already materialized, and avoids running the
-        # full max_depth every time regardless of the real hierarchy depth.
-        changed = new_agg.alias("n").join(
-            agg.alias("o"), F.col("n._id") == F.col("o._id"), "inner"
-        ).filter(
-            (F.col("n._min_start") != F.col("o._min_start"))
-            | (F.col("n._max_end") != F.col("o._max_end"))
-        ).limit(1).count()
+    walk.unpersist()
+    agg.unpersist()
 
-        agg = new_agg
-        if changed == 0:
-            break
-
-    result = (
-        walk.alias("w")
-        .join(agg.alias("g"), F.col("w._id") == F.col("g._id"), "left")
-        .select(
-            F.col("w._id").alias(id_column),
-            # Own dates win outright; otherwise fall back to the rolled-up
-            # descendant range; otherwise NULL.
-            F.coalesce(F.col("w._own_start"), F.col("g._min_start")).alias(out_start),
-            F.coalesce(F.col("w._own_end"), F.col("g._max_end")).alias(out_end),
-            (F.col("w._own_start").isNotNull() | F.col("w._own_end").isNotNull()).alias(out_flag),
-        )
-    )
-    return df.join(result, on=id_column, how="left")
+    final = df.join(result, on=id_column, how="left")
+    result.unpersist()
+    return final

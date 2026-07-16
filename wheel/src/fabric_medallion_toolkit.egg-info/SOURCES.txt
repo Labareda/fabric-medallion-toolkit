@@ -16,6 +16,7 @@ src/fabric_medallion_toolkit/gold/__init__.py
 src/fabric_medallion_toolkit/gold/builder.py
 src/fabric_medallion_toolkit/gold/date_dimension.py
 src/fabric_medallion_toolkit/gold/hierarchy.py
+src/fabric_medallion_toolkit/gold/issue_hierarchy.py
 src/fabric_medallion_toolkit/gold/keys.py
 src/fabric_medallion_toolkit/gold/lookup.py
 src/fabric_medallion_toolkit/gold/scd2.py

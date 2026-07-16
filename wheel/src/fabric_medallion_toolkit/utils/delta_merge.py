@@ -33,12 +33,37 @@ def build_merge_sql(target_table: str, source_view: str, key_cols: List[str],
     )
 
 
-def upsert_delta(spark, df, target_table: str, key_cols: List[str]) -> Optional[str]:
+def upsert_delta(spark, df, target_table: str, key_cols: List[str],
+                 write_mode: str = "merge") -> Optional[str]:
     """
-    Upserts `df` into `target_table` (schema.table, e.g. "bronze.jira_issues").
-    Creates the table on first write. Returns the MERGE SQL that was run
-    (None on a first-time create, since there's nothing to merge yet).
+    Writes `df` into `target_table`.
+
+    write_mode:
+      - "merge" (default): MERGE INTO -- updates matched rows, inserts new
+        ones. Correct for INCREMENTAL loads where only some rows change and
+        existing rows must be preserved.
+      - "overwrite": replaces the whole table contents. Correct for tables
+        REBUILT IN FULL every run (every row recomputed from source), where
+        MERGE's per-row match-vs-insert comparison is pure overhead -- there
+        is nothing to preserve, so comparing against the old table to decide
+        update-vs-insert just doubles the work. For a full-rebuild dimension
+        this is dramatically cheaper than MERGE.
+
+    Creates the table on first write regardless of mode. Returns the MERGE
+    SQL that was run, or None (first-time create, or an overwrite -- neither
+    runs a MERGE statement).
     """
+    if write_mode not in ("merge", "overwrite"):
+        raise ValueError(f"upsert_delta: write_mode must be 'merge' or 'overwrite', got '{write_mode}'")
+
+    if write_mode == "overwrite":
+        # overwriteSchema=true so a column added/removed in the source (e.g. a
+        # new hierarchy level) is reflected, rather than failing on schema
+        # mismatch the way a plain overwrite would.
+        (df.write.format("delta").mode("overwrite")
+           .option("overwriteSchema", "true").saveAsTable(target_table))
+        return None
+
     if not spark.catalog.tableExists(target_table):
         df.write.format("delta").mode("overwrite").saveAsTable(target_table)
         return None

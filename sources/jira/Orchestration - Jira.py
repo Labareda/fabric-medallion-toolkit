@@ -9,7 +9,6 @@
 
 # CELL ********************
 from notebookutils import mssparkutils
-from datetime import date
 import fabric_medallion_toolkit as fmt
 
 # CELL ********************
@@ -39,11 +38,7 @@ DIMENSION_NOTEBOOKS = {
 # Facts declare dependencies on OTHER FACTS only -- depending on every dimension
 # is added automatically inside build_medallion_run_order, not restated per fact.
 FACT_NOTEBOOKS = {
-    # Fact_StatusHistory FIRST: Fact_Issue reads Actual_Start_Date back out of
-    # it (Jira has no actual-start field -- it only has a changelog). This is the
-    # one non-obvious ordering constraint in the whole pipeline.
-    "Gold - Fact_StatusHistory": [],
-    "Gold - Fact_Issue": ["Gold - Fact_StatusHistory"],
+    "Gold - Fact_Issue": [],
     "Gold - Fact_ResourceAllocation": [],
     "Gold - Bridge_IssueSprint": [],
     "Gold - Bridge_IssueLink": [],
@@ -54,11 +49,14 @@ FACT_NOTEBOOKS = {
 
 LAKEHOUSES_TO_REFRESH = ["Silver", "Gold"]
 
-# RUN_ID defaults to today, so a retry later the same day skips what already
-# succeeded, but tomorrow's scheduled run reruns everything against fresh data.
-# FORCE_FULL_RERUN ignores the log entirely.
+# PARAMETERS CELL -- a Fabric pipeline "Execute Notebook" activity can inject
+# a value for RUN_ID_OVERRIDE here (tag this cell as a parameters cell in the
+# notebook's cell properties). Leave it None for normal runs. Set it only for
+# the rare case of resuming ONE specific older run_id by hand -- normal
+# resume-after-failure is automatic (see below), so you almost never need this.
+RUN_ID_OVERRIDE = None
+
 RUN_LOG = "Gold.gold.orchestration_log"
-RUN_ID = str(date.today())
 FORCE_FULL_RERUN = False
 
 # CELL ********************
@@ -70,9 +68,22 @@ run_order = fmt.build_medallion_run_order(
 )
 print("Computed run order:", run_order)
 
+# resolve_run_id decides fresh-vs-resume automatically:
+#   - if the LAST run in the log didn't finish every step (it failed or was
+#     interrupted), REUSE its run_id -> this trigger resumes it and skips
+#     what already succeeded. So a failure at 09:00 re-triggered at 10:00
+#     picks up where it stopped, NOT a full rerun.
+#   - if the last run completed everything (or there's no log yet), get a
+#     NEW run_id -> a full fresh pass. So a successful 09:00 run followed by
+#     a deliberate 10:00 run reprocesses everything.
+# No date-vs-timestamp tradeoff, and no manual run_id bookkeeping.
+RUN_ID = fmt.resolve_run_id(spark, RUN_LOG, run_order, override=RUN_ID_OVERRIDE)
+
 already_completed = set() if FORCE_FULL_RERUN else fmt.get_completed_steps(spark, RUN_LOG, RUN_ID)
 if already_completed:
     print(f"Resuming run_id '{RUN_ID}' -- skipping: {sorted(already_completed)}")
+else:
+    print(f"Starting fresh run_id '{RUN_ID}'")
 
 # CELL ********************
 for step_name in run_order:
