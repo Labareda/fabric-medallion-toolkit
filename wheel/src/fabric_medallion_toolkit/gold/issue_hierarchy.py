@@ -75,8 +75,9 @@ def enrich_issue_hierarchy(
     parent_id_column: str = "Parent_Issue_Id",
     rank_column: str = "Rank",
     type_rank_column: str = "Hierarchy_Level",
-    typed_code_column: str = "Summary",
+    typed_code_column: str = "Display_Label",
     dense_code_column: str = "Display_Label",
+    build_dense_levels: bool = False,
     rank_to_level: Dict[int, int],
     typed_level_names: Dict[str, str],
     root_prefix_lookup: Optional[DataFrame] = None,
@@ -143,14 +144,20 @@ def enrich_issue_hierarchy(
         typed = typed.withColumnRenamed(old, new)
     df = df.join(typed, on=id_column, how="left")
 
-    # --- Dense level columns (Gantt, contiguous) + Depth ----------------------
-    dense = build_hierarchy_levels(
-        df, id_column=id_column, parent_id_column=parent_id_column,
-        code_column=dense_code_column, max_depth=max_depth,
-    )
-    df = df.join(dense, on=id_column, how="left")
-    level_cols = [F.col(f"Level_{n}").isNotNull().cast("int") for n in range(1, max_depth + 1)]
-    df = df.withColumn("Depth", sum(level_cols[1:], level_cols[0]))
+    # --- Dense level columns (contiguous) + Depth -----------------------------
+    # OFF by default. These were built for xViz Gantt nesting, but in practice
+    # the TYPED columns (Programme/Release/.../Task) nest correctly in xViz and
+    # the dense Level_N did not, so the typed columns drive the Gantt and these
+    # are unnecessary. Kept behind a flag for any consumer that genuinely wants
+    # depth-placed columns (a different visual, a "collapse to N tiers" control).
+    if build_dense_levels:
+        dense = build_hierarchy_levels(
+            df, id_column=id_column, parent_id_column=parent_id_column,
+            code_column=dense_code_column, max_depth=max_depth,
+        )
+        df = df.join(dense, on=id_column, how="left")
+        level_cols = [F.col(f"Level_{n}").isNotNull().cast("int") for n in range(1, max_depth + 1)]
+        df = df.withColumn("Depth", sum(level_cols[1:], level_cols[0]))
 
     # Materialize once before Sort_Path: Sort_Path reads df, and so does the
     # caller's merge(). Without this the two walks above re-run on each read.
