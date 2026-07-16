@@ -53,7 +53,6 @@ schema = fmt.TableSchema(
         "Is_Lead":             {"type": "boolean", "default": False},
         "Is_Involved":         {"type": "boolean", "default": False},
         "Resource_Count":      {"type": "int",     "default": 1},
-        "Allocation_Count":    {"type": "int",     "default": 1},
         "Start_Date":          {"type": "date"},
         "End_Date":            {"type": "date"},
         # Estimate split across everyone on the task, so SUM() still reconciles
@@ -120,7 +119,6 @@ df = spark.sql(f"""
              WHEN r.Is_Lead                   THEN 'Lead'
              ELSE                                  'Involved' END AS Role,
         c.Resource_Count,
-        1 AS Allocation_Count,
         CAST(i.fields_start_date AS date) AS Start_Date,
         CAST(i.fields_duedate AS date)    AS End_Date,
         (i.fields_timeoriginalestimate / 3600.0) / c.Resource_Count AS Allocated_Hours,
