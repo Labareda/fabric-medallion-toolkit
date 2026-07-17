@@ -30,7 +30,7 @@
       "watermark_params_template": {
         "jql": "project IS NOT EMPTY AND updated >= '{watermark}' ORDER BY updated"
       },
-      "initial_watermark_value": "2026-01-01 00:00"
+      "initial_watermark_value": "2021-01-01 00:00"
     },
     {
       "entity_name": "projects",
