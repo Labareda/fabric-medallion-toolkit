@@ -56,7 +56,19 @@ LAKEHOUSES_TO_REFRESH = ["Silver", "Gold"]
 # resume-after-failure is automatic (see below), so you almost never need this.
 RUN_ID_OVERRIDE = None
 
-RUN_LOG = "Gold.gold.orchestration_log"
+# RUN_LOG lives in its OWN lakehouse ("Config" here -- rename to whatever
+# you actually call it), not Gold. This is pipeline-engineering metadata
+# (which run succeeded/failed, when), not business data -- it shouldn't
+# clutter the Gold lakehouse a business user or Power BI browses, and it
+# shouldn't be at risk of getting wiped along with Gold during a full Gold
+# rebuild (or vice versa: resetting run history shouldn't require touching
+# Gold at all). log_step_status/get_completed_steps/resolve_run_id are fully
+# generic about this -- log_table is just a string, any lakehouse works.
+#
+# One-time setup: create this lakehouse in the workspace and attach it to
+# this notebook (Notebook -> Lakehouses -> Add), same as Bronze/Silver/Gold
+# already are, before running with this value.
+RUN_LOG = "Config.control.orchestration_log"
 FORCE_FULL_RERUN = False
 
 # CELL ********************
