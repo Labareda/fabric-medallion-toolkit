@@ -71,12 +71,12 @@ def assert_unique(df: DataFrame, id_column: str, label_column: Optional[str] = N
 def enrich_issue_hierarchy(
     df: DataFrame,
     *,
-    id_column: str = "Issue_Id",
-    parent_id_column: str = "Parent_Issue_Id",
-    rank_column: str = "Rank",
-    type_rank_column: str = "Hierarchy_Level",
-    typed_code_column: str = "Display_Label",
-    dense_code_column: str = "Display_Label",
+    id_column: str,
+    parent_id_column: str,
+    rank_column: str,
+    type_rank_column: str,
+    typed_code_column: str,
+    dense_code_column: str,
     build_dense_levels: bool = False,
     rank_to_level: Optional[Dict[int, int]] = None,
     typed_level_names: Optional[Dict[str, str]] = None,
@@ -97,8 +97,28 @@ def enrich_issue_hierarchy(
     The returned DataFrame is cached and materialized once -- callers can pass
     it straight to merge() without the hierarchy walks re-running.
 
+    SOURCE-AGNOSTIC BY DESIGN: every column-NAME parameter below is required,
+    with no default. This function is used across different sources (Jira
+    today, others later), and each source names its columns differently --
+    a default like id_column="Issue_Id" would be a Jira assumption quietly
+    baked into a "generic" function. If a caller renames a column it's
+    already passing in, that's a one-line, loud change to the enrich() call
+    itself, not a silent divergence between what the notebook builds and
+    what an unrelated default elsewhere in the wheel still expects.
+
     Parameters
     ----------
+    id_column, parent_id_column, rank_column : the source DataFrame's own
+        column names for an issue's id, its parent's id, and its sort rank.
+        No two sources need to agree on these names.
+    type_rank_column : the source's column giving each row's TYPE-LEVEL rank
+        (e.g. Jira's issuetype hierarchy level) -- required only if
+        typed_level_names is used; still must be a real column name.
+    typed_code_column, dense_code_column : the column whose value becomes
+        each hierarchy level's display text (typed tiers and dense Level_N
+        respectively) -- often the same column, but callers may want them to
+        differ (e.g. a shorter label for slicers vs. a fuller one for a
+        Gantt row).
     rank_to_level : maps each type-rank value to its 1-based Level_N slot,
         e.g. {5:1, 4:2, 3:3, 2:4, 1:5, 0:6, -1:7}. An unmapped rank in the
         data raises rather than silently dropping those issues.
