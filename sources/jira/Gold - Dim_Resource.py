@@ -30,6 +30,10 @@ schema = fmt.TableSchema(
         "Is_Active":            {"type": "string", "default": "false"},
         "Account_Type":         {"type": "string", "default": "Unknown"},
         "Time_Zone":            {"type": "string", "default": "Unknown"},
+        # HARDCODED placeholder until the client provides real capacity data
+        # (see build cell). SUPPLY, not demand -- do not confuse with
+        # Fact_ResourceAllocation.Allocated_Hours.
+        "Daily_Capacity_Hours":  {"type": "double", "default": 5.0},
     },
 )
 
@@ -98,9 +102,17 @@ df = spark.sql("""
         LEFT ANTI JOIN directory d ON i.Resource_Account_Id = d.Resource_Account_Id
         GROUP BY i.Resource_Account_Id
     )
-    SELECT * FROM directory
+    -- Daily_Capacity_Hours: HARDCODED placeholder (see schema note above the
+    -- table -- this is genuinely made up, not derived from anything in Jira).
+    -- Same 5.0 for everyone until the client provides real capacity/working-
+    -- hours data. Kept as its own column, not reused from Fact_ResourceAllocation
+    -- .Allocated_Hours -- that column already means something different (a
+    -- task's estimate split across everyone on it, a DEMAND number). This is
+    -- SUPPLY: how many hours a day this person is assumed available. Mixing
+    -- the two would silently corrupt both.
+    SELECT *, CAST(5.0 AS DOUBLE) AS Daily_Capacity_Hours FROM directory
     UNION ALL
-    SELECT * FROM involved_only
+    SELECT *, CAST(5.0 AS DOUBLE) AS Daily_Capacity_Hours FROM involved_only
 """)
 
 # MARKDOWN ********************
