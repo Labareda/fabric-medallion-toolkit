@@ -30,6 +30,12 @@ schema = fmt.TableSchema(
         "Is_Active":            {"type": "string", "default": "false"},
         "Account_Type":         {"type": "string", "default": "Unknown"},
         "Time_Zone":            {"type": "string", "default": "Unknown"},
+        # TRUE for Jira integration/bot accounts (Opsgenie, Trello, etc.) --
+        # these are NOT people, they have no real "capacity," and should
+        # default to EXCLUDED from overallocation/workload reporting. Kept as
+        # rows (not deleted) so traceability ("a bot commented here") still
+        # works -- just don't count them toward anyone's hours.
+        "Is_Bot_Or_App":        {"type": "boolean", "default": False},
         # HARDCODED placeholder until the client provides real capacity data
         # (see build cell). SUPPLY, not demand -- do not confuse with
         # Fact_ResourceAllocation.Allocated_Hours.
@@ -65,25 +71,31 @@ schema = fmt.TableSchema(
 df = spark.sql("""
     WITH directory AS (
         SELECT
-            accountId                    AS Resource_Account_Id,
-            CAST(displayName AS STRING)  AS Resource_Name,
-            CAST(emailAddress AS STRING) AS Email,
-            CAST(active AS STRING)       AS Is_Active,
-            CAST(accountType AS STRING)  AS Account_Type,
-            CAST(timeZone AS STRING)     AS Time_Zone
+            accountId                          AS Resource_Account_Id,
+            TRIM(CAST(displayName AS STRING))  AS Resource_Name,
+            CAST(emailAddress AS STRING)       AS Email,
+            CAST(active AS STRING)             AS Is_Active,
+            CAST(accountType AS STRING)        AS Account_Type,
+            CAST(timeZone AS STRING)           AS Time_Zone
         FROM Silver.jira.users
         WHERE accountId IS NOT NULL
     ),
     -- Everyone who appears on an issue, from either people-involved or as an
-    -- assignee, with whatever display name travels with them there.
+    -- assignee, with whatever display name travels with them there. TRIM()
+    -- on every name source: leading/trailing whitespace from Jira data entry
+    -- can make two rows for the SAME account id look like duplicate name
+    -- variants when picked by MAX() below, and can make an otherwise-
+    -- identical name render as a separate-looking entry in a Power BI
+    -- slicer. Trimming at every source means whitespace can never be the
+    -- reason two rows don't match.
     involved AS (
-        SELECT CAST(person_account_id AS STRING) AS Resource_Account_Id,
-               CAST(person_name AS STRING)        AS Resource_Name
+        SELECT CAST(person_account_id AS STRING)       AS Resource_Account_Id,
+               TRIM(CAST(person_name AS STRING))        AS Resource_Name
         FROM Silver.jira.issue_people_involved
         WHERE person_account_id IS NOT NULL
         UNION
         SELECT CAST(fields_assignee_accountId AS STRING),
-               CAST(fields_assignee_displayName AS STRING)
+               TRIM(CAST(fields_assignee_displayName AS STRING))
         FROM Silver.jira.issues
         WHERE fields_assignee_accountId IS NOT NULL
     ),
@@ -102,6 +114,14 @@ df = spark.sql("""
         LEFT ANTI JOIN directory d ON i.Resource_Account_Id = d.Resource_Account_Id
         GROUP BY i.Resource_Account_Id
     )
+    -- Is_Bot_Or_App: Account_Type = 'app' identifies Jira integration/bot
+    -- accounts (Opsgenie, Trello, etc.) -- these DO appear in the user
+    -- directory (Atlassian requires app accounts to be registered there),
+    -- so this only needs checking on the directory branch. involved_only
+    -- rows never carry Account_Type (it's NULL by construction), so they
+    -- default to FALSE (assumed a person) -- reasonable, since a genuine
+    -- bot/app account would virtually always resolve through the directory.
+    --
     -- Daily_Capacity_Hours: HARDCODED placeholder (see schema note above the
     -- table -- this is genuinely made up, not derived from anything in Jira).
     -- Same 5.0 for everyone until the client provides real capacity/working-
@@ -110,9 +130,13 @@ df = spark.sql("""
     -- task's estimate split across everyone on it, a DEMAND number). This is
     -- SUPPLY: how many hours a day this person is assumed available. Mixing
     -- the two would silently corrupt both.
-    SELECT *, CAST(5.0 AS DOUBLE) AS Daily_Capacity_Hours FROM directory
+    SELECT *, COALESCE(Account_Type = 'app', FALSE) AS Is_Bot_Or_App,
+           CAST(5.0 AS DOUBLE) AS Daily_Capacity_Hours
+    FROM directory
     UNION ALL
-    SELECT *, CAST(5.0 AS DOUBLE) AS Daily_Capacity_Hours FROM involved_only
+    SELECT *, CAST(FALSE AS BOOLEAN) AS Is_Bot_Or_App,
+           CAST(5.0 AS DOUBLE) AS Daily_Capacity_Hours
+    FROM involved_only
 """)
 
 # MARKDOWN ********************
