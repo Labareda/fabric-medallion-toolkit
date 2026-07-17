@@ -42,6 +42,13 @@ GOLD_SCHEMA = "Gold.gold"
 #
 # Start/End are the ISSUE's planned dates, carried here so the allocation fact
 # can answer "who was busy in March" without joining back to Fact_Issue.
+#
+# Status_Key: added so a resource/workload view can filter by task status
+# DIRECTLY (project / resource / status all filter this fact without a trip
+# back through Fact_Issue). Same lookup pattern Fact_Issue itself uses.
+#
+# Task_Hours can be blank (no Jira estimate yet) -- see the default + the
+# Is_Task_Hours_Estimated flag in the build cell below.
 schema = fmt.TableSchema(
     table_name=f"{GOLD_SCHEMA}.fact_resource_allocation",
     table_type="fact",
@@ -61,6 +68,11 @@ schema = fmt.TableSchema(
         # is that the task occupies them, not what share is nominally theirs.
         "Allocated_Hours":     {"type": "double"},
         "Task_Hours":          {"type": "double"},
+        # TRUE when Task_Hours came from the DEFAULT below, not a real Jira
+        # estimate -- lets a report caveat/exclude placeholder numbers, and
+        # flip to accurate automatically once the client fills in real
+        # estimates in Jira (no rebuild needed -- just stops defaulting).
+        "Is_Task_Hours_Estimated": {"type": "boolean", "default": False},
         "Issue_Key": {
             "type": "string",
             "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_issue",
@@ -71,6 +83,15 @@ schema = fmt.TableSchema(
             "type": "string",
             "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_resource",
                                      "natural_key_column": "Resource_Account_Id", "key_column": "Resource_Key",
+                                     "unknown_value": "Unknown"},
+        },
+        # So the resource view (filter by project / resource / task status)
+        # can filter on status DIRECTLY, without traversing back through
+        # Fact_Issue -- same lookup pattern Fact_Issue itself uses.
+        "Status_Key": {
+            "type": "string",
+            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_status",
+                                     "natural_key_column": "Status_Id", "key_column": "Status_Key",
                                      "unknown_value": "Unknown"},
         },
     },
@@ -113,6 +134,7 @@ df = spark.sql(f"""
         r.Resource_Account_Id,
         dim_issue.Issue_Key,
         resource.Resource_Key,
+        status.Status_Key,
         r.Is_Lead,
         r.Is_Involved,
         CASE WHEN r.Is_Lead AND r.Is_Involved THEN 'Lead & Involved'
@@ -121,8 +143,24 @@ df = spark.sql(f"""
         c.Resource_Count,
         CAST(i.fields_start_date AS date) AS Start_Date,
         CAST(i.fields_duedate AS date)    AS End_Date,
-        (i.fields_timeoriginalestimate / 3600.0) / c.Resource_Count AS Allocated_Hours,
-        (i.fields_timeoriginalestimate / 3600.0)                    AS Task_Hours
+        COALESCE(
+            i.fields_timeoriginalestimate / 3600.0,
+            CASE dim_issue.Hierarchy_Level_Name
+                WHEN 'Task'     THEN 8.0
+                WHEN 'Sub-task' THEN 4.0
+                ELSE NULL
+            END
+        ) / c.Resource_Count AS Allocated_Hours,
+        COALESCE(
+            i.fields_timeoriginalestimate / 3600.0,
+            CASE dim_issue.Hierarchy_Level_Name
+                WHEN 'Task'     THEN 8.0
+                WHEN 'Sub-task' THEN 4.0
+                ELSE NULL
+            END
+        ) AS Task_Hours,
+        (i.fields_timeoriginalestimate IS NULL
+            AND dim_issue.Hierarchy_Level_Name IN ('Task', 'Sub-task')) AS Is_Task_Hours_Estimated
     FROM roles r
     INNER JOIN counts c            ON r.Issue_Id = c.Issue_Id
     INNER JOIN Silver.jira.issues i ON r.Issue_Id = i.id
@@ -130,6 +168,18 @@ df = spark.sql(f"""
         ON r.Issue_Id = dim_issue.Issue_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_resource resource
         ON r.Resource_Account_Id = resource.Resource_Account_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_status status
+        ON i.fields_status_id = status.Status_Id
+    -- Task_Hours: real Jira estimate where it exists. Where blank, a
+    -- PLACEHOLDER default by hierarchy tier -- purely so the client has
+    -- something to look at before Jira estimates are filled in, not a real
+    -- number (Task=8h, Sub-task=4h are a starting assumption for the client
+    -- to confirm or correct, not derived from their data). Epic and above
+    -- deliberately left NULL -- those aren't usually individually worked, so
+    -- defaulting them would invent effort with no real person behind it.
+    -- Is_Task_Hours_Estimated marks every defaulted row so reports can
+    -- caveat/exclude them, and stops firing automatically once a real
+    -- estimate is entered in Jira.
 """)
 
 # MARKDOWN ********************
