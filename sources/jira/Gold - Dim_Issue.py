@@ -14,27 +14,11 @@ import fabric_medallion_toolkit as fmt
 
 GOLD_SCHEMA = "Gold.gold"
 
-# Maps this Jira instance's issuetype hierarchy levels to the named business
-# tiers. Add an entry if the client introduces a new issue type -- the build
-# fails loudly on an unmapped rank rather than dropping those issues silently.
+# Jira issuetype hierarchy levels and their business-tier names:
 #   5 Programme  4 Release  3 Initiative  2 Workstream  1 Epic  0 Task  -1 Sub-task
-# Maps this Jira instance's issuetype hierarchy levels to the named business
-# tiers. All 7 levels are named so EVERY issue -- down to Sub-task -- gets its
-# own row in the Gantt hierarchy, each showing "KEY: Summary". Add an entry if
-# the client introduces a new issue type -- the build fails loudly on an
-# unmapped rank rather than dropping those issues silently.
-#   5 Programme  4 Release  3 Initiative  2 Workstream  1 Epic  0 Task  -1 Sub-task
-RANK_TO_LEVEL = {5: 1, 4: 2, 3: 3, 2: 4, 1: 5, 0: 6, -1: 7}
-TYPED_TIERS   = {"Level_1": "Programme", "Level_2": "Release",
-                 "Level_3": "Initiative", "Level_4": "Workstream", "Level_5": "Epic",
-                 "Level_6": "Task", "Level_7": "Sub_Task"}
-
-# The single readable tier label per issue -- "Programme", "Release", etc. --
-# so a report can filter "show me all Programmes" or drive a portfolio-children
-# view (select a level, then Sort_Path gives everything beneath it). Keyed by
-# the issue's own Hierarchy_Level (the it.hierarchylevel from Silver).
-LEVEL_NAMES = {5: "Programme", 4: "Release", 3: "Initiative", 2: "Workstream",
-               1: "Epic", 0: "Task", -1: "Sub-task"}
+# The Gantt tree is built from the DENSE Level_1..7 columns (by depth); the
+# single readable tier label per issue is Hierarchy_Level_Name, set in the SQL
+# below straight from it.hierarchylevel -- no per-tier columns needed.
 
 # MARKDOWN ********************
 
@@ -64,15 +48,6 @@ schema = fmt.TableSchema(
         "Has_Children":     {"type": "boolean", "default": False},
         "Sort_Path":        {"type": "string", "default": ""},
         "Rank":             {"type": "string", "default": ""},
-        # Typed ancestors -- drive the Gantt hierarchy AND slicers. Each shows
-        # "KEY: Summary". All 7 tiers so every issue down to Sub-task gets a row.
-        "Programme":        {"type": "string"},
-        "Release":          {"type": "string"},
-        "Initiative":       {"type": "string"},
-        "Workstream":       {"type": "string"},
-        "Epic":             {"type": "string"},
-        "Task":             {"type": "string"},
-        "Sub_Task":         {"type": "string"},
         # Dense levels -- drive the xViz Gantt Task Name (nest correctly there).
         # Depth-placed, contiguous, each shows "KEY: Summary".
         "Level_1": {"type": "string"}, "Level_2": {"type": "string"},
@@ -155,14 +130,24 @@ df = spark.sql("""
 # CELL ********************
 df = fmt.enrich_issue_hierarchy(
     df,
-    rank_to_level=RANK_TO_LEVEL,
-    typed_level_names=TYPED_TIERS,
+    # Every column-name parameter below is REQUIRED by the wheel -- it has no
+    # Jira-specific (or any other) default. This notebook is the one place
+    # that says what its own columns are called; the wheel never guesses.
+    id_column="Issue_Id",
+    parent_id_column="Parent_Issue_Id",
+    rank_column="Rank",
+    type_rank_column="Hierarchy_Level",
+    typed_code_column="Display_Label",
+    dense_code_column="Display_Label",
     root_prefix_lookup=spark.sql(f"SELECT Project_Id, Project_Code FROM {GOLD_SCHEMA}.dim_project"),
     root_prefix_join_column="Project_Id",
     label_column="Issue_Code",
     # Level_1..7 (dense, depth-placed) drive the xViz Gantt Task Name -- these
     # nest correctly in the visual (verified in Power BI) where nothing else
     # does. Sorted by Sort_Path with the rollup dates, the Gantt matches Jira.
+    # No typed_level_names: the per-tier columns (Programme, Release, ...) are
+    # dropped -- tier filtering uses Hierarchy_Level_Name, "this item and
+    # everything below" uses a Sort_Path prefix filter (see the DAX in docs).
     build_dense_levels=True,
 )
 
