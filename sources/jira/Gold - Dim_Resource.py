@@ -65,25 +65,31 @@ schema = fmt.TableSchema(
 df = spark.sql("""
     WITH directory AS (
         SELECT
-            accountId                    AS Resource_Account_Id,
-            CAST(displayName AS STRING)  AS Resource_Name,
-            CAST(emailAddress AS STRING) AS Email,
-            CAST(active AS STRING)       AS Is_Active,
-            CAST(accountType AS STRING)  AS Account_Type,
-            CAST(timeZone AS STRING)     AS Time_Zone
+            accountId                          AS Resource_Account_Id,
+            TRIM(CAST(displayName AS STRING))  AS Resource_Name,
+            CAST(emailAddress AS STRING)       AS Email,
+            CAST(active AS STRING)             AS Is_Active,
+            CAST(accountType AS STRING)        AS Account_Type,
+            CAST(timeZone AS STRING)           AS Time_Zone
         FROM Silver.jira.users
         WHERE accountId IS NOT NULL
     ),
     -- Everyone who appears on an issue, from either people-involved or as an
-    -- assignee, with whatever display name travels with them there.
+    -- assignee, with whatever display name travels with them there. TRIM()
+    -- on every name source: leading/trailing whitespace from Jira data entry
+    -- can make two rows for the SAME account id look like duplicate name
+    -- variants when picked by MAX() below, and can make an otherwise-
+    -- identical name render as a separate-looking entry in a Power BI
+    -- slicer. Trimming at every source means whitespace can never be the
+    -- reason two rows don't match.
     involved AS (
-        SELECT CAST(person_account_id AS STRING) AS Resource_Account_Id,
-               CAST(person_name AS STRING)        AS Resource_Name
+        SELECT CAST(person_account_id AS STRING)       AS Resource_Account_Id,
+               TRIM(CAST(person_name AS STRING))        AS Resource_Name
         FROM Silver.jira.issue_people_involved
         WHERE person_account_id IS NOT NULL
         UNION
         SELECT CAST(fields_assignee_accountId AS STRING),
-               CAST(fields_assignee_displayName AS STRING)
+               TRIM(CAST(fields_assignee_displayName AS STRING))
         FROM Silver.jira.issues
         WHERE fields_assignee_accountId IS NOT NULL
     ),
