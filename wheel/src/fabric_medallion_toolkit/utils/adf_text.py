@@ -1,3 +1,4 @@
+
 """
 Extracts plain, readable text from Atlassian Document Format (ADF) --
 Jira's rich-text JSON structure used for description, comment bodies,
