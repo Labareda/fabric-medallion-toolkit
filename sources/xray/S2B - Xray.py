@@ -182,6 +182,7 @@ print(f"[test_runs] pulling executions updated >= {wm_jql}")
 extraction_started_at = datetime.now(timezone.utc)
 token = get_token()
 records = []
+overflow_executions = []  # (exec_issue_id, exec_key, exec_summary, total_runs) for the second pass below
 exec_start = 0
 
 while True:
@@ -231,18 +232,68 @@ while True:
                 "finished_on": run.get("finishedOn"),
                 "executed_by_id": run.get("executedById"),
             })
-        # If an execution has MORE than 100 runs, this pull truncates at 100.
-        # None in this instance are near that, so a per-execution runs paginator
-        # is deliberately omitted -- add one here if that ever changes.
+        # If an execution has MORE than 100 runs, this first pass truncates at
+        # 100 -- collect it here so the follow-up pass below can fetch the rest
+        # via getTestRuns, which has its own independent start/limit pagination.
         rt = runs_block.get("total", 0)
         if rt and rt > RUNS_PAGE:
-            print(f"  WARNING: execution {exec_key} has {rt} runs; only first {RUNS_PAGE} landed")
+            overflow_executions.append((ex.get("issueId"), exec_key, exec_summary, rt))
+            print(f"  NOTE: execution {exec_key} has {rt} runs; {RUNS_PAGE} landed here, "
+                  f"remaining {rt - RUNS_PAGE} will be fetched in the follow-up pass")
 
     exec_start += EXEC_PAGE
     if exec_start >= block.get("total", 0):
         break
 
-print(f"[test_runs] collected {len(records)} test-run records")
+print(f"[test_runs] collected {len(records)} test-run records from first pass")
+
+# CELL ********************
+# --- Follow-up pass: fetch runs beyond the first 100 for any execution that overflowed ---
+# getTestExecutions -> testRuns has no pagination cursor of its own beyond its
+# initial limit, so an execution with >100 runs can't be paged further through
+# that path. getTestRuns is a separate TOP-LEVEL query with its own documented
+# start/limit pagination (Xray's own docs show total/limit/start on its
+# response), and it accepts testExecIssueIds to scope to one execution -- so
+# it's used here purely to fill the gap the first pass left, not to re-fetch
+# runs already collected.
+for exec_issue_id, exec_key, exec_summary, total_runs in overflow_executions:
+    offset = RUNS_PAGE
+    while offset < total_runs:
+        q = f"""{{
+          getTestRuns(testExecIssueIds: ["{exec_issue_id}"], limit: {RUNS_PAGE}, start: {offset}) {{
+            total
+            results {{
+              id
+              status {{ name }}
+              testType {{ name }}
+              startedOn
+              finishedOn
+              executedById
+              test {{ issueId jira(fields: ["key"]) }}
+            }}
+          }}
+        }}"""
+        data = run_graphql(token, q)
+        block = data["getTestRuns"]
+        for run in (block.get("results") or []):
+            test = run.get("test") or {}
+            records.append({
+                "run_id": run.get("id"),
+                "execution_issue_id": exec_issue_id,
+                "execution_issue_key": exec_key,
+                "execution_summary": exec_summary,
+                "test_issue_id": test.get("issueId"),
+                "test_issue_key": (test.get("jira") or {}).get("key"),
+                "status_name": (run.get("status") or {}).get("name"),
+                "test_type": (run.get("testType") or {}).get("name"),
+                "started_on": run.get("startedOn"),
+                "finished_on": run.get("finishedOn"),
+                "executed_by_id": run.get("executedById"),
+            })
+        offset += RUNS_PAGE
+    print(f"  [test_runs] fetched remaining {total_runs - RUNS_PAGE} runs for execution {exec_key}")
+
+print(f"[test_runs] collected {len(records)} test-run records total (after follow-up pass)")
 
 # CELL ********************
 # --- Land to Bronze, and advance the watermark ---
