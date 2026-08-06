@@ -21,7 +21,6 @@ import json
 import time
 import requests
 from notebookutils import mssparkutils
-import notebookutils
 import fabric_medallion_toolkit as fmt
 
 # CELL ********************
@@ -34,31 +33,29 @@ SCHEMA = "Bronze.xray"
 XRAY_AUTH_URL    = "https://xray.cloud.getxray.app/api/v2/authenticate"
 XRAY_GRAPHQL_URL = "https://xray.cloud.getxray.app/api/v2/graphql"
 
-# --- Secret resolution: a Fabric CONNECTION (Workspace -> Manage connections
-# -> New connection -> Web V2 -> Base Url = https://xray.cloud.getxray.app ->
-# Authentication method = Basic -> username = the Xray API key's Client ID,
-# password = the Client Secret -> tick "Allow Code-First Artifacts like
-# Notebooks..."). NOT Key Vault (not available to this client) and NOT a
-# Variable library (that store is plain, git-trackable configuration, not an
-# encrypted secret store -- confirmed against Microsoft's own docs). Paste the
-# connection's ID (a GUID) below.
-XRAY_CONNECTION_ID = "<paste the Xray connection's GUID here>"
-
-def get_credential_field(connection_id: str, field_name: str) -> str:
-    raw = notebookutils.connections.getCredential(connection_id)
-    credential_data = json.loads(raw["credential"])["credentialData"]
-    # The exact field name Fabric uses for a Basic-auth connection's
-    # username/password isn't publicly documented, so this matches
-    # case-insensitively against common aliases rather than one exact string.
-    aliases = {"password", "secret", "key", "value"} if field_name == "password" else {"username", "user"}
-    for item in credential_data:
-        if item.get("name", "").lower() in aliases:
-            return item["value"]
-    available = [item.get("name") for item in credential_data]
-    raise KeyError(
-        f"Could not find a field matching '{field_name}' in connection {connection_id}. "
-        f"Fields actually present: {available}"
-    )
+# --- Secret resolution: PLAINTEXT, matching how Jira is currently configured ---
+# The Fabric "Connection inside Notebook" preview feature was tried first (see
+# git history) but consistently failed with "Artifact Connection does not
+# exist" from Fabric's own token service, regardless of correct connection ID,
+# the notebook-access checkbox, the connection being attached under this
+# notebook's own Connections pane, and a fresh Spark session -- all confirmed
+# correct. That points to a bug or tenant limitation in the PREVIEW feature
+# itself, not a configuration error here, so continuing to debug it blind
+# wasn't a good use of delivery time. This client also has no Azure Key Vault
+# access, so Key Vault isn't an option either.
+#
+# Fallback: hardcode the two secrets here, same tradeoff already accepted for
+# Jira's token -- this file goes into a git repo, so the values are exposed
+# to anyone with repo read access, for as long as the repository holds this
+# commit in its history (removing the line later does NOT remove it from
+# past commits). Acceptable only because the repo is private with limited
+# access; rotate both values periodically as a partial mitigation.
+#
+# Revisit the Fabric Connection route later (possibly via Microsoft support,
+# since this looks like a product bug) once there's time to debug it properly
+# outside delivery pressure.
+XRAY_CLIENT_ID = "<paste the Xray API key's Client ID here>"
+XRAY_CLIENT_SECRET = "<paste the Xray API key's Client Secret here>"
 
 # The Xray API key is generated per Jira USER (Jira -> Xray Settings -> API
 # Keys). The extract sees ONLY what that user can see, so it must belong to a
@@ -79,12 +76,10 @@ RUNS_PAGE  = 100
 # CELL ********************
 def get_token() -> str:
     """Exchange client_id/client_secret for a bearer token (valid 24h)."""
-    client_id = get_credential_field(XRAY_CONNECTION_ID, "username")      # Client ID
-    client_secret = get_credential_field(XRAY_CONNECTION_ID, "password")  # Client Secret
     resp = requests.post(
         XRAY_AUTH_URL,
         headers={"Content-Type": "application/json", "Accept": "text/plain"},
-        data=json.dumps({"client_id": client_id, "client_secret": client_secret}),
+        data=json.dumps({"client_id": XRAY_CLIENT_ID, "client_secret": XRAY_CLIENT_SECRET}),
         timeout=30,
     )
     resp.raise_for_status()
