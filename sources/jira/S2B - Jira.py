@@ -9,6 +9,7 @@
 from datetime import datetime, timezone
 import json
 from notebookutils import mssparkutils
+import notebookutils
 import fabric_medallion_toolkit as fmt
 
 # CELL ********************
@@ -29,8 +30,47 @@ SCHEMA = "Bronze.jira"
 # right-click jira.json -> "Copy ABFS path", and paste it below.
 CONFIG_ABFS_PATH = "abfss://<workspace>@onelake.dfs.fabric.microsoft.com/Config.Lakehouse/Files/jira.json"
 
-def resolve_secret(akv_name: str, secret_name: str) -> str:
-    return mssparkutils.credentials.getSecret(akv_name, secret_name)
+# --- Secret resolution: a Fabric CONNECTION, not Azure Key Vault and NOT a
+# Variable library. This client has no Key Vault access, and a Variable
+# library's values are plain, git-trackable configuration -- NOT an
+# encrypted secret store (confirmed against Microsoft's own variable-types
+# docs: there is no "sensitive"/secret variable type). A Fabric Connection
+# (Workspace -> Manage connections -> New connection) IS built for this: the
+# credential is encrypted by Fabric, independent of git, and reached at
+# runtime via notebookutils.connections.getCredential(connection_id).
+#
+# jira.json still uses the field names secret_akv_name / secret_akv_secret_name
+# (so the wheel's existing config_loader needs no changes -- it just hands
+# these two strings to whatever resolver is passed below). They're repurposed
+# here to mean "connection id" and "which field inside that connection's
+# credential to use" -- NOT an AKV vault/secret pair. The token itself never
+# appears in jira.json or in this notebook.
+#
+# One-time setup: Workspace -> Manage connections -> New connection -> Web V2
+# -> Base Url = your Jira base_url -> Authentication method = Basic ->
+# username = Jira account email, password = the Jira API token -> tick
+# "Allow Code-First Artifacts like Notebooks to access this connection". Copy
+# the connection's ID (a GUID) into jira.json's secret_akv_name.
+def resolve_secret(connection_id: str, field_name: str) -> str:
+    raw = notebookutils.connections.getCredential(connection_id)
+    credential_data = json.loads(raw["credential"])["credentialData"]
+    # credentialData is a list of {"name": ..., "value": ...} entries. The
+    # exact name Fabric uses for a Basic-auth password isn't publicly
+    # documented, so this matches case-insensitively against the requested
+    # name AND its common aliases, rather than assuming one exact string.
+    aliases = {field_name.lower(), "password", "secret", "key", "value"} if field_name.lower() in ("password", "secret") \
+        else {field_name.lower(), "username", "user"}
+    for item in credential_data:
+        if item.get("name", "").lower() in aliases:
+            return item["value"]
+    # Fails loudly with the ACTUAL field names present (not their values --
+    # notebook output auto-redacts secret values, but names are safe to
+    # print) so a mismatch is a one-message fix, not a guessing game.
+    available = [item.get("name") for item in credential_data]
+    raise KeyError(
+        f"Could not find a field matching '{field_name}' in connection {connection_id}. "
+        f"Fields actually present: {available}"
+    )
 
 config_json_text = mssparkutils.fs.head(CONFIG_ABFS_PATH, 10 * 1024 * 1024)  # 10MB is plenty for a config file
 config_dict = json.loads(config_json_text)
