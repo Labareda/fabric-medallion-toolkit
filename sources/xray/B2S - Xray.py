@@ -7,16 +7,45 @@
 
 # CELL ********************
 from pyspark.sql import functions as F
+from pyspark.sql.types import StructType, StructField, StringType
 import fabric_medallion_toolkit as fmt
 
 BRONZE_SCHEMA = "Bronze.xray"
 SILVER_SCHEMA = "Silver.xray"
 
+# land_records (used by S2B - Xray) never writes per-field columns -- every
+# record lands as a single JSON STRING inside raw_data, plus generic metadata
+# (entity, extracted_at, ingest_date, load_id, primary_key, source_system).
+# That's true for every source using the wheel's standard Bronze landing, not
+# just Xray -- Jira's B2S notebook unpacks the same shape via auto_standardize
+# (schema-inferred, handles Jira's deep nesting). Xray's record is a simple
+# FLAT dict with no nested objects, so an explicit schema here is simpler and
+# more deterministic than inference -- it's exactly the dict shape
+# S2B - Xray's `records.append({...})` writes, kept in sync with it by hand.
+RAW_SCHEMA = StructType([
+    StructField("run_id", StringType()),
+    StructField("execution_issue_id", StringType()),
+    StructField("execution_issue_key", StringType()),
+    StructField("execution_summary", StringType()),
+    StructField("test_issue_id", StringType()),
+    StructField("test_issue_key", StringType()),
+    StructField("status_name", StringType()),
+    StructField("test_type", StringType()),
+    StructField("started_on", StringType()),
+    StructField("finished_on", StringType()),
+    StructField("executed_by_id", StringType()),
+])
+
 # CELL ********************
 if not spark.catalog.tableExists(f"{BRONZE_SCHEMA}.test_runs"):
     print("No Bronze.xray.test_runs table -- S2B - Xray hasn't run or landed nothing. Nothing to do.")
 else:
-    df = spark.table(f"{BRONZE_SCHEMA}.test_runs")
+    bronze_df = spark.table(f"{BRONZE_SCHEMA}.test_runs")
+
+    # Unpack raw_data -- this is the step that was missing. Everything below
+    # this point is unchanged from before: it just now runs against real
+    # columns instead of a raw_data string that had none of these names on it.
+    df = bronze_df.withColumn("parsed", F.from_json(F.col("raw_data"), RAW_SCHEMA)).select("parsed.*")
 
     # Timestamps arrive as ISO-8601 strings ("2026-03-14T09:22:00Z"). to_timestamp
     # parses them; a bad/empty string becomes NULL rather than erroring the batch.
