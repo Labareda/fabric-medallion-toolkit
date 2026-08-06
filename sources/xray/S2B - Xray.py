@@ -37,6 +37,17 @@ SCHEMA = "Bronze.xray"  # raw test-run data lands here, unchanged
 # them co-located under one lakehouse while staying in separate schemas.
 WATERMARK_SCHEMA = "Config.xray"
 
+# upsert_delta (which save_watermark calls) creates the WATERMARKS TABLE on
+# first write, but assumes the SCHEMA it lives in already exists -- it never
+# creates that itself. Bronze.xray got created implicitly the first time
+# land_records wrote test_runs there; Config.xray never has, since Config
+# previously only ever held jira.json as a loose file, no schema. Left
+# unhandled, the first save_watermark call fails with a confusing
+# SCHEMA_NOT_FOUND (Spark's fallback parsing of an unresolvable 3-part name
+# produces a garbled error, not a clear "schema missing" message). Creating
+# it here is idempotent -- harmless to run on every execution once it exists.
+spark.sql(f"CREATE SCHEMA IF NOT EXISTS {WATERMARK_SCHEMA}")
+
 # esshtransform.atlassian.net is a standard Atlassian Cloud host, so the GLOBAL
 # Xray endpoints apply. A residency instance would use us./eu./au. prefixes on
 # BOTH urls -- change both together if the client ever migrates.

@@ -30,6 +30,13 @@ SCHEMA = "Bronze.jira"  # raw entity data lands here, unchanged
 # them co-located under one lakehouse while staying in separate schemas.
 WATERMARK_SCHEMA = "Config.jira"
 
+# Same reasoning as Xray's notebook: upsert_delta creates the watermarks
+# TABLE on first write but never creates the SCHEMA it lives in. Config.jira
+# is new (previously Config only held jira.json as a loose file), so it must
+# be created explicitly before the first save_watermark call. Idempotent --
+# harmless once it exists.
+spark.sql(f"CREATE SCHEMA IF NOT EXISTS {WATERMARK_SCHEMA}")
+
 # Config's Files aren't a Spark table, and relative paths like
 # "/lakehouse/default/Files/..." only work for whichever lakehouse is
 # pinned default (Bronze usually is here, not Config) -- so read via the
