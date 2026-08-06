@@ -73,5 +73,12 @@ else:
         .drop("_rn")
     )
 
-    fmt.write_silver_table(spark, deduped, f"{SILVER_SCHEMA}.test_runs", merge_key="run_id")
+    # upsert_delta -- NOT write_silver_table, which doesn't exist in this
+    # wheel (my earlier mistake). It's the same MERGE-based upsert save_watermark
+    # uses internally: creates the table on first write, MERGEs on subsequent
+    # runs. Needs key_cols as a list, and -- like Config.xray/Config.jira before
+    # it -- it creates the TABLE but not the SCHEMA, so Silver.xray must exist
+    # first (idempotent, harmless once it does).
+    spark.sql(f"CREATE SCHEMA IF NOT EXISTS {SILVER_SCHEMA}")
+    fmt.upsert_delta(spark, deduped, f"{SILVER_SCHEMA}.test_runs", key_cols=["run_id"])
     print(f"B2S - Xray complete: {deduped.count()} test runs in {SILVER_SCHEMA}.test_runs")
