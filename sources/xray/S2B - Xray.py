@@ -123,7 +123,7 @@ def run_graphql(token: str, query: str, retries: int = 5) -> dict:
 # meaning this watermark correctly re-pulls an execution whose results changed,
 # not just newly-created ones.
 watermark_entity = fmt.EntityConfig(
-    entity_name="test_runs", pagination_style="none",
+    entity_name="test_runs", endpoint_path="", pagination_style="none",
     records_json_path="", natural_key_field="run_id",
 )
 try:
