@@ -21,7 +21,14 @@ SOURCE_NAME = "jira"
 # once the entity name is appended) that works correctly regardless of
 # which lakehouse is pinned default. Change "Bronze" if you named your
 # Bronze lakehouse something else.
-SCHEMA = "Bronze.jira"
+SCHEMA = "Bronze.jira"  # raw entity data lands here, unchanged
+# Watermark control table lives under Config, alongside Xray's, for one place
+# to look for pipeline state -- NOT the same physical table as Xray's,
+# deliberately: the wheel's watermark table is keyed on entity_name ALONE (no
+# source_name column), so two sources sharing one physical table would
+# silently collide if they ever had a same-named entity. Config.jira keeps
+# them co-located under one lakehouse while staying in separate schemas.
+WATERMARK_SCHEMA = "Config.jira"
 
 # Config's Files aren't a Spark table, and relative paths like
 # "/lakehouse/default/Files/..." only work for whichever lakehouse is
@@ -86,7 +93,7 @@ for entity in source_config.entities:
         extraction_started_at = datetime.now(timezone.utc)
 
         use_watermark = bool(entity.incremental_column or entity.watermark_params_template or entity.watermark_body_template)
-        watermark_value = fmt.get_watermark(spark, SOURCE_NAME, entity, bronze_schema=SCHEMA) if use_watermark else None
+        watermark_value = fmt.get_watermark(spark, SOURCE_NAME, entity, bronze_schema=WATERMARK_SCHEMA) if use_watermark else None
         print(f"[{entity.entity_name}] {'incremental, watermark >= ' + str(watermark_value) if use_watermark else 'full load'}")
 
         records = list(extractor.extract_entity(entity, watermark_value=watermark_value))
@@ -95,7 +102,7 @@ for entity in source_config.entities:
 
         if use_watermark and count > 0:
             new_watermark = fmt.compute_new_watermark(records, entity, extraction_started_at)
-            fmt.save_watermark(spark, SOURCE_NAME, entity, new_watermark, bronze_schema=SCHEMA)
+            fmt.save_watermark(spark, SOURCE_NAME, entity, new_watermark, bronze_schema=WATERMARK_SCHEMA)
             print(f"[{entity.entity_name}] watermark advanced to {new_watermark}")
 
     except Exception as exc:

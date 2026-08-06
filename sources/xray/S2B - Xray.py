@@ -14,6 +14,8 @@
 # everything DOWNSTREAM (B2S, Gold) treats it like any other Bronze table.
 #
 # Attach Bronze and Config lakehouses, plus env_medallion_toolkit.
+# Config is used here only for the watermark control table (Config.xray.watermarks)
+# -- Xray has no config file of its own, unlike Jira.
 
 # CELL ********************
 from datetime import datetime, timezone
@@ -26,7 +28,14 @@ import fabric_medallion_toolkit as fmt
 
 # CELL ********************
 SOURCE_NAME = "xray"
-SCHEMA = "Bronze.xray"
+SCHEMA = "Bronze.xray"  # raw test-run data lands here, unchanged
+# Watermark control table lives under Config, alongside Jira's, for one place
+# to look for pipeline state -- NOT the same physical table as Jira's,
+# deliberately: the wheel's watermark table is keyed on entity_name ALONE
+# (no source_name column), so two sources sharing one physical table would
+# silently collide if they ever had a same-named entity. Config.xray keeps
+# them co-located under one lakehouse while staying in separate schemas.
+WATERMARK_SCHEMA = "Config.xray"
 
 # esshtransform.atlassian.net is a standard Atlassian Cloud host, so the GLOBAL
 # Xray endpoints apply. A residency instance would use us./eu./au. prefixes on
@@ -133,7 +142,7 @@ watermark_entity = fmt.EntityConfig(
     records_json_path="", natural_key_field="run_id",
 )
 try:
-    saved = fmt.get_watermark(spark, SOURCE_NAME, watermark_entity, bronze_schema=SCHEMA)
+    saved = fmt.get_watermark(spark, SOURCE_NAME, watermark_entity, bronze_schema=WATERMARK_SCHEMA)
     watermark = saved or INITIAL_WATERMARK
 except Exception:
     watermark = INITIAL_WATERMARK
@@ -234,7 +243,7 @@ if records:
     # an execution can be updated without any run finishing, and we don't want
     # to skip it next time.
     new_wm = extraction_started_at.strftime("%Y-%m-%dT%H:%M:%SZ")
-    fmt.save_watermark(spark, SOURCE_NAME, watermark_entity, new_wm, bronze_schema=SCHEMA)
+    fmt.save_watermark(spark, SOURCE_NAME, watermark_entity, new_wm, bronze_schema=WATERMARK_SCHEMA)
     print(f"[test_runs] watermark advanced to {new_wm}")
 else:
     print("[test_runs] no records this run -- watermark unchanged")
