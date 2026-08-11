@@ -82,3 +82,24 @@ else:
     spark.sql(f"CREATE SCHEMA IF NOT EXISTS {SILVER_SCHEMA}")
     fmt.upsert_delta(spark, deduped, f"{SILVER_SCHEMA}.test_runs", key_cols=["run_id"])
     print(f"B2S - Xray complete: {deduped.count()} test runs in {SILVER_SCHEMA}.test_runs")
+
+# CELL ********************
+# --- Statuses: same raw_data unpack, different (simpler) shape -- config, not transactional ---
+STATUS_RAW_SCHEMA = StructType([
+    StructField("name", StringType()),
+    StructField("description", StringType()),
+    StructField("color", StringType()),
+])
+
+if not spark.catalog.tableExists(f"{BRONZE_SCHEMA}.statuses"):
+    print("No Bronze.xray.statuses table -- S2B - Xray hasn't run its getStatuses step yet. Nothing to do.")
+else:
+    statuses_df = (
+        spark.table(f"{BRONZE_SCHEMA}.statuses")
+        .withColumn("parsed", F.from_json(F.col("raw_data"), STATUS_RAW_SCHEMA))
+        .select("parsed.*")
+        .filter(F.col("name").isNotNull())
+    )
+    spark.sql(f"CREATE SCHEMA IF NOT EXISTS {SILVER_SCHEMA}")
+    fmt.upsert_delta(spark, statuses_df, f"{SILVER_SCHEMA}.statuses", key_cols=["name"])
+    print(f"B2S - Xray complete: {statuses_df.count()} statuses in {SILVER_SCHEMA}.statuses")

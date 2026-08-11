@@ -19,32 +19,37 @@ GOLD_SCHEMA = "Gold.gold"
 # dimension rather than folded onto the fact so the report can slice AND so
 # the Is_Final / Category / Coverage_Status groupings live in one place.
 #
-# SOURCED FROM Silver.xray.test_runs, not hand-typed -- Test_Status_Name is
-# built from the DISTINCT status_name values actually present in the data,
-# so this table can never drift from reality and a brand-new status shows up
-# as its own row automatically rather than silently defaulting to Unknown
-# until someone notices.
+# SOURCED FROM Silver.xray.statuses -- Xray's getStatuses GraphQL query,
+# real configuration data (name/description/color), not a hand-typed guess
+# and not merely "whatever's shown up in test_runs so far." This is the
+# COMPLETE list of statuses configured for the instance, including any
+# status that's been set up in Xray Settings but never yet used on a real
+# test run -- the distinct-from-test-runs approach this replaced couldn't
+# see those at all.
 #
-# Is_Final / Coverage_Status CANNOT come from the data, though, no matter
-# how this table is sourced -- Xray's Test Runs never carry "is this status
-# final" or "what coverage bucket does it count toward", those only exist on
-# the Xray Settings -> Test Statuses screen (the Final checkbox, the
-# Coverage Status dropdown), which nothing in this pipeline extracts. So
-# they're still a small hand-maintained CONFIG_STATUS_META lookup below,
-# copied from that screen -- confirmed against this client's actual config:
+# Is_Final / Coverage_Status STILL cannot come from the data, no matter the
+# source -- checked directly against Xray's own documented schema: neither
+# field appears anywhere on getStatuses or on any status{} selection
+# elsewhere in their GraphQL API. They only exist on the Xray Settings ->
+# Test Statuses screen (the Final checkbox, the Coverage Status dropdown),
+# which Xray simply does not expose through this API. So they remain a
+# small hand-maintained CONFIG_STATUS_META lookup below, copied from that
+# screen -- confirmed against this client's actual config:
 #   PASSED  -- Final, Coverage OK
 #   FAILED  -- Final, Coverage NOK
 #   TO DO / EXECUTING / BLOCKED -- not final, Coverage NOTRUN
-# Any status_name found in the data but NOT in CONFIG_STATUS_META defaults to
-# Is_Final=False / Coverage_Status='NOTRUN' -- safe (never wrongly counts an
-# unrecognized status as a settled Pass) but gets flagged by the diagnostic
-# below so it doesn't go unnoticed.
+# A status present in Silver.xray.statuses but missing from
+# CONFIG_STATUS_META defaults to Is_Final=False / Coverage_Status='NOTRUN'
+# -- safe (never wrongly counts an unrecognized status as a settled Pass)
+# but flagged by the diagnostic below so it doesn't go unnoticed.
 schema = fmt.TableSchema(
     table_name=f"{GOLD_SCHEMA}.dim_test_status",
     table_type="dim",
     key_column="Test_Status_Key",
     columns={
         "Test_Status_Name": {"type": "string",  "merge_field": True},
+        "Description":      {"type": "string",  "default": ""},
+        "Color":            {"type": "string",  "default": ""},
         "Category":         {"type": "string",  "default": "Unknown"},
         "Coverage_Status":  {"type": "string",  "default": "NOTRUN"},
         "Is_Final":         {"type": "boolean", "default": False},
@@ -55,13 +60,14 @@ schema = fmt.TableSchema(
 
 # MARKDOWN ********************
 
-# ## Build: distinct status names from real data, enriched with config that can't be derived
+# ## Build: real status config from Xray, enriched with what can't be extracted
 
 # CELL ********************
-# The only hand-maintained part of this notebook. Update this dict if the
-# client adds a custom status in Xray or changes Final/Coverage settings --
-# match keys are UPPER(TRIM(...))'d against the data below, so exact casing
-# here doesn't matter.
+# The only hand-maintained part of this notebook, and only because Xray's API
+# doesn't expose these two fields at all. Update this dict if the client adds
+# a custom status in Xray or changes Final/Coverage settings -- match keys are
+# UPPER(TRIM(...))'d against the real data below, so exact casing here
+# doesn't matter.
 CONFIG_STATUS_META = {
     "PASSED":    {"Category": "Passed",      "Coverage_Status": "OK",     "Is_Final": True,  "Is_Passed": True,  "Sort_Order": 1},
     "FAILED":    {"Category": "Failed",      "Coverage_Status": "NOK",    "Is_Final": True,  "Is_Passed": False, "Sort_Order": 2},
@@ -70,37 +76,46 @@ CONFIG_STATUS_META = {
     "BLOCKED":   {"Category": "Blocked",     "Coverage_Status": "NOTRUN", "Is_Final": False, "Is_Passed": False, "Sort_Order": 5},
 }
 
-distinct_statuses = spark.sql("""
-    SELECT DISTINCT UPPER(TRIM(status_name)) AS Test_Status_Name
-    FROM Silver.xray.test_runs
-    WHERE status_name IS NOT NULL
+if not spark.catalog.tableExists("Silver.xray.statuses"):
+    raise RuntimeError(
+        "Silver.xray.statuses doesn't exist -- run S2B - Xray (its getStatuses step) "
+        "and B2S - Xray before this notebook."
+    )
+
+real_statuses = spark.sql("""
+    SELECT
+        UPPER(TRIM(name)) AS Test_Status_Name,
+        description        AS Description,
+        color              AS Color
+    FROM Silver.xray.statuses
+    WHERE name IS NOT NULL
 """).collect()
 
 rows = []
 unmapped = []
-for r in distinct_statuses:
+for r in real_statuses:
     name = r["Test_Status_Name"]
     meta = CONFIG_STATUS_META.get(name)
     if meta is None:
         unmapped.append(name)
         meta = {"Category": "Unknown", "Coverage_Status": "NOTRUN", "Is_Final": False, "Is_Passed": False, "Sort_Order": 99}
-    rows.append(Row(Test_Status_Name=name, **meta))
+    rows.append(Row(Test_Status_Name=name, Description=r["Description"] or "", Color=r["Color"] or "", **meta))
 
 df = spark.createDataFrame(rows)
 
 # MARKDOWN ********************
 
-# ## Flag any status present in the data but missing from CONFIG_STATUS_META
+# ## Flag any status present in Xray's config but missing from CONFIG_STATUS_META
 
 # CELL ********************
 # Safe default either way (never wrongly counts an unmapped status as a
 # settled Pass), but silent is worse than a printed note -- this is the one
-# thing in this notebook that needs a human to go check Xray's Settings
-# screen and add a line to CONFIG_STATUS_META above.
+# thing in this notebook that needs a human to check Xray Settings -> Test
+# Statuses and add a line to CONFIG_STATUS_META above.
 if unmapped:
-    print(f"NOTE: status_name value(s) found in Silver.xray.test_runs with no entry in "
-          f"CONFIG_STATUS_META: {unmapped} -- defaulted to not-final/NOTRUN. Check Xray Settings "
-          f"-> Test Statuses and add them above.")
+    print(f"NOTE: status(es) found in Silver.xray.statuses with no entry in CONFIG_STATUS_META: "
+          f"{unmapped} -- defaulted to not-final/NOTRUN. Check Xray Settings -> Test Statuses "
+          f"and add them above.")
 
 # MARKDOWN ********************
 

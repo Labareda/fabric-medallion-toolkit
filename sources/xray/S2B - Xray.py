@@ -311,4 +311,28 @@ else:
     print("[test_runs] no records this run -- watermark unchanged")
 
 # CELL ********************
+# --- Statuses: Xray's status CONFIGURATION, not transactional data ---
+# getStatuses is a flat, unpaginated top-level query (Xray's own docs and
+# Postman collection never show it with limit/start -- it just returns every
+# status defined for the instance in one call). It gives name/description/
+# color -- real config, not the hand-typed guess Dim_TestStatus used to run
+# on. It does NOT give Final or Coverage Status, though: neither field
+# appears anywhere in Xray's documented schema for getStatuses OR for any
+# nested status{} selection elsewhere in their API (checked against their
+# official docs and Postman collection, not assumed) -- those two are
+# Settings-screen-only and have to stay hand-maintained in Gold - Dim_TestStatus.
+# No watermark needed -- this is small, rarely changes, and a full pull each
+# run is cheap and simpler than tracking incremental changes to five rows.
+statuses_data = run_graphql(token, "{ getStatuses { name description color } }")
+status_records = statuses_data.get("getStatuses") or []
+
+statuses_entity = fmt.EntityConfig(
+    entity_name="statuses", endpoint_path="", pagination_style="none",
+    records_json_path="", natural_key_field="name",
+)
+count = fmt.land_records(spark, status_records, source_name=SOURCE_NAME,
+                         entity=statuses_entity, bronze_schema=SCHEMA)
+print(f"[statuses] landed {count} records")
+
+# CELL ********************
 print("S2B - Xray complete.")
