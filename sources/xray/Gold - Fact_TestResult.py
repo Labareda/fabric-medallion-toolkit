@@ -76,22 +76,22 @@ schema = fmt.TableSchema(
                                      "natural_key_column": "Issue_Id", "key_column": "Issue_Key",
                                      "unknown_value": "Unknown"},
         },
-        # Status -> Dim_TestStatus, matched on NAME (that dim's merge field).
-        # NORMALIZED match (UPPER + TRIM on both sides) -- the five status
-        # names seeded in Dim_TestStatus were read off the Xray Settings
-        # screen (a UI label), not off Silver.xray.test_runs' actual
-        # status_name values, and those two aren't guaranteed to agree on
-        # casing or whitespace ("TO DO" vs "To Do" vs " To Do "). An exact
-        # string match would silently collapse any mismatched row onto the
-        # Unknown status row with no error -- normalizing both sides removes
-        # that failure mode. See the diagnostic below the build query, which
-        # confirms whether this was ever actually needed.
-        "Test_Status_Name": {
-            "type": "string",
-            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_test_status",
-                                     "natural_key_column": "Test_Status_Name", "key_column": "Test_Status_Key",
-                                     "unknown_value": "Unknown"},
-        },
+        # Status -> Dim_TestStatus. Only the resolved surrogate is persisted;
+        # Test_Status_Name is NOT a stored column here -- Dim_TestStatus[Test_
+        # Status_Key] -> [Test_Status_Name] already gives the name via the
+        # relationship, so storing it again on the fact would just duplicate
+        # a value one hop away. (An earlier version of this schema declared
+        # lookup_missing_from ON Test_Status_Name itself -- checked against
+        # the wheel's actual implementation, that mechanism only ever
+        # activates on a _KEY column as a null-fallback; declared on the name
+        # column pointing at itself, it was dead configuration, not what was
+        # actually resolving Test_Status_Key below. The plain LEFT JOIN in the
+        # build query is what really does the resolution.)
+        #
+        # The join is NORMALIZED (UPPER + TRIM) below, not exact-string --
+        # Dim_TestStatus is itself built from real Silver.xray.statuses
+        # values now, but normalizing here costs nothing and removes any risk
+        # of a casing/whitespace mismatch silently landing on Unknown.
         "Test_Status_Key": {"type": "string", "default": "Unknown"},
 
         "Executed_By_Key": {
@@ -133,7 +133,7 @@ df = spark.sql(f"""
 
         exec_issue.Issue_Key AS Execution_Issue_Key,
 
-        r.status_name AS Test_Status_Name,
+        UPPER(TRIM(r.status_name)) AS Test_Status_Name,  -- kept in df for the diagnostic below; dropped before merge()
         status.Test_Status_Key AS Test_Status_Key,
 
         resource.Resource_Key AS Executed_By_Key
@@ -166,6 +166,10 @@ if unresolved_statuses:
     names = [r["Test_Status_Name"] for r in unresolved_statuses]
     print(f"NOTE: these status_name value(s) did not match any row in Dim_TestStatus, even after "
           f"normalizing case/whitespace: {names} -- add them to Dim_TestStatus's seed.")
+
+# Diagnostic is done with it -- drop before merge() so the persisted table
+# only carries Test_Status_Key, matching the schema declared above.
+df = df.drop("Test_Status_Name")
 
 # MARKDOWN ********************
 
