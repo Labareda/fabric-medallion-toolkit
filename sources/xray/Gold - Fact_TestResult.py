@@ -52,8 +52,15 @@ schema = fmt.TableSchema(
         "Finished_On":     {"type": "timestamp"},
         "Executed_Date":   {"type": "date"},
 
-        # Test being run -- the ACTIVE Dim_Issue relationship.
-        "Test_Issue_Code": {"type": "string", "default": "Unknown"},
+        # Test being run -- the ACTIVE Dim_Issue relationship. Only the
+        # resolved surrogate is kept, no raw-code passthrough column -- unlike
+        # Fact_Issue/Fact_ResourceAllocation, where a _Code field IS the merge
+        # field and so is structurally required, here Run_Id alone is the
+        # merge field and Test_Issue_Key is purely a relationship column. A
+        # _Code column would only ever have been a debugging convenience (so
+        # an Unknown-resolved row is traceable back to its raw Jira key
+        # without a trip to Silver) -- if that's ever needed, Silver.xray.
+        # test_runs.test_issue_key is one join away.
         "Test_Issue_Key": {
             "type": "string",
             "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_issue",
@@ -63,7 +70,6 @@ schema = fmt.TableSchema(
         # Execution it ran under -- resolved to the SAME Dim_Issue, related
         # INACTIVE in Power BI (second path). Kept so drill-through to the
         # execution works via USERELATIONSHIP.
-        "Execution_Issue_Code": {"type": "string", "default": "Unknown"},
         "Execution_Issue_Key": {
             "type": "string",
             "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_issue",
@@ -123,10 +129,8 @@ df = spark.sql(f"""
         r.finished_on AS Finished_On,
         CAST(r.finished_on AS date) AS Executed_Date,
 
-        r.test_issue_key AS Test_Issue_Code,
         test_issue.Issue_Key AS Test_Issue_Key,
 
-        r.execution_issue_key AS Execution_Issue_Code,
         exec_issue.Issue_Key AS Execution_Issue_Key,
 
         r.status_name AS Test_Status_Name,
