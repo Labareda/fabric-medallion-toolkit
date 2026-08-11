@@ -6,6 +6,7 @@
 
 # CELL ********************
 import fabric_medallion_toolkit as fmt
+from pyspark.sql import Row
 
 GOLD_SCHEMA = "Gold.gold"
 
@@ -15,32 +16,29 @@ GOLD_SCHEMA = "Gold.gold"
 
 # CELL ********************
 # A small conformed dimension for Xray test-run statuses. Kept as its own
-# dimension rather than folded onto the fact so the report can slice AND so the
-# Is_Final / Category / Coverage_Status groupings live in one place.
+# dimension rather than folded onto the fact so the report can slice AND so
+# the Is_Final / Category / Coverage_Status groupings live in one place.
 #
-# This client uses the five DEFAULT Xray statuses, no custom ones (confirmed
-# from Xray Settings -> Test Statuses):
-#   PASSED / FAILED  -- Is_Final = true  (a settled result)
-#   TO DO / EXECUTING / BLOCKED -- Is_Final = false (not a settled result)
+# SOURCED FROM Silver.xray.test_runs, not hand-typed -- Test_Status_Name is
+# built from the DISTINCT status_name values actually present in the data,
+# so this table can never drift from reality and a brand-new status shows up
+# as its own row automatically rather than silently defaulting to Unknown
+# until someone notices.
 #
-# Is_Final is the important flag. "Latest result" reporting must mean latest
-# FINAL result -- otherwise a test that passed yesterday and is re-EXECUTING
-# today would show as "In Progress" and its pass would vanish. The DAX measures
-# in Fact_Test_Result key off this.
-#
-# Coverage_Status is copied VERBATIM from Xray's own Test Statuses settings
-# screen (Jira -> Xray Settings -> Test Statuses -> "Test Coverage Status"
-# column) -- OK / NOK / NOTRUN. It is Xray's own definition of what counts as
-# "covered" for a requirement, not a mapping invented here. This is what a
-# requirement's coverage rollup (see Bridge_TestCoverage) should aggregate
-# over, so the client's report agrees with what they'd see in Xray's own
-# Test Coverage Report.
-#
-# Category collapses the five statuses into report-friendly buckets. If the
-# client ever adds a custom status in Xray, add a row here -- the fact's
-# lookup_missing_from will land unmapped statuses on the Unknown row until then,
-# so nothing breaks, it just needs categorizing (and a Coverage_Status set on
-# the new row in Xray's own settings, mirrored here).
+# Is_Final / Coverage_Status CANNOT come from the data, though, no matter
+# how this table is sourced -- Xray's Test Runs never carry "is this status
+# final" or "what coverage bucket does it count toward", those only exist on
+# the Xray Settings -> Test Statuses screen (the Final checkbox, the
+# Coverage Status dropdown), which nothing in this pipeline extracts. So
+# they're still a small hand-maintained CONFIG_STATUS_META lookup below,
+# copied from that screen -- confirmed against this client's actual config:
+#   PASSED  -- Final, Coverage OK
+#   FAILED  -- Final, Coverage NOK
+#   TO DO / EXECUTING / BLOCKED -- not final, Coverage NOTRUN
+# Any status_name found in the data but NOT in CONFIG_STATUS_META defaults to
+# Is_Final=False / Coverage_Status='NOTRUN' -- safe (never wrongly counts an
+# unrecognized status as a settled Pass) but gets flagged by the diagnostic
+# below so it doesn't go unnoticed.
 schema = fmt.TableSchema(
     table_name=f"{GOLD_SCHEMA}.dim_test_status",
     table_type="dim",
@@ -57,25 +55,52 @@ schema = fmt.TableSchema(
 
 # MARKDOWN ********************
 
-# ## Build the dimension (static seed -- these are configuration, not source data)
+# ## Build: distinct status names from real data, enriched with config that can't be derived
 
 # CELL ********************
-# Seeded as a literal rather than read from Silver: statuses are Xray CONFIG,
-# not transactional data, and seeding them means the dimension is complete even
-# before the first test run lands. The names must match status_name in
-# Silver.xray.test_runs EXACTLY (case included) for the fact's join to resolve.
-# Coverage_Status values are copied from the client's own Xray Test Statuses
-# screen, not invented here.
-from pyspark.sql import Row
+# The only hand-maintained part of this notebook. Update this dict if the
+# client adds a custom status in Xray or changes Final/Coverage settings --
+# match keys are UPPER(TRIM(...))'d against the data below, so exact casing
+# here doesn't matter.
+CONFIG_STATUS_META = {
+    "PASSED":    {"Category": "Passed",      "Coverage_Status": "OK",     "Is_Final": True,  "Is_Passed": True,  "Sort_Order": 1},
+    "FAILED":    {"Category": "Failed",      "Coverage_Status": "NOK",    "Is_Final": True,  "Is_Passed": False, "Sort_Order": 2},
+    "EXECUTING": {"Category": "In Progress", "Coverage_Status": "NOTRUN", "Is_Final": False, "Is_Passed": False, "Sort_Order": 3},
+    "TO DO":     {"Category": "Not Run",     "Coverage_Status": "NOTRUN", "Is_Final": False, "Is_Passed": False, "Sort_Order": 4},
+    "BLOCKED":   {"Category": "Blocked",     "Coverage_Status": "NOTRUN", "Is_Final": False, "Is_Passed": False, "Sort_Order": 5},
+}
 
-rows = [
-    Row(Test_Status_Name="PASSED",    Category="Passed",      Coverage_Status="OK",     Is_Final=True,  Is_Passed=True,  Sort_Order=1),
-    Row(Test_Status_Name="FAILED",    Category="Failed",      Coverage_Status="NOK",    Is_Final=True,  Is_Passed=False, Sort_Order=2),
-    Row(Test_Status_Name="EXECUTING", Category="In Progress", Coverage_Status="NOTRUN", Is_Final=False, Is_Passed=False, Sort_Order=3),
-    Row(Test_Status_Name="TO DO",     Category="Not Run",     Coverage_Status="NOTRUN", Is_Final=False, Is_Passed=False, Sort_Order=4),
-    Row(Test_Status_Name="BLOCKED",   Category="Blocked",     Coverage_Status="NOTRUN", Is_Final=False, Is_Passed=False, Sort_Order=5),
-]
+distinct_statuses = spark.sql("""
+    SELECT DISTINCT UPPER(TRIM(status_name)) AS Test_Status_Name
+    FROM Silver.xray.test_runs
+    WHERE status_name IS NOT NULL
+""").collect()
+
+rows = []
+unmapped = []
+for r in distinct_statuses:
+    name = r["Test_Status_Name"]
+    meta = CONFIG_STATUS_META.get(name)
+    if meta is None:
+        unmapped.append(name)
+        meta = {"Category": "Unknown", "Coverage_Status": "NOTRUN", "Is_Final": False, "Is_Passed": False, "Sort_Order": 99}
+    rows.append(Row(Test_Status_Name=name, **meta))
+
 df = spark.createDataFrame(rows)
+
+# MARKDOWN ********************
+
+# ## Flag any status present in the data but missing from CONFIG_STATUS_META
+
+# CELL ********************
+# Safe default either way (never wrongly counts an unmapped status as a
+# settled Pass), but silent is worse than a printed note -- this is the one
+# thing in this notebook that needs a human to go check Xray's Settings
+# screen and add a line to CONFIG_STATUS_META above.
+if unmapped:
+    print(f"NOTE: status_name value(s) found in Silver.xray.test_runs with no entry in "
+          f"CONFIG_STATUS_META: {unmapped} -- defaulted to not-final/NOTRUN. Check Xray Settings "
+          f"-> Test Statuses and add them above.")
 
 # MARKDOWN ********************
 

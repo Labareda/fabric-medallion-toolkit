@@ -71,6 +71,15 @@ schema = fmt.TableSchema(
                                      "unknown_value": "Unknown"},
         },
         # Status -> Dim_TestStatus, matched on NAME (that dim's merge field).
+        # NORMALIZED match (UPPER + TRIM on both sides) -- the five status
+        # names seeded in Dim_TestStatus were read off the Xray Settings
+        # screen (a UI label), not off Silver.xray.test_runs' actual
+        # status_name values, and those two aren't guaranteed to agree on
+        # casing or whitespace ("TO DO" vs "To Do" vs " To Do "). An exact
+        # string match would silently collapse any mismatched row onto the
+        # Unknown status row with no error -- normalizing both sides removes
+        # that failure mode. See the diagnostic below the build query, which
+        # confirms whether this was ever actually needed.
         "Test_Status_Name": {
             "type": "string",
             "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_test_status",
@@ -130,10 +139,29 @@ df = spark.sql(f"""
     LEFT JOIN {GOLD_SCHEMA}.dim_issue exec_issue
         ON r.execution_issue_id = exec_issue.Issue_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_test_status status
-        ON r.status_name = status.Test_Status_Name
+        ON UPPER(TRIM(r.status_name)) = status.Test_Status_Name
     LEFT JOIN {GOLD_SCHEMA}.dim_resource resource
         ON r.executed_by_id = resource.Resource_Account_Id
 """)
+
+# MARKDOWN ********************
+
+# ## Report any status name that didn't resolve to Dim_TestStatus
+
+# CELL ********************
+# The join above is normalized (UPPER+TRIM), so this only fires for a status
+# name that's GENUINELY not one of the five seeded rows -- not a casing
+# difference, which normalization already absorbs. If this prints anything,
+# Dim_TestStatus needs a new row for it (and its Coverage_Status set to match
+# whatever Xray's own Settings screen says for it).
+unresolved_statuses = (
+    df.filter("Test_Status_Key = 'Unknown' OR Test_Status_Key IS NULL")
+      .select("Test_Status_Name").distinct().collect()
+)
+if unresolved_statuses:
+    names = [r["Test_Status_Name"] for r in unresolved_statuses]
+    print(f"NOTE: these status_name value(s) did not match any row in Dim_TestStatus, even after "
+          f"normalizing case/whitespace: {names} -- add them to Dim_TestStatus's seed.")
 
 # MARKDOWN ********************
 
