@@ -100,6 +100,18 @@ else:
         .select("parsed.*")
         .filter(F.col("name").isNotNull())
     )
+    # DEDUPE ON NAME -- missing this was the actual bug. S2B - Xray's
+    # getStatuses call lands the full status list EVERY run via land_records
+    # (append-only, no watermark -- deliberately, since it's small config
+    # data), so Bronze.xray.statuses accumulates a fresh copy of every status
+    # row on every S2B run: multiple "PASSED" rows, multiple "FAILED" rows,
+    # etc. Reading that whole history straight into upsert_delta (key_cols=
+    # ["name"]) then hands MERGE several source rows all claiming the same
+    # target row -- exactly DELTA_MULTIPLE_SOURCE_ROW_MATCHING_TARGET_ROW.
+    # dropDuplicates keeps one arbitrary-but-consistent row per name; status
+    # config rarely changes, so which landing "wins" doesn't matter in
+    # practice, only that MERGE sees one row per key.
+    statuses_df = statuses_df.dropDuplicates(["name"])
     spark.sql(f"CREATE SCHEMA IF NOT EXISTS {SILVER_SCHEMA}")
     fmt.upsert_delta(spark, statuses_df, f"{SILVER_SCHEMA}.statuses", key_cols=["name"])
     print(f"B2S - Xray complete: {statuses_df.count()} statuses in {SILVER_SCHEMA}.statuses")
