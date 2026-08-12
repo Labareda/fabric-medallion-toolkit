@@ -14,41 +14,30 @@ GOLD_SCHEMA = "Gold.gold"
 # ## Declare the table schema
 
 # CELL ********************
-# Grain: ONE ROW PER ISSUE x PERSON. Not per day.
+# Grain: ONE ROW PER ISSUE x PERSON. This IS the many-to-many between
+# Dim_Issue and Dim_Resource -- a fact serving as its own bridge (in
+# Kimball's terms, a "factless fact"), which is the standard alternative to
+# a separate Bridge_IssueResource. The relationship IS the business event.
 #
-# An earlier version exploded this to issue x person x working day, spreading
-# the estimate evenly across the range. That required inventing two rules that
-# aren't in the data (weekends don't count; effort is flat across the task) and
-# it multiplied a ~12,000-row table into millions. Utilisation over time does
-# NOT need pre-exploded days -- it's an "events in progress" measure against
-# Dim_Date, and the DAX for it is in the semantic model notes. Keep the fact
-# small and honest.
+# PERSON POPULATION = PEOPLE INVOLVED + THE LEAD (assignee), unioned and
+# deduped. Someone who both leads and works a task gets ONE row with
+# Role='Lead & Involved', not two rows that would double them in every
+# headcount.
 #
-# THE PERSON POPULATION IS PEOPLE INVOLVED + THE LEAD (assignee), unioned and
-# deduped. Somebody who both leads and works a task is ONE row with Role =
-# 'Lead & Involved', not two rows -- two rows would double them in every
-# headcount and every utilisation measure.
+# NO daily spread. An earlier iteration exploded this to issue x person x
+# WORKING DAY, spreading estimates evenly across the range. That required
+# inventing two rules that aren't in the data (weekends don't count; effort
+# is flat) and multiplied the fact into millions of rows. Utilisation over
+# time is a DAX "events in progress" measure against Dim_Date; the fact
+# stays small and honest.
 #
-# THIS IS THE ONLY TABLE Dim_Resource TOUCHES -- relate Dim_Resource directly
-# to THIS fact in the semantic model (Resource_Key -> Resource_Key). There is
-# no separate Bridge_IssueResource table: it used to exist purely as a
-# read-only projection of this exact table at this exact grain, which meant
-# two tables doing one job. A fact CAN serve as its own bridge in a star
-# schema -- that's what this is. One path from a person to everything else,
-# no deactivated relationships, no USERELATIONSHIP measures, one fewer table
-# for a report author to ever need to know exists. It's only possible because
-# the client doesn't use Jira worklogs -- if they ever start, Fact_Worklog
-# gives Dim_Resource a second path and this simplicity is gone.
+# THIS IS THE ONLY TABLE Dim_Resource TOUCHES. That's what keeps the model
+# unambiguous: one path from a person to everything else, no deactivated
+# relationships. Only possible because worklogs aren't extracted.
 #
-# Start/End are the ISSUE's planned dates, carried here so the allocation fact
-# can answer "who was busy in March" without joining back to Fact_Issue.
-#
-# Status_Key: added so a resource/workload view can filter by task status
-# DIRECTLY (project / resource / status all filter this fact without a trip
-# back through Fact_Issue). Same lookup pattern Fact_Issue itself uses.
-#
-# Task_Hours can be blank (no Jira estimate yet) -- see the default + the
-# Is_Task_Hours_Estimated flag in the build cell below.
+# The Dim_Issue relationship needs to be set to BIDIRECTIONAL in Power BI
+# so a resource slicer filters the Gantt. That's the one non-obvious wiring
+# decision in the whole model, and it's load-bearing.
 schema = fmt.TableSchema(
     table_name=f"{GOLD_SCHEMA}.fact_resource_allocation",
     table_type="fact",
@@ -60,19 +49,15 @@ schema = fmt.TableSchema(
         "Is_Lead":             {"type": "boolean", "default": False},
         "Is_Involved":         {"type": "boolean", "default": False},
         "Resource_Count":      {"type": "int",     "default": 1},
+        "Allocation_Count":    {"type": "int",     "default": 1},
         "Start_Date":          {"type": "date"},
         "End_Date":            {"type": "date"},
-        # Estimate split across everyone on the task, so SUM() still reconciles
-        # to the project's total planned effort. Task_Hours is the same number
-        # UNSPLIT, for "how loaded is this person" questions where what matters
-        # is that the task occupies them, not what share is nominally theirs.
+        # Estimate split across everyone on the task, so SUM() reconciles to
+        # the total planned effort. Task_Hours is the same number UNSPLIT,
+        # for "how loaded is this person" questions where what matters is
+        # that the task occupies them, not what share is nominally theirs.
         "Allocated_Hours":     {"type": "double"},
         "Task_Hours":          {"type": "double"},
-        # TRUE when Task_Hours came from the DEFAULT below, not a real Jira
-        # estimate -- lets a report caveat/exclude placeholder numbers, and
-        # flip to accurate automatically once the client fills in real
-        # estimates in Jira (no rebuild needed -- just stops defaulting).
-        "Is_Task_Hours_Estimated": {"type": "boolean", "default": False},
         "Issue_Key": {
             "type": "string",
             "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_issue",
@@ -85,15 +70,6 @@ schema = fmt.TableSchema(
                                      "natural_key_column": "Resource_Account_Id", "key_column": "Resource_Key",
                                      "unknown_value": "Unknown"},
         },
-        # So the resource view (filter by project / resource / task status)
-        # can filter on status DIRECTLY, without traversing back through
-        # Fact_Issue -- same lookup pattern Fact_Issue itself uses.
-        "Status_Key": {
-            "type": "string",
-            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_status",
-                                     "natural_key_column": "Status_Id", "key_column": "Status_Key",
-                                     "unknown_value": "Unknown"},
-        },
     },
 )
 
@@ -102,9 +78,9 @@ schema = fmt.TableSchema(
 # ## Build the union of leads and people involved
 
 # CELL ********************
-# MAX(CAST(flag AS INT)) = 1 rather than MAX(boolean): makes "did this person
-# appear as a lead ANYWHERE in the group" explicit, and avoids depending on
-# Spark's boolean ordering semantics.
+# MAX(CAST(flag AS INT)) = 1 rather than MAX(boolean): makes "did this
+# person appear as a lead ANYWHERE in the group" explicit, and avoids
+# depending on Spark's boolean ordering semantics.
 df = spark.sql(f"""
     WITH resource_union AS (
         SELECT i.id AS Issue_Id, i.fields_assignee_accountId AS Resource_Account_Id,
@@ -134,33 +110,17 @@ df = spark.sql(f"""
         r.Resource_Account_Id,
         dim_issue.Issue_Key,
         resource.Resource_Key,
-        status.Status_Key,
         r.Is_Lead,
         r.Is_Involved,
         CASE WHEN r.Is_Lead AND r.Is_Involved THEN 'Lead & Involved'
              WHEN r.Is_Lead                   THEN 'Lead'
              ELSE                                  'Involved' END AS Role,
         c.Resource_Count,
+        1 AS Allocation_Count,
         CAST(i.fields_start_date AS date) AS Start_Date,
-        CAST(i.fields_duedate AS date)    AS End_Date,
-        COALESCE(
-            i.fields_timeoriginalestimate / 3600.0,
-            CASE dim_issue.Hierarchy_Level_Name
-                WHEN 'Task'     THEN 8.0
-                WHEN 'Sub-task' THEN 4.0
-                ELSE NULL
-            END
-        ) / c.Resource_Count AS Allocated_Hours,
-        COALESCE(
-            i.fields_timeoriginalestimate / 3600.0,
-            CASE dim_issue.Hierarchy_Level_Name
-                WHEN 'Task'     THEN 8.0
-                WHEN 'Sub-task' THEN 4.0
-                ELSE NULL
-            END
-        ) AS Task_Hours,
-        (i.fields_timeoriginalestimate IS NULL
-            AND dim_issue.Hierarchy_Level_Name IN ('Task', 'Sub-task')) AS Is_Task_Hours_Estimated
+        CAST(i.fields_target_end AS date) AS End_Date,
+        (i.fields_timeoriginalestimate / 3600.0) / c.Resource_Count AS Allocated_Hours,
+        (i.fields_timeoriginalestimate / 3600.0)                    AS Task_Hours
     FROM roles r
     INNER JOIN counts c            ON r.Issue_Id = c.Issue_Id
     INNER JOIN Silver.jira.issues i ON r.Issue_Id = i.id
@@ -168,18 +128,6 @@ df = spark.sql(f"""
         ON r.Issue_Id = dim_issue.Issue_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_resource resource
         ON r.Resource_Account_Id = resource.Resource_Account_Id
-    LEFT JOIN {GOLD_SCHEMA}.dim_status status
-        ON i.fields_status_id = status.Status_Id
-    -- Task_Hours: real Jira estimate where it exists. Where blank, a
-    -- PLACEHOLDER default by hierarchy tier -- purely so the client has
-    -- something to look at before Jira estimates are filled in, not a real
-    -- number (Task=8h, Sub-task=4h are a starting assumption for the client
-    -- to confirm or correct, not derived from their data). Epic and above
-    -- deliberately left NULL -- those aren't usually individually worked, so
-    -- defaulting them would invent effort with no real person behind it.
-    -- Is_Task_Hours_Estimated marks every defaulted row so reports can
-    -- caveat/exclude them, and stops firing automatically once a real
-    -- estimate is entered in Jira.
 """)
 
 # MARKDOWN ********************
@@ -187,9 +135,9 @@ df = spark.sql(f"""
 # ## Report people missing from the user directory
 
 # CELL ********************
-# Deactivated and app/bot accounts don't come back from /users/search, so they
-# legitimately resolve to Dim_Resource's Unknown row. A SPIKE here means the
-# users extract is incomplete, not that people left.
+# Deactivated and app/bot accounts don't come back from /users/search, so
+# they legitimately resolve to Dim_Resource's Unknown row. A SPIKE here
+# means the users extract is incomplete, not that people left.
 unresolved = df.filter("Resource_Key IS NULL").count()
 if unresolved > 0:
     print(f"NOTE: {unresolved} allocation(s) reference an account id not in Silver.jira.users "

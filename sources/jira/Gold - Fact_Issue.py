@@ -14,46 +14,32 @@ GOLD_SCHEMA = "Gold.gold"
 # ## Declare the table schema
 
 # CELL ********************
-# Grain: ONE ROW PER ISSUE. This is the schedule fact -- the Gantt's dates and
-# the model's only additive measures live here.
+# Grain: ONE ROW PER ISSUE. The schedule fact -- every date, every measure.
 #
 # --- PLANNED vs ACTUAL ---
-# Jira has no "actual start" field. Planned dates are what someone typed in
-# (start date / due date). Actual END is what the changelog proves: the
-# resolutiondate.
-#   Actual_End = resolutiondate
-# NO Actual_Start: deriving it needs a per-transition timestamp (when did this
-# issue first enter an "In Progress" status), and this instance's
-# Silver.jira.history_items has no such timestamp column -- only issue_created
-# (the issue's creation, identical on every changelog row for that issue). So
-# there's nothing to derive a real actual-start FROM. If a per-change
-# timestamp is added to the changelog extract later, reintroduce Actual_Start
-# (and Fact_StatusHistory) then. Planned-vs-actual reporting therefore compares
-# planned dates against actual END only.
+# Confirmed against real data: fields_actual_start / fields_actual_end are
+# EMPTY. Nobody's filling those columns in. The client uses:
+#   Planned_Start_Date = fields_start_date
+#   Planned_End_Date   = fields_target_end
+#   Actual_End_Date    = fields_resolutiondate
+# and there is NO Actual_Start_Date column, deliberately -- I'm not going to
+# derive one from the changelog just to have the column exist. Reporting the
+# gap honestly beats fabricating a value that looks precise but isn't.
 #
 # --- NO SENTINEL DATES ---
-# An unscheduled issue keeps a genuine NULL. The Gantt then renders its ROW but
-# draws NO BAR, which is what Jira does. A 1900-01-01 default instead draws a
-# phantom bar a century back and stretches the time axis to reach it. Roughly
-# 10,500 of ~12,000 issues have no dates of their own, so this matters a lot.
+# An unscheduled issue keeps a genuine NULL. The Gantt renders its ROW but
+# draws NO BAR, matching Jira's own behavior. A 1900-01-01 default instead
+# draws a phantom bar a century back and stretches the time axis.
 #
 # --- ROLLUP ---
-# A real Gantt gives a summary row a bar spanning its children. Rollup_Start /
-# Rollup_End do that: own dates win; else min(child start)..max(child end);
-# else NULL. POINT THE GANTT AT THE ROLLUP COLUMNS, not the raw ones.
+# A real Gantt gives a summary row a bar spanning its children. Rollup_Start
+# / Rollup_End do that: own dates win; else min(child start)..max(child end);
+# else NULL. POINT THE GANTT AT ROLLUP COLUMNS, not raw ones.
 #
-# --- NO ASSIGNEE KEY ---
-# Deliberately absent. The lead is a person, and every person-to-issue link
-# lives in Fact_Resource_Allocation with Role = 'Lead'. Putting Assignee_Key
-# here as well would give Dim_Resource a SECOND path into the model and force
-# a deactivated relationship. One path, one place.
-#
-# --- STATUS_KEY / PRIORITY_KEY / ISSUETYPE_KEY LIVE HERE, NOT ON DIM_ISSUE ---
-# Foreign keys into dimension tables belong on FACT tables in a star schema.
-# Dim_Issue carries none of these -- no keys, no denormalised text -- purely
-# the issue's own hierarchy/rank/Gantt-display attributes. A report gets
-# Status/Priority/Type by relating Dim_Status/Dim_Priority/Dim_IssueType to
-# THIS fact, same as every other dimension here.
+# --- NO ASSIGNEE_KEY ---
+# The lead lives in Fact_ResourceAllocation with Role='Lead'. Adding
+# Assignee_Key here would give Dim_Resource a SECOND path to this fact and
+# force a deactivated relationship. One path, one place.
 schema = fmt.TableSchema(
     table_name=f"{GOLD_SCHEMA}.fact_issue",
     table_type="fact",
@@ -62,23 +48,25 @@ schema = fmt.TableSchema(
         "Issue_Id":   {"type": "string", "merge_field": True},
         "Issue_Code": {"type": "string", "default": "Unknown"},
 
-        # Measures -- the only additive columns in the model.
+        # Measures
         "Story_Points":             {"type": "double"},
         "Original_Estimate_Hours":  {"type": "double"},
         "Remaining_Estimate_Hours": {"type": "double"},
         "Time_Spent_Hours":         {"type": "double"},
+        "Issue_Count":              {"type": "int", "default": 1},
 
-        # Dates -- no defaults, by design (see note above).
+        # Dates -- no defaults, by design.
         "Planned_Start_Date": {"type": "date"},
         "Planned_End_Date":   {"type": "date"},
         "Actual_End_Date":    {"type": "date"},
         "Created_Date":       {"type": "date"},
+        "Updated_Date":       {"type": "date"},
         "Rollup_Start_Date":  {"type": "date"},
         "Rollup_End_Date":    {"type": "date"},
         "Has_Own_Dates":      {"type": "boolean", "default": False},
 
-        # Derived schedule health -- computed here rather than in DAX so every
-        # tool (Power BI, Tableau, a SQL query) gets the same answer.
+        # Derived schedule health -- computed HERE, not in DAX, so every tool
+        # (Power BI, Tableau, a SQL query) gets the same answer.
         "Duration_Days":      {"type": "int"},
         "Slip_Days":          {"type": "int"},
         "Is_Overdue":         {"type": "boolean", "default": False},
@@ -107,24 +95,18 @@ schema = fmt.TableSchema(
                                      "natural_key_column": "Priority_Id", "key_column": "Priority_Key",
                                      "unknown_value": "Unknown"},
         },
-        "IssueType_Key": {
-            "type": "string",
-            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_issue_type",
-                                     "natural_key_column": "IssueType_Id", "key_column": "IssueType_Key",
-                                     "unknown_value": "Unknown"},
-        },
     },
 )
 
 # MARKDOWN ********************
 
-# ## Actual start, from the status history
-
-# MARKDOWN ********************
-
-# ## Build the fact
+# ## Build
 
 # CELL ********************
+# Duration/Slip computed here so it stays consistent across every tool:
+#   Duration_Days  = target_end - start_date         (planned duration)
+#   Slip_Days      = resolutiondate - target_end     (positive = late)
+#   Is_Overdue     = past due date, not resolved     (as of today)
 df = spark.sql(f"""
     SELECT
         i.id AS Issue_Id,
@@ -133,29 +115,29 @@ df = spark.sql(f"""
         project.Project_Key,
         status.Status_Key,
         priority.Priority_Key,
-        issue_type.IssueType_Key,
 
         CAST(i.fields_start_date AS date)      AS Planned_Start_Date,
-        CAST(i.fields_duedate AS date)         AS Planned_End_Date,
+        CAST(i.fields_target_end AS date)      AS Planned_End_Date,
         CAST(i.fields_resolutiondate AS date)  AS Actual_End_Date,
         CAST(i.fields_created AS date)         AS Created_Date,
+        CAST(i.fields_updated AS date)         AS Updated_Date,
 
-        DATEDIFF(CAST(i.fields_duedate AS date), CAST(i.fields_start_date AS date)) AS Duration_Days,
-        DATEDIFF(CAST(i.fields_resolutiondate AS date), CAST(i.fields_duedate AS date)) AS Slip_Days,
-        (i.fields_duedate IS NOT NULL
+        DATEDIFF(CAST(i.fields_target_end AS date), CAST(i.fields_start_date AS date)) AS Duration_Days,
+        DATEDIFF(CAST(i.fields_resolutiondate AS date), CAST(i.fields_target_end AS date)) AS Slip_Days,
+        (i.fields_target_end IS NOT NULL
          AND i.fields_resolutiondate IS NULL
-         AND CAST(i.fields_duedate AS date) < CURRENT_DATE()) AS Is_Overdue,
+         AND CAST(i.fields_target_end AS date) < CURRENT_DATE()) AS Is_Overdue,
 
         i.fields_story_point_estimate           AS Story_Points,
         i.fields_timeoriginalestimate / 3600.0  AS Original_Estimate_Hours,
         i.fields_timeestimate / 3600.0          AS Remaining_Estimate_Hours,
-        i.fields_timespent / 3600.0             AS Time_Spent_Hours
+        i.fields_timespent / 3600.0             AS Time_Spent_Hours,
+        1 AS Issue_Count
     FROM Silver.jira.issues i
     LEFT JOIN {GOLD_SCHEMA}.dim_issue dim_issue   ON i.id = dim_issue.Issue_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_project project   ON i.fields_project_id = project.Project_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_status status     ON i.fields_status_id = status.Status_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_priority priority ON i.fields_priority_id = priority.Priority_Id
-    LEFT JOIN {GOLD_SCHEMA}.dim_issue_type issue_type ON i.fields_issuetype_id = issue_type.IssueType_Id
 """)
 
 # MARKDOWN ********************
