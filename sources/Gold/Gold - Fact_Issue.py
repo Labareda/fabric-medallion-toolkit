@@ -134,6 +134,14 @@ schema = fmt.TableSchema(
                                      "natural_key_column": "IssueType_Id", "key_column": "IssueType_Key",
                                      "unknown_value": "Unknown"},
         },
+        # Resolved on team NAME, matching Dim_Team's merge field. Issues with
+        # no team fall to the Unknown member rather than dropping out.
+        "Team_Key": {
+            "type": "string",
+            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_team",
+                                     "natural_key_column": "Team_Name", "key_column": "Team_Key",
+                                     "unknown_value": "Unknown"},
+        },
     },
 )
 
@@ -172,10 +180,17 @@ df = spark.sql(f"""
         priority.Priority_Key,
         resolution.Resolution_Key,
         issue_type.IssueType_Key,
+        team.Team_Key,
 
         CAST(i.fields_start_date AS date)      AS Planned_Start_Date,
-        COALESCE(CAST(i.fields_target_end AS date),
-                 CAST(i.fields_duedate AS date)) AS Planned_End_Date,
+        -- duedate ONLY, matching the Gantt that already works. fields_target_end
+        -- is Jira's planning-tier end date and is often set on Programme/
+        -- Release/Initiative rows where duedate is not -- COALESCEing it in
+        -- would give summary rows their own bars instead of rolled-up ones,
+        -- which CHANGES a chart you have already validated. Switch to the
+        -- COALESCE below only after comparing the two side by side:
+        --   COALESCE(CAST(i.fields_target_end AS date), CAST(i.fields_duedate AS date))
+        CAST(i.fields_duedate AS date)         AS Planned_End_Date,
         -- own field first, changelog second
         COALESCE(CAST(i.fields_actual_start AS date), a.Changelog_Actual_Start) AS Actual_Start_Date,
         COALESCE(CAST(i.fields_actual_end AS date),
@@ -216,6 +231,7 @@ df = spark.sql(f"""
     LEFT JOIN {GOLD_SCHEMA}.dim_priority priority ON i.fields_priority_id = priority.Priority_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_resolution resolution ON i.fields_resolution_id = resolution.Resolution_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_issue_type issue_type ON i.fields_issuetype_id = issue_type.IssueType_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_team team          ON i.fields_team_name = team.Team_Name
 """)
 
 # MARKDOWN ********************
