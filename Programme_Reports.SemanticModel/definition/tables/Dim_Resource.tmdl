@@ -36,6 +36,17 @@ table 'Dim_Resource'
 
 		annotation SummarizationSetBy = Automatic
 
+	column 'Daily_Capacity_Hours'
+		dataType: double
+		formatString: #,##0.0
+		summarizeBy: none
+		sourceColumn: Daily_Capacity_Hours
+
+		annotation SummarizationSetBy = Automatic
+
+	measure 'Total Daily Capacity (Active, Hrs)' = CALCULATE(SUM('Dim_Resource'[Daily_Capacity_Hours]), 'Dim_Resource'[Is_Active] = TRUE)
+		formatString: #,##0.0
+
 	partition 'Dim_Resource' = m
 		mode: import
 		source =
