@@ -54,6 +54,20 @@ schema = fmt.TableSchema(
                                      "natural_key_column": "Role_Name", "key_column": "Role_Key",
                                      "unknown_value": "Unknown"},
         },
+        # Project_Key/Team_Key sit directly on every fact table so a project
+        # or team slicer filters in one hop -- matches Fact_Issue.
+        "Project_Key": {
+            "type": "string",
+            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_project",
+                                     "natural_key_column": "Project_Id", "key_column": "Project_Key",
+                                     "unknown_value": "Unknown"},
+        },
+        "Team_Key": {
+            "type": "string",
+            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_team",
+                                     "natural_key_column": "Team_Name", "key_column": "Team_Key",
+                                     "unknown_value": "Unknown"},
+        },
     },
 )
 
@@ -78,11 +92,15 @@ df = spark.sql(f"""
     )
     SELECT a.Issue_Id, a.Issue_Code, a.Resource_Account_Id, a.Role_Name,
            a.Allocation_Weight, 1 AS Allocation_Count,
-           dim_issue.Issue_Key, res.Resource_Key, role.Role_Key
+           dim_issue.Issue_Key, res.Resource_Key, role.Role_Key,
+           project.Project_Key, team.Team_Key
     FROM allocations a
+    LEFT JOIN Silver.jira.issues i2b            ON a.Issue_Id = i2b.id
     LEFT JOIN {GOLD_SCHEMA}.dim_issue dim_issue ON a.Issue_Id = dim_issue.Issue_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_resource res    ON a.Resource_Account_Id = res.Resource_Account_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_role role       ON a.Role_Name = role.Role_Name
+    LEFT JOIN {GOLD_SCHEMA}.dim_project project ON i2b.fields_project_id = project.Project_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_team team       ON i2b.fields_team_name = team.Team_Name
 """)
 
 # CELL ********************

@@ -8,25 +8,48 @@
 # place in the parent chain). The wheel adds the hierarchy columns from the
 # flat base query below.
 #
-# CHANGED FROM THE PREVIOUS VERSION -- typed tier columns are back on.
-# They were switched off on the grounds that Hierarchy_Level_Name plus a
-# Sort_Path prefix filter covers tier reporting. That is true for DRILL-DOWN
-# ("this item and everything under it") but not for GROUPING. The Workstream
-# Health dashboard needs "sum story points BY workstream" across every
-# descendant at once -- a prefix filter answers one workstream at a time and
-# cannot produce that column. So both walks run now, exactly as the wheel's
-# own docstring intends:
-#
+# TWO HIERARCHY WALKS, BOTH KEPT --
 #   Level_1..7 (DENSE, by depth)      -> xViz Gantt nesting. Leave "Hide
 #                                        Blanks" OFF; trailing nulls are normal.
 #   Programme/Release/... (TYPED)     -> slicers, grouping, the workstream
 #                                        scorecard. Ragged by design: an Epic
 #                                        hanging straight off a Programme
-#                                        genuinely has no Release.
+#                                        genuinely has no Release. NOT
+#                                        redundant with Level_1..7: the dense
+#                                        walk answers "this item and everything
+#                                        under it" (drill-down), the typed walk
+#                                        answers "sum story points BY
+#                                        workstream" (grouping) -- a prefix
+#                                        filter on Sort_Path can only do the
+#                                        former.
 #
 # Never filter on the dense columns. A tier skipped in one project shifts
 # everything up a slot and would silently regroup issues under the wrong
 # workstream -- which looks like real data, not like an error.
+#
+# SIMPLIFIED -- removed from this table (see below for where the info still
+# lives):
+#   Rank, Depth               -- Sort_Path already orders the tree; Depth is
+#                                 just a count of populated Level_N columns.
+#   Project_Id                -- was a snowflake link (Dim_Project ->
+#                                 Dim_Issue). Project_Key now sits directly on
+#                                 every fact table instead, so a project
+#                                 slicer filters facts in one hop, star-schema
+#                                 style.
+#   Parent_Issue_Key           -- Parent_Issue_Id is kept (Fact_Issue's date
+#                                 rollup joins on it); the surrogate key added
+#                                 no reporting value nothing else used.
+#   Hierarchy_Level_Name, Has_Children, Is_Leaf, Has_No_Lead
+#                              -- all derivable from columns already here
+#                                 (Level_N non-null count, Lead_Name IS NULL)
+#                                 or from Dim_IssueType.Hierarchy_Level via
+#                                 Fact_Issue.
+#   Resource_Names, Lead_Name, Resource_Count
+#                              -- denormalised text duplicating the properly
+#                                 modelled Fact_Resource_Allocation ->
+#                                 Dim_Resource / Dim_Role relationship. Slice
+#                                 "who's assigned" through that fact with
+#                                 Role = 'Lead' / 'Involved' instead.
 
 # CELL ********************
 import fabric_medallion_toolkit as fmt
@@ -50,6 +73,18 @@ TYPED_LEVEL_NAMES = {
 # Task and Sub-task typed columns are omitted on purpose: an issue's own
 # label already tells you that, so they would just repeat Display_Label.
 
+# The final, persisted column list -- everything else the SQL/wheel produce
+# along the way (Rank, Depth, Project_Id, Parent_Issue_Key, Hierarchy_Level,
+# ...) is a working column, not part of the Gold table.
+FINAL_COLUMNS = [
+    "Issue_Id", "Issue_Code", "Summary", "Display_Label", "Is_Milestone",
+    "Parent_Issue_Id",
+    "Sort_Path",
+    "Level_1", "Level_2", "Level_3", "Level_4", "Level_5", "Level_6", "Level_7",
+    "Programme_Label", "Release_Label", "Initiative_Label", "Workstream_Label", "Epic_Label",
+    "Predecessor_Issue_Code", "Connector_Type",
+]
+
 # MARKDOWN ********************
 
 # ## Declare the table schema
@@ -69,37 +104,24 @@ schema = fmt.TableSchema(
         "Summary":          {"type": "string", "default": "No summary"},
         "Display_Label":    {"type": "string", "default": "Unknown"},
         "Is_Milestone":     {"type": "boolean", "default": False},
-        "Hierarchy_Level_Name": {"type": "string", "default": "Unknown"},
-        # Structure
+        # Kept for Fact_Issue's date-rollup join -- not a reporting column.
         "Parent_Issue_Id":  {"type": "string"},
-        "Parent_Issue_Key": {"type": "string"},
-        "Is_Leaf":          {"type": "boolean", "default": True},
-        "Has_Children":     {"type": "boolean", "default": False},
         "Sort_Path":        {"type": "string", "default": ""},
-        "Rank":             {"type": "string", "default": ""},
         # Dense levels -- drive the xViz Gantt Task Name. Depth-placed,
         # contiguous, each shows "KEY: Summary".
         "Level_1": {"type": "string"}, "Level_2": {"type": "string"},
         "Level_3": {"type": "string"}, "Level_4": {"type": "string"},
         "Level_5": {"type": "string"}, "Level_6": {"type": "string"},
         "Level_7": {"type": "string"},
-        "Depth":   {"type": "int", "default": 1},
         # Typed tiers -- slicers and grouping. Ragged by design.
         "Programme_Label":  {"type": "string"},
         "Release_Label":    {"type": "string"},
         "Initiative_Label": {"type": "string"},
         "Workstream_Label": {"type": "string"},
         "Epic_Label":       {"type": "string"},
-        # Gantt display / dependency affordances
-        "Resource_Names":         {"type": "string", "default": ""},
-        "Lead_Name":              {"type": "string", "default": "Unassigned"},
-        "Resource_Count":         {"type": "int", "default": 0},
-        "Has_No_Lead":            {"type": "boolean", "default": True},
+        # Dependency affordances for the Gantt
         "Predecessor_Issue_Code": {"type": "string", "default": ""},
         "Connector_Type":         {"type": "string", "default": "FS"},
-        # Project_Id kept: it's the join key for the direct Dim_Project ->
-        # Dim_Issue relationship, so a project slicer filters issues directly.
-        "Project_Id":       {"type": "string", "default": "Unknown"},
     },
 )
 
@@ -109,23 +131,12 @@ schema = fmt.TableSchema(
 
 # CELL ********************
 df = spark.sql("""
-    WITH involved_people AS (
-        SELECT issue_id, ARRAY_SORT(COLLECT_SET(person_name)) AS involved_arr
-        FROM Silver.jira.issue_people_involved
-        WHERE person_name IS NOT NULL
-        GROUP BY issue_id
-    ),
-    predecessors AS (
+    WITH predecessors AS (
         SELECT issue_id,
                ARRAY_JOIN(ARRAY_SORT(COLLECT_SET(inward_issue_key)), ',') AS Predecessor_Issue_Code
         FROM Silver.jira.issue_links
         WHERE link_type IN ('Blocks') AND inward_issue_key IS NOT NULL
         GROUP BY issue_id
-    ),
-    children AS (
-        SELECT DISTINCT fields_parent_id AS parent_id
-        FROM Silver.jira.issues
-        WHERE fields_parent_id IS NOT NULL
     )
     SELECT
         i.id AS Issue_Id,
@@ -133,32 +144,15 @@ df = spark.sql("""
         COALESCE(i.fields_summary, 'No summary') AS Summary,
         CONCAT(i.key, ': ', COALESCE(i.fields_summary, 'No summary')) AS Display_Label,
         LOWER(it.name) = 'milestone' AS Is_Milestone,
-        CASE it.hierarchylevel
-            WHEN 5 THEN 'Programme' WHEN 4 THEN 'Release' WHEN 3 THEN 'Initiative'
-            WHEN 2 THEN 'Workstream' WHEN 1 THEN 'Epic' WHEN 0 THEN 'Task'
-            WHEN -1 THEN 'Sub-task' ELSE 'Unknown'
-        END AS Hierarchy_Level_Name,
         i.fields_rank AS Rank,
         i.fields_parent_id AS Parent_Issue_Id,
         i.fields_project_id AS Project_Id,
         it.hierarchylevel AS Hierarchy_Level,
-        c.parent_id IS NOT NULL AS Has_Children,
-        c.parent_id IS NULL AS Is_Leaf,
-        i.fields_assignee_displayName AS Lead_Name,
-        i.fields_assignee_accountId IS NULL AS Has_No_Lead,
-        ARRAY_JOIN(ARRAY_DISTINCT(ARRAY_COMPACT(CONCAT(
-            ARRAY(i.fields_assignee_displayName),
-            COALESCE(p.involved_arr, ARRAY(CAST(NULL AS STRING)))))), ', ') AS Resource_Names,
-        SIZE(ARRAY_DISTINCT(ARRAY_COMPACT(CONCAT(
-            ARRAY(i.fields_assignee_displayName),
-            COALESCE(p.involved_arr, ARRAY(CAST(NULL AS STRING))))))) AS Resource_Count,
         COALESCE(pre.Predecessor_Issue_Code, '') AS Predecessor_Issue_Code,
         'FS' AS Connector_Type
     FROM Silver.jira.issues i
     LEFT JOIN Silver.jira.issuetypes it ON i.fields_issuetype_id = it.id
-    LEFT JOIN involved_people p         ON i.id = p.issue_id
     LEFT JOIN predecessors pre          ON i.id = pre.issue_id
-    LEFT JOIN children c                ON i.id = c.parent_id
 """)
 
 # MARKDOWN ********************
@@ -187,6 +181,11 @@ df = fmt.enrich_issue_hierarchy(
     rank_to_level=RANK_TO_LEVEL,
     typed_level_names=TYPED_LEVEL_NAMES,
 )
+
+# Trim to the final persisted shape -- drops Rank, Depth, Project_Id,
+# Parent_Issue_Key (all working columns the wheel/base query needed but the
+# Gold table does not).
+df = df.select(*FINAL_COLUMNS)
 
 # MARKDOWN ********************
 

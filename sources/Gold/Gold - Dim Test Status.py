@@ -8,6 +8,17 @@
 # means Fact_Test can carry it as a proper status and the matrix shows
 # "Not Run" as a real value rather than a blank, which is the most
 # important number in a pre-go-live report.
+#
+# SIMPLIFIED -- Colour removed (no report used it; add back if a matrix
+# needs conditional formatting driven from data rather than the report's
+# own theme). Coverage_Status is kept: it mirrors how Xray itself rolls
+# results up to coverage (OK/NOK/NOTRUN), so a Power BI coverage number
+# matches what the test team sees in Jira -- disagreement there is the
+# fastest way to lose the testers' trust in the dashboard. The
+# Is_Pass/Is_Fail/Is_Blocked/Is_Not_Run flags are kept here (not on
+# Fact_Test) -- Fact_Test relates to this dimension via Test_Status_Key, so
+# a report sums these through the relationship instead of the fact
+# recomputing the same booleans a second time.
 
 # CELL ********************
 import fabric_medallion_toolkit as fmt
@@ -23,7 +34,6 @@ schema = fmt.TableSchema(
     columns={
         "Test_Status_Name":     {"type": "string", "merge_field": True, "missing": "Unknown"},
         "Description":          {"type": "string", "default": ""},
-        "Colour":               {"type": "string", "default": "#CCCCCC"},
         "Is_Final":             {"type": "boolean", "default": False},
         "Coverage_Status":      {"type": "string", "default": "NOTRUN"},
         "Is_Pass":              {"type": "boolean", "default": False},
@@ -39,7 +49,6 @@ from_xray = spark.sql("""
     SELECT
         s.name                                        AS Test_Status_Name,
         COALESCE(s.description, '')                   AS Description,
-        COALESCE(s.color, '#CCCCCC')                  AS Colour,
         COALESCE(CAST(s.final AS boolean), false)     AS Is_Final,
         CASE s.name WHEN 'PASSED' THEN 'OK'
                     WHEN 'FAILED' THEN 'NOK'
@@ -62,7 +71,6 @@ from_xray = spark.sql("""
 not_run = spark.createDataFrame([Row(
     Test_Status_Name="NOT RUN",
     Description="Test has not been executed yet",
-    Colour="#AAAAAA",
     Is_Final=False,
     Coverage_Status="NOTRUN",
     Is_Pass=False,

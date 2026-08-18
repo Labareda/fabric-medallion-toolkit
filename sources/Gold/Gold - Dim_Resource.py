@@ -26,7 +26,6 @@ schema = fmt.TableSchema(
         "Resource_Account_Id": {"type": "string", "merge_field": True, "missing": "Unknown"},
         "Resource_Name":       {"type": "string", "default": "Unassigned"},
         "Email":               {"type": "string", "default": ""},
-        "Account_Type":        {"type": "string", "default": "Unknown"},
         "Is_Active":           {"type": "boolean", "default": True},
     },
 )
@@ -34,13 +33,13 @@ schema = fmt.TableSchema(
 # CELL ********************
 df = spark.sql("""
     SELECT u.accountId AS Resource_Account_Id, u.displayName AS Resource_Name,
-           u.emailAddress AS Email, u.accountType AS Account_Type, u.active AS Is_Active
+           u.emailAddress AS Email, u.active AS Is_Active
     FROM Silver.jira.users u
     WHERE u.accountId IS NOT NULL
 
     UNION
 
-    SELECT DISTINCT p.person_account_id, p.person_name, p.person_email, 'atlassian', p.person_active
+    SELECT DISTINCT p.person_account_id, p.person_name, p.person_email, p.person_active
     FROM Silver.jira.issue_people_involved p
     WHERE p.person_account_id IS NOT NULL
       AND p.person_account_id NOT IN (SELECT accountId FROM Silver.jira.users WHERE accountId IS NOT NULL)
