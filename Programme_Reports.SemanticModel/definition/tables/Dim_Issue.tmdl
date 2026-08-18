@@ -115,6 +115,20 @@ table 'Dim_Issue'
 
 		annotation SummarizationSetBy = Automatic
 
+	column 'Lead_Name'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Lead_Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Resource_Names'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Resource_Names
+
+		annotation SummarizationSetBy = Automatic
+
 	column 'Predecessor_Issue_Code'
 		dataType: string
 		summarizeBy: none

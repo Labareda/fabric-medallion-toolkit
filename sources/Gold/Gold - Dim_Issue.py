@@ -38,18 +38,27 @@
 #                                 (Level_N non-null count, Lead_Name IS NULL)
 #                                 or from Dim_IssueType.Hierarchy_Level via
 #                                 Fact_Issue.
-#   Resource_Names, Lead_Name, Resource_Count
-#                              -- denormalised text duplicating the properly
-#                                 modelled Fact_Resource_Allocation ->
-#                                 Dim_Resource / Dim_Role relationship. Slice
-#                                 "who's assigned" through that fact with
-#                                 Role = 'Lead' / 'Involved' instead.
+#   Resource_Count, Has_No_Lead
+#                              -- derivable (Resource_Names being blank/non-
+#                                 blank, or via Fact_Resource_Allocation).
+#                                 Lead_Name and Resource_Names themselves ARE
+#                                 kept -- see note below.
 #   Programme_Label, Release_Label, Initiative_Label, Workstream_Label,
 #   Epic_Label                 -- the typed tier walk (see above).
 #   Connector_Type              -- was a hardcoded 'FS' literal on every row,
 #                                 not computed from anything. Zero information
 #                                 as stored data; a report-level default if
 #                                 the Gantt visual needs the field present.
+#
+# LEAD_NAME / RESOURCE_NAMES -- back on this table, not just via
+# Fact_Resource_Allocation. Most Gantt visuals (xViz included) bind their
+# Resource field from the SAME table as Task/Start/End, not through a
+# separate fact relationship, so the properly-modelled path
+# (Fact_Resource_Allocation -> Dim_Resource -> Dim_Role, filter Role='Lead')
+# doesn't reach the Gantt visual directly. These stay denormalised text for
+# that reason; Fact_Resource_Allocation is still the source of truth for any
+# resourcing analysis that isn't the Gantt itself (headcount, effort by
+# person/role, etc).
 
 # CELL ********************
 import fabric_medallion_toolkit as fmt
@@ -65,6 +74,7 @@ FINAL_COLUMNS = [
     "Parent_Issue_Id",
     "Sort_Path",
     "Level_1", "Level_2", "Level_3", "Level_4", "Level_5", "Level_6", "Level_7",
+    "Lead_Name", "Resource_Names",
     "Predecessor_Issue_Code",
 ]
 
@@ -103,6 +113,9 @@ schema = fmt.TableSchema(
         "Level_3": {"type": "string"}, "Level_4": {"type": "string"},
         "Level_5": {"type": "string"}, "Level_6": {"type": "string"},
         "Level_7": {"type": "string"},
+        # Gantt resource display -- see header note.
+        "Lead_Name":      {"type": "string", "default": "Unassigned"},
+        "Resource_Names": {"type": "string", "default": ""},
         # Dependency affordance for the Gantt
         "Predecessor_Issue_Code": {"type": "string", "default": ""},
     },
@@ -120,6 +133,12 @@ df = spark.sql("""
         FROM Silver.jira.issue_links
         WHERE link_type IN ('Blocks') AND inward_issue_key IS NOT NULL
         GROUP BY issue_id
+    ),
+    involved_people AS (
+        SELECT issue_id, ARRAY_SORT(COLLECT_SET(person_name)) AS involved_arr
+        FROM Silver.jira.issue_people_involved
+        WHERE person_name IS NOT NULL
+        GROUP BY issue_id
     )
     SELECT
         i.id AS Issue_Id,
@@ -133,10 +152,15 @@ df = spark.sql("""
         i.fields_parent_id AS Parent_Issue_Id,
         i.fields_project_id AS Project_Id,
         it.hierarchylevel AS Hierarchy_Level,
+        COALESCE(i.fields_assignee_displayName, 'Unassigned') AS Lead_Name,
+        ARRAY_JOIN(ARRAY_DISTINCT(ARRAY_COMPACT(CONCAT(
+            ARRAY(i.fields_assignee_displayName),
+            COALESCE(p.involved_arr, ARRAY(CAST(NULL AS STRING)))))), ', ') AS Resource_Names,
         COALESCE(pre.Predecessor_Issue_Code, '') AS Predecessor_Issue_Code
     FROM Silver.jira.issues i
     LEFT JOIN Silver.jira.issuetypes it ON i.fields_issuetype_id = it.id
     LEFT JOIN predecessors pre          ON i.id = pre.issue_id
+    LEFT JOIN involved_people p         ON i.id = p.issue_id
 """)
 
 # MARKDOWN ********************
