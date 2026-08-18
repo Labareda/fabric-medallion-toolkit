@@ -11,7 +11,7 @@
 #   + Xray source added as a second extraction branch (see OPTIONAL_STEPS --
 #     an Xray outage no longer blocks the Jira reporting refresh)
 #   + Dim_Resolution, Dim_Role, Dim_Team, Dim_Test_Status
-#   + Fact_Issue_History, Fact_Worklog, Fact_Test_Run
+#   + Fact_Issue_History, Fact_Worklog
 #   ~ renamed: Fact_ResourceAllocation -> Fact_Resource_Allocation
 #   - removed: Dim_Board, Dim_Sprint, Bridge_IssueSprint (the client barely
 #     uses sprints; trend now comes from Fact_Issue_History instead of sprint
@@ -31,8 +31,12 @@
 #     "built but never run" trap warned about above for Fact_Comment). Now
 #     wired in, all OPTIONAL (Xray-dependent) like the rest of the test
 #     tables, so the Test Report actually gets fresh data.
-#   ~ Fact_Test_Run now consolidates what used to be two overlapping,
-#     same-grain run tables (fact_test_run / fact_test_run_history).
+#   - removed: Fact_Test_Run -- the test report only needs the current-
+#     status matrix (Fact_Test) and requirement coverage (Fact_Test
+#     Coverage), not a full run-by-run trend, so the run-history fact
+#     (and the run-level Dim_Test_Status/Dim_Resource lookups it alone
+#     needed) was dropped. Re-add it if a trend/first-time-pass-rate view
+#     comes into scope later -- the notebook history has a working version.
 
 # CELL ********************
 from notebookutils import mssparkutils
@@ -84,7 +88,6 @@ FACT_NOTEBOOKS = {
     "Gold - Fact_Issue_History": [],
     "Gold - Fact_Resource_Allocation": [],
     "Gold - Fact_Worklog": [],
-    "Gold - Fact_Test_Run": [],
     "Gold - Fact Test": [],
     # Reads Gold.gold.fact_test (set_stats CTE) -- the one fact that reads
     # another fact in this model, so it's the one exception to "facts only
@@ -110,7 +113,6 @@ OPTIONAL_STEPS = {
     "B2S - Xray",
     "Gold - Dim Test Status",
     "Gold - Dim Test Set",
-    "Gold - Fact_Test_Run",
     "Gold - Fact Test",
     "Gold - Fact Test Coverage",
 }

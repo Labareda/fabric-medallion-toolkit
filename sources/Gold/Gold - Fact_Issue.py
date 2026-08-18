@@ -74,7 +74,7 @@ schema = fmt.TableSchema(
         "Risk_Previous_Score":      {"type": "double"},
         "Likelihood_Score":         {"type": "double"},
         "Severity_Score":           {"type": "double"},
-        # Xray's own rollup, kept for reconciliation against Fact_Test_Run.
+        # Xray's own rollup, kept for reconciliation against Fact_Test.
         "Total_Tests":              {"type": "int"},
         "Passed_Tests":             {"type": "int"},
 

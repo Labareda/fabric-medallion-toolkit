@@ -31,8 +31,11 @@
 #       Test 1   PASSED
 #       Test 3   NOT RUN
 #
-# Latest run status is denormalised onto each row. For trend over time,
-# Fact_Test_Run (separate notebook) carries every run.
+# Latest run status is denormalised onto each row. There is no separate
+# run-history fact -- the test report only needs current status, not a
+# run-by-run trend, so Run_Count/Pass_Count/Fail_Count (aggregated across
+# every run ever, not just the latest) are as close to history as this
+# model goes.
 #
 # PARENT ISSUE CONTEXT
 # Each test set is linked to one or more parent issues (Stories/Requirements)

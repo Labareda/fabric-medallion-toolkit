@@ -134,35 +134,14 @@ relationship r32
 	toColumn: Dim_Test_Set.Test_Set_Key
 
 relationship r33
-	fromColumn: Fact_Test_Run.Test_Issue_Key
-	toColumn: Dim_Issue.Issue_Key
-
-relationship r34
-	fromColumn: Fact_Test_Run.Test_Status_Key
-	toColumn: Dim_Test_Status.Test_Status_Key
-
-relationship r35
-	fromColumn: Fact_Test_Run.Executor_Key
-	toColumn: Dim_Resource.Resource_Key
-
-relationship r36
-	fromColumn: Fact_Test_Run.Started_Date
-	toColumn: Dim_Date.date
-
-relationship r37
-	fromColumn: Fact_Test_Run.Finished_Date
-	toColumn: Dim_Date.date
-	isActive: false
-
-relationship r38
 	fromColumn: Fact_Worklog.Issue_Key
 	toColumn: Dim_Issue.Issue_Key
 
-relationship r39
+relationship r34
 	fromColumn: Fact_Worklog.Author_Key
 	toColumn: Dim_Resource.Resource_Key
 
-relationship r40
+relationship r35
 	fromColumn: Fact_Worklog.Started_Date
 	toColumn: Dim_Date.date
 

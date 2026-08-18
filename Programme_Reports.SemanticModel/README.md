@@ -1,10 +1,12 @@
 # Programme_Reports semantic model
 
-Import-mode TMDL definition for the Gold star schema in `sources/Gold`. 13 dimensions, 7 facts, 40 relationships -- generated directly from each notebook's `TableSchema` so the column list matches what actually gets written to `Gold.gold.*`.
+Import-mode TMDL definition for the Gold star schema in `sources/Gold`. 13 dimensions, 6 facts, 35 relationships -- generated directly from each notebook's `TableSchema` so the column list matches what actually gets written to `Gold.gold.*`.
+
+`Fact_Test_Run` (run-by-run trend history) was deliberately left out -- the test report only needs the current-status matrix (`Fact_Test`) and requirement coverage (`Fact_Test_Coverage`), not a trend/first-time-pass-rate view. The notebook still exists in git history if that's needed later.
 
 ## Before opening
 
-Every table's M partition points at a placeholder connection string. Find-and-replace `<YOUR_GOLD_SQL_ENDPOINT>` across `definition/tables/*.tmdl` with the Gold lakehouse's SQL analytics endpoint (Fabric workspace -> Gold lakehouse -> Settings -> SQL analytics endpoint -> copy the server hostname). All 20 tables use the same value.
+Every table's M partition points at a placeholder connection string. Find-and-replace `<YOUR_GOLD_SQL_ENDPOINT>` across `definition/tables/*.tmdl` with the Gold lakehouse's SQL analytics endpoint (Fabric workspace -> Gold lakehouse -> Settings -> SQL analytics endpoint -> copy the server hostname). All tables use the same value.
 
 ## Opening it
 
@@ -18,13 +20,12 @@ Every table's M partition points at a placeholder connection string. Find-and-re
 
 ## Date relationships (role-playing)
 
-`Dim_Date` has 14 relationships into it across the model (every date column on every fact). Only one per fact is **active** by default -- the rest need `USERELATIONSHIP()` in any measure that wants that particular date role:
+`Dim_Date` has 9 relationships into it across the model (every date column on every fact). Only one per fact is **active** by default -- the rest need `USERELATIONSHIP()` in any measure that wants that particular date role:
 
 | Fact | Active relationship | Inactive (use USERELATIONSHIP) |
 |---|---|---|
 | Fact_Issue | Rollup_Start_Date | Rollup_End_Date, Planned_Start_Date, Planned_End_Date, Actual_Start_Date, Actual_End_Date, Created_Date |
 | Fact_Issue_History | Valid_From_Date | Valid_To_Date |
-| Fact_Test_Run | Started_Date | Finished_Date |
 | Fact_Test | Latest_Run_Date | -- |
 | Fact_Worklog | Started_Date | -- |
 
