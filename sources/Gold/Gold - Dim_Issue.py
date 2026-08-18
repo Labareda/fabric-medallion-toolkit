@@ -8,24 +8,18 @@
 # place in the parent chain). The wheel adds the hierarchy columns from the
 # flat base query below.
 #
-# TWO HIERARCHY WALKS, BOTH KEPT --
-#   Level_1..7 (DENSE, by depth)      -> xViz Gantt nesting. Leave "Hide
-#                                        Blanks" OFF; trailing nulls are normal.
-#   Programme/Release/... (TYPED)     -> slicers, grouping, the workstream
-#                                        scorecard. Ragged by design: an Epic
-#                                        hanging straight off a Programme
-#                                        genuinely has no Release. NOT
-#                                        redundant with Level_1..7: the dense
-#                                        walk answers "this item and everything
-#                                        under it" (drill-down), the typed walk
-#                                        answers "sum story points BY
-#                                        workstream" (grouping) -- a prefix
-#                                        filter on Sort_Path can only do the
-#                                        former.
+# ONLY THE DENSE WALK IS BUILT -- Level_1..7, depth-placed, contiguous, drives
+# the xViz Gantt tree. Leave "Hide Blanks" OFF; trailing nulls are normal.
+# There is no typed (Programme/Release/...) walk: no report in scope sums or
+# groups by workstream/release across the whole programme, only the Gantt
+# drill-down, which Level_1..7 plus Sort_Path already cover. If a workstream
+# rollup report is needed later, re-add the typed walk (see enrich_issue_
+# hierarchy's typed_level_names/rank_to_level params) rather than trying to
+# fake it from the dense columns -- they're positional (by depth) and mixing
+# projects on a Level_N filter silently regroups issues under the wrong tier.
 #
-# Never filter on the dense columns. A tier skipped in one project shifts
-# everything up a slot and would silently regroup issues under the wrong
-# workstream -- which looks like real data, not like an error.
+# Never filter on the dense columns for cross-project grouping, for the same
+# reason: a tier skipped in one project shifts everything up a slot.
 #
 # SIMPLIFIED -- removed from this table (see below for where the info still
 # lives):
@@ -50,39 +44,28 @@
 #                                 Dim_Resource / Dim_Role relationship. Slice
 #                                 "who's assigned" through that fact with
 #                                 Role = 'Lead' / 'Involved' instead.
+#   Programme_Label, Release_Label, Initiative_Label, Workstream_Label,
+#   Epic_Label                 -- the typed tier walk (see above).
+#   Connector_Type              -- was a hardcoded 'FS' literal on every row,
+#                                 not computed from anything. Zero information
+#                                 as stored data; a report-level default if
+#                                 the Gantt visual needs the field present.
 
 # CELL ********************
 import fabric_medallion_toolkit as fmt
 
 GOLD_SCHEMA = "Gold.gold"
 
-# Jira issuetype hierarchy levels -> business tier:
-#   5 Programme  4 Release  3 Initiative  2 Workstream  1 Epic  0 Task  -1 Sub-task
-# Workstream sits at level 1 or 2 depending on the project, which is exactly
-# why the TYPED walk is placed by the issue's own type rank rather than by its
-# depth: the same tier lands in the same column whichever project it is in.
-RANK_TO_LEVEL = {5: 1, 4: 2, 3: 3, 2: 4, 1: 5, 0: 6, -1: 7}
-
-TYPED_LEVEL_NAMES = {
-    "Level_1": "Programme_Label",
-    "Level_2": "Release_Label",
-    "Level_3": "Initiative_Label",
-    "Level_4": "Workstream_Label",
-    "Level_5": "Epic_Label",
-}
-# Task and Sub-task typed columns are omitted on purpose: an issue's own
-# label already tells you that, so they would just repeat Display_Label.
-
 # The final, persisted column list -- everything else the SQL/wheel produce
 # along the way (Rank, Depth, Project_Id, Parent_Issue_Key, Hierarchy_Level,
 # ...) is a working column, not part of the Gold table.
 FINAL_COLUMNS = [
     "Issue_Id", "Issue_Code", "Summary", "Display_Label", "Is_Milestone",
+    "Acceptance_Criteria",
     "Parent_Issue_Id",
     "Sort_Path",
     "Level_1", "Level_2", "Level_3", "Level_4", "Level_5", "Level_6", "Level_7",
-    "Programme_Label", "Release_Label", "Initiative_Label", "Workstream_Label", "Epic_Label",
-    "Predecessor_Issue_Code", "Connector_Type",
+    "Predecessor_Issue_Code",
 ]
 
 # MARKDOWN ********************
@@ -104,6 +87,13 @@ schema = fmt.TableSchema(
         "Summary":          {"type": "string", "default": "No summary"},
         "Display_Label":    {"type": "string", "default": "Unknown"},
         "Is_Milestone":     {"type": "boolean", "default": False},
+        # Only populated on Test-type issues (Xray's Acceptance Criteria
+        # field); every other issue gets the default. Lives here rather than
+        # on Fact_Test because it's an attribute of the test ISSUE itself --
+        # Fact_Test already relates to Dim_Issue via Parent_Issue_Code for
+        # display, and any test-level fact can pull it through a relationship
+        # instead of carrying its own copy.
+        "Acceptance_Criteria": {"type": "string", "default": ""},
         # Kept for Fact_Issue's date-rollup join -- not a reporting column.
         "Parent_Issue_Id":  {"type": "string"},
         "Sort_Path":        {"type": "string", "default": ""},
@@ -113,15 +103,8 @@ schema = fmt.TableSchema(
         "Level_3": {"type": "string"}, "Level_4": {"type": "string"},
         "Level_5": {"type": "string"}, "Level_6": {"type": "string"},
         "Level_7": {"type": "string"},
-        # Typed tiers -- slicers and grouping. Ragged by design.
-        "Programme_Label":  {"type": "string"},
-        "Release_Label":    {"type": "string"},
-        "Initiative_Label": {"type": "string"},
-        "Workstream_Label": {"type": "string"},
-        "Epic_Label":       {"type": "string"},
-        # Dependency affordances for the Gantt
+        # Dependency affordance for the Gantt
         "Predecessor_Issue_Code": {"type": "string", "default": ""},
-        "Connector_Type":         {"type": "string", "default": "FS"},
     },
 )
 
@@ -144,12 +127,13 @@ df = spark.sql("""
         COALESCE(i.fields_summary, 'No summary') AS Summary,
         CONCAT(i.key, ': ', COALESCE(i.fields_summary, 'No summary')) AS Display_Label,
         LOWER(it.name) = 'milestone' AS Is_Milestone,
+        COALESCE(i.fields_customfield_acceptance_criteria,
+                 i.fields_acceptance_criteria, '') AS Acceptance_Criteria,
         i.fields_rank AS Rank,
         i.fields_parent_id AS Parent_Issue_Id,
         i.fields_project_id AS Project_Id,
         it.hierarchylevel AS Hierarchy_Level,
-        COALESCE(pre.Predecessor_Issue_Code, '') AS Predecessor_Issue_Code,
-        'FS' AS Connector_Type
+        COALESCE(pre.Predecessor_Issue_Code, '') AS Predecessor_Issue_Code
     FROM Silver.jira.issues i
     LEFT JOIN Silver.jira.issuetypes it ON i.fields_issuetype_id = it.id
     LEFT JOIN predecessors pre          ON i.id = pre.issue_id
@@ -157,7 +141,7 @@ df = spark.sql("""
 
 # MARKDOWN ********************
 
-# ## Add the hierarchy (dense levels, typed tiers, Sort_Path)
+# ## Add the hierarchy (dense levels, Sort_Path)
 
 # CELL ********************
 df = fmt.enrich_issue_hierarchy(
@@ -176,10 +160,7 @@ df = fmt.enrich_issue_hierarchy(
     label_column="Issue_Code",
     # Dense walk -- Level_1..7 by depth, for the Gantt tree.
     build_dense_levels=True,
-    # Typed walk -- by the issue type's own tier, for slicers and grouping.
-    # rank_to_level is mandatory whenever typed_level_names is supplied.
-    rank_to_level=RANK_TO_LEVEL,
-    typed_level_names=TYPED_LEVEL_NAMES,
+    # No typed walk (typed_level_names omitted) -- see header note.
 )
 
 # Trim to the final persisted shape -- drops Rank, Depth, Project_Id,

@@ -39,8 +39,6 @@ schema = fmt.TableSchema(
         "Test_Set_Code":        {"type": "string", "merge_field": True},
         "Requirement_Name":     {"type": "string", "default": "Unknown"},
         "Requirement_Category": {"type": "string", "default": "Unknown"},
-        "Workstream":           {"type": "string", "default": "Unknown"},
-        "Release":              {"type": "string", "default": "Unknown"},
         "Test_Set_Name":        {"type": "string"},
         "Is_Covered":           {"type": "boolean", "default": False},
         "Tests_In_Set":         {"type": "int", "default": 0},
@@ -78,14 +76,10 @@ df = spark.sql(f"""
             i.id                        AS Requirement_Id,
             i.key                       AS Requirement_Code,
             i.fields_summary            AS Requirement_Name,
-            c.Issue_Category            AS Requirement_Category,
-            COALESCE(di.Workstream_Label, 'Unknown') AS Workstream,
-            COALESCE(di.Release_Label,    'Unknown') AS Release
+            c.Issue_Category            AS Requirement_Category
         FROM Silver.jira.issues i
         JOIN {GOLD_SCHEMA}.dim_issue_type c
           ON c.IssueType_Id = i.fields_issuetype_id
-        JOIN {GOLD_SCHEMA}.dim_issue di
-          ON di.Issue_Id = i.id
         WHERE c.Issue_Category = 'Requirement'
     ),
 
@@ -117,8 +111,6 @@ df = spark.sql(f"""
         cs.Test_Set_Code,
         r.Requirement_Name,
         r.Requirement_Category,
-        r.Workstream,
-        r.Release,
         dts.Test_Set_Name,
         TRUE                    AS Is_Covered,
         COALESCE(ss.Tests_In_Set,  0) AS Tests_In_Set,
@@ -142,8 +134,6 @@ df = spark.sql(f"""
         'NONE'              AS Test_Set_Code,
         r.Requirement_Name,
         r.Requirement_Category,
-        r.Workstream,
-        r.Release,
         NULL                AS Test_Set_Name,
         FALSE               AS Is_Covered,
         0, 0, 0, 0,
