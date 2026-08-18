@@ -48,7 +48,7 @@ schema = fmt.TableSchema(
             "type": "string",
             "lookup_missing_from": {
                 "table": f"{GOLD_SCHEMA}.dim_issue",
-                "natural_key_column": "Requirement_Code",
+                "natural_key_column": "Issue_Code",
                 "key_column": "Issue_Key",
                 "unknown_value": "Unknown",
             },
