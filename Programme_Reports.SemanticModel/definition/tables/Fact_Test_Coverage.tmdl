@@ -1,0 +1,121 @@
+table 'Fact_Test_Coverage'
+	lineageTag: fact_test_coverage
+
+	column 'Coverage_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Coverage_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Requirement_Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Requirement_Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test_Set_Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Test_Set_Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Requirement_Name'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Requirement_Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Requirement_Category'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Requirement_Category
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test_Set_Name'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Test_Set_Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is_Covered'
+		dataType: boolean
+		summarizeBy: none
+		sourceColumn: Is_Covered
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Tests_In_Set'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: Tests_In_Set
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Tests_Passed'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: Tests_Passed
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Tests_Failed'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: Tests_Failed
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Tests_Not_Run'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: Tests_Not_Run
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Coverage_Count'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: Coverage_Count
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Requirement_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Requirement_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test_Set_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Test_Set_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	measure 'Requirements Covered' = CALCULATE(DISTINCTCOUNT('Fact_Test_Coverage'[Requirement_Code]), 'Fact_Test_Coverage'[Is_Covered] = TRUE)
+
+	measure 'Requirements Total' = DISTINCTCOUNT('Fact_Test_Coverage'[Requirement_Code])
+
+	measure 'Coverage %' = DIVIDE([Requirements Covered], [Requirements Total])
+		formatString: 0.0%
+
+	partition 'Fact_Test_Coverage' = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("<YOUR_GOLD_SQL_ENDPOINT>", "Gold"),
+				    Data = Source{[Schema="gold",Item="fact_test_coverage"]}[Data]
+				in
+				    Data
+
+	annotation PBI_ResultType = Table

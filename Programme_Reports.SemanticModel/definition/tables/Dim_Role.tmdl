@@ -1,0 +1,55 @@
+table 'Dim_Role'
+	column 'Role_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Role_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Role_Name'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Role_Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Role_Description'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Role_Description
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is_Lead'
+		dataType: boolean
+		summarizeBy: none
+		sourceColumn: Is_Lead
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Contributes_To_Effort'
+		dataType: boolean
+		summarizeBy: none
+		sourceColumn: Contributes_To_Effort
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Sort_Order'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: Sort_Order
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Dim_Role' = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("<YOUR_GOLD_SQL_ENDPOINT>", "Gold"),
+				    Data = Source{[Schema="gold",Item="dim_role"]}[Data]
+				in
+				    Data
+
+	annotation PBI_ResultType = Table

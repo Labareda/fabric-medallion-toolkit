@@ -1,0 +1,79 @@
+table 'Fact_Worklog'
+	lineageTag: fact_worklog
+
+	column 'Worklog_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Worklog_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Worklog_Id'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Worklog_Id
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue_Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Issue_Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Started_At'
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: Started_At
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Started_Date'
+		dataType: dateTime
+		formatString: Short Date
+		summarizeBy: none
+		sourceColumn: Started_Date
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Time_Spent_Hours'
+		dataType: double
+		summarizeBy: none
+		sourceColumn: Time_Spent_Hours
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Issue_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Author_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Author_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	measure 'Total Logged Hours' = SUM('Fact_Worklog'[Time_Spent_Hours])
+		formatString: #,##0.0
+
+	partition 'Fact_Worklog' = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("<YOUR_GOLD_SQL_ENDPOINT>", "Gold"),
+				    Data = Source{[Schema="gold",Item="fact_worklog"]}[Data]
+				in
+				    Data
+
+	annotation PBI_ResultType = Table

@@ -1,0 +1,41 @@
+table 'Dim_Team'
+	column 'Team_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Team_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Team_Name'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Team_Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Team_Id'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Team_Id
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Team_Title'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Team_Title
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Dim_Team' = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("<YOUR_GOLD_SQL_ENDPOINT>", "Gold"),
+				    Data = Source{[Schema="gold",Item="dim_team"]}[Data]
+				in
+				    Data
+
+	annotation PBI_ResultType = Table

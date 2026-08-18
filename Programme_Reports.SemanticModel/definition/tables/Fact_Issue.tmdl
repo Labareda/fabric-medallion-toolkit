@@ -1,0 +1,282 @@
+table 'Fact_Issue'
+	lineageTag: fact_issue
+
+	column 'Issue_Fact_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Issue_Fact_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue_Id'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Issue_Id
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue_Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Issue_Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Story_Points'
+		dataType: double
+		summarizeBy: none
+		sourceColumn: Story_Points
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Original_Estimate_Hours'
+		dataType: double
+		summarizeBy: none
+		sourceColumn: Original_Estimate_Hours
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Remaining_Estimate_Hours'
+		dataType: double
+		summarizeBy: none
+		sourceColumn: Remaining_Estimate_Hours
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Time_Spent_Hours'
+		dataType: double
+		summarizeBy: none
+		sourceColumn: Time_Spent_Hours
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Risk_Total_Score'
+		dataType: double
+		summarizeBy: none
+		sourceColumn: Risk_Total_Score
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Risk_Previous_Score'
+		dataType: double
+		summarizeBy: none
+		sourceColumn: Risk_Previous_Score
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Likelihood_Score'
+		dataType: double
+		summarizeBy: none
+		sourceColumn: Likelihood_Score
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Severity_Score'
+		dataType: double
+		summarizeBy: none
+		sourceColumn: Severity_Score
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Total_Tests'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: Total_Tests
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Passed_Tests'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: Passed_Tests
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Planned_Start_Date'
+		dataType: dateTime
+		formatString: Short Date
+		summarizeBy: none
+		sourceColumn: Planned_Start_Date
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Planned_End_Date'
+		dataType: dateTime
+		formatString: Short Date
+		summarizeBy: none
+		sourceColumn: Planned_End_Date
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Actual_Start_Date'
+		dataType: dateTime
+		formatString: Short Date
+		summarizeBy: none
+		sourceColumn: Actual_Start_Date
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Actual_End_Date'
+		dataType: dateTime
+		formatString: Short Date
+		summarizeBy: none
+		sourceColumn: Actual_End_Date
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Created_Date'
+		dataType: dateTime
+		formatString: Short Date
+		summarizeBy: none
+		sourceColumn: Created_Date
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Rollup_Start_Date'
+		dataType: dateTime
+		formatString: Short Date
+		summarizeBy: none
+		sourceColumn: Rollup_Start_Date
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Rollup_End_Date'
+		dataType: dateTime
+		formatString: Short Date
+		summarizeBy: none
+		sourceColumn: Rollup_End_Date
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Duration_Days'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: Duration_Days
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Slip_Days'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: Slip_Days
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Age_Days'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: Age_Days
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Lead_Time_Days'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: Lead_Time_Days
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Cycle_Time_Days'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: Cycle_Time_Days
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is_Overdue'
+		dataType: boolean
+		summarizeBy: none
+		sourceColumn: Is_Overdue
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is_Done'
+		dataType: boolean
+		summarizeBy: none
+		sourceColumn: Is_Done
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Issue_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Project_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Project_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Status_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Status_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Priority_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Priority_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Resolution_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Resolution_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'IssueType_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: IssueType_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Team_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Team_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	measure 'Total Issues' = COUNTROWS('Fact_Issue')
+
+	measure 'Total Story Points' = SUM('Fact_Issue'[Story_Points])
+		formatString: #,##0
+
+	measure 'Total Time Spent (Hrs)' = SUM('Fact_Issue'[Time_Spent_Hours])
+		formatString: #,##0.0
+
+	measure 'Open Issues' = CALCULATE([Total Issues], 'Fact_Issue'[Is_Done] = FALSE)
+
+	measure 'Overdue Issues' = CALCULATE([Total Issues], 'Fact_Issue'[Is_Overdue] = TRUE)
+
+	measure 'Avg Cycle Time (Days)' = AVERAGE('Fact_Issue'[Cycle_Time_Days])
+		formatString: #,##0.0
+
+	partition 'Fact_Issue' = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("<YOUR_GOLD_SQL_ENDPOINT>", "Gold"),
+				    Data = Source{[Schema="gold",Item="fact_issue"]}[Data]
+				in
+				    Data
+
+	annotation PBI_ResultType = Table

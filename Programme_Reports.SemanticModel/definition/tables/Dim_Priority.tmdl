@@ -1,0 +1,49 @@
+table 'Dim_Priority'
+	column 'Priority_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Priority_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Priority_Id'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Priority_Id
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Priority_Name'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Priority_Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Description'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Description
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Sort_Order'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: Sort_Order
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Dim_Priority' = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("<YOUR_GOLD_SQL_ENDPOINT>", "Gold"),
+				    Data = Source{[Schema="gold",Item="dim_priority"]}[Data]
+				in
+				    Data
+
+	annotation PBI_ResultType = Table

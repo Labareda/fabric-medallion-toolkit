@@ -1,0 +1,55 @@
+table 'Dim_IssueType'
+	column 'IssueType_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: IssueType_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'IssueType_Id'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: IssueType_Id
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'IssueType_Name'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: IssueType_Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Description'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Description
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hierarchy_Level'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: Hierarchy_Level
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue_Category'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Issue_Category
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Dim_IssueType' = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("<YOUR_GOLD_SQL_ENDPOINT>", "Gold"),
+				    Data = Source{[Schema="gold",Item="dim_issue_type"]}[Data]
+				in
+				    Data
+
+	annotation PBI_ResultType = Table

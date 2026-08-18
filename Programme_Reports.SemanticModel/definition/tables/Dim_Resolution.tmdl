@@ -1,0 +1,41 @@
+table 'Dim_Resolution'
+	column 'Resolution_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Resolution_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Resolution_Id'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Resolution_Id
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Resolution_Name'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Resolution_Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Description'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Description
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Dim_Resolution' = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("<YOUR_GOLD_SQL_ENDPOINT>", "Gold"),
+				    Data = Source{[Schema="gold",Item="dim_resolution"]}[Data]
+				in
+				    Data
+
+	annotation PBI_ResultType = Table

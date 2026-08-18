@@ -1,0 +1,55 @@
+table 'Dim_Test_Set'
+	column 'Test_Set_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Test_Set_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test_Set_Id'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Test_Set_Id
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test_Set_Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Test_Set_Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test_Set_Name'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Test_Set_Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test_Set_Label'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Test_Set_Label
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue_URL'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Issue_URL
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Dim_Test_Set' = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("<YOUR_GOLD_SQL_ENDPOINT>", "Gold"),
+				    Data = Source{[Schema="gold",Item="dim_test_set"]}[Data]
+				in
+				    Data
+
+	annotation PBI_ResultType = Table

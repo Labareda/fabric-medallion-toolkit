@@ -1,0 +1,168 @@
+relationship r01
+	fromColumn: Fact_Issue.Issue_Key
+	toColumn: Dim_Issue.Issue_Key
+
+relationship r02
+	fromColumn: Fact_Issue.Project_Key
+	toColumn: Dim_Project.Project_Key
+
+relationship r03
+	fromColumn: Fact_Issue.Status_Key
+	toColumn: Dim_Status.Status_Key
+
+relationship r04
+	fromColumn: Fact_Issue.Priority_Key
+	toColumn: Dim_Priority.Priority_Key
+
+relationship r05
+	fromColumn: Fact_Issue.Resolution_Key
+	toColumn: Dim_Resolution.Resolution_Key
+
+relationship r06
+	fromColumn: Fact_Issue.IssueType_Key
+	toColumn: Dim_IssueType.IssueType_Key
+
+relationship r07
+	fromColumn: Fact_Issue.Team_Key
+	toColumn: Dim_Team.Team_Key
+
+relationship r08
+	fromColumn: Fact_Issue.Rollup_Start_Date
+	toColumn: Dim_Date.date
+
+relationship r09
+	fromColumn: Fact_Issue.Rollup_End_Date
+	toColumn: Dim_Date.date
+	isActive: false
+
+relationship r10
+	fromColumn: Fact_Issue.Planned_Start_Date
+	toColumn: Dim_Date.date
+	isActive: false
+
+relationship r11
+	fromColumn: Fact_Issue.Planned_End_Date
+	toColumn: Dim_Date.date
+	isActive: false
+
+relationship r12
+	fromColumn: Fact_Issue.Actual_Start_Date
+	toColumn: Dim_Date.date
+	isActive: false
+
+relationship r13
+	fromColumn: Fact_Issue.Actual_End_Date
+	toColumn: Dim_Date.date
+	isActive: false
+
+relationship r14
+	fromColumn: Fact_Issue.Created_Date
+	toColumn: Dim_Date.date
+	isActive: false
+
+relationship r15
+	fromColumn: Fact_Issue_History.Issue_Key
+	toColumn: Dim_Issue.Issue_Key
+
+relationship r16
+	fromColumn: Fact_Issue_History.Project_Key
+	toColumn: Dim_Project.Project_Key
+
+relationship r17
+	fromColumn: Fact_Issue_History.Team_Key
+	toColumn: Dim_Team.Team_Key
+
+relationship r18
+	fromColumn: Fact_Issue_History.Status_Key
+	toColumn: Dim_Status.Status_Key
+
+relationship r19
+	fromColumn: Fact_Issue_History.Changed_By_Key
+	toColumn: Dim_Resource.Resource_Key
+
+relationship r20
+	fromColumn: Fact_Issue_History.Valid_From_Date
+	toColumn: Dim_Date.date
+
+relationship r21
+	fromColumn: Fact_Issue_History.Valid_To_Date
+	toColumn: Dim_Date.date
+	isActive: false
+
+relationship r22
+	fromColumn: Fact_Resource_Allocation.Issue_Key
+	toColumn: Dim_Issue.Issue_Key
+
+relationship r23
+	fromColumn: Fact_Resource_Allocation.Resource_Key
+	toColumn: Dim_Resource.Resource_Key
+
+relationship r24
+	fromColumn: Fact_Resource_Allocation.Role_Key
+	toColumn: Dim_Role.Role_Key
+
+relationship r25
+	fromColumn: Fact_Resource_Allocation.Project_Key
+	toColumn: Dim_Project.Project_Key
+
+relationship r26
+	fromColumn: Fact_Resource_Allocation.Team_Key
+	toColumn: Dim_Team.Team_Key
+
+relationship r27
+	fromColumn: Fact_Test.Test_Set_Key
+	toColumn: Dim_Test_Set.Test_Set_Key
+
+relationship r28
+	fromColumn: Fact_Test.Test_Status_Key
+	toColumn: Dim_Test_Status.Test_Status_Key
+
+relationship r29
+	fromColumn: Fact_Test.Executor_Key
+	toColumn: Dim_Resource.Resource_Key
+
+relationship r30
+	fromColumn: Fact_Test.Latest_Run_Date
+	toColumn: Dim_Date.date
+
+relationship r31
+	fromColumn: Fact_Test_Coverage.Requirement_Key
+	toColumn: Dim_Issue.Issue_Key
+
+relationship r32
+	fromColumn: Fact_Test_Coverage.Test_Set_Key
+	toColumn: Dim_Test_Set.Test_Set_Key
+
+relationship r33
+	fromColumn: Fact_Test_Run.Test_Issue_Key
+	toColumn: Dim_Issue.Issue_Key
+
+relationship r34
+	fromColumn: Fact_Test_Run.Test_Status_Key
+	toColumn: Dim_Test_Status.Test_Status_Key
+
+relationship r35
+	fromColumn: Fact_Test_Run.Executor_Key
+	toColumn: Dim_Resource.Resource_Key
+
+relationship r36
+	fromColumn: Fact_Test_Run.Started_Date
+	toColumn: Dim_Date.date
+
+relationship r37
+	fromColumn: Fact_Test_Run.Finished_Date
+	toColumn: Dim_Date.date
+	isActive: false
+
+relationship r38
+	fromColumn: Fact_Worklog.Issue_Key
+	toColumn: Dim_Issue.Issue_Key
+
+relationship r39
+	fromColumn: Fact_Worklog.Author_Key
+	toColumn: Dim_Resource.Resource_Key
+
+relationship r40
+	fromColumn: Fact_Worklog.Started_Date
+	toColumn: Dim_Date.date
+
