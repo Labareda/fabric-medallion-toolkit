@@ -1,0 +1,4790 @@
+{
+  "id": "9ff0577e-c4ca-47ef-ad00-9ad488026cab",
+  "resourcePackage": {
+    "name": "SharedResources",
+    "type": 2,
+    "items": [],
+    "resourceId": "8c922dae-966b-4e4d-bd3f-708777c5b2c6"
+  },
+  "sections": [
+    {
+      "name": "Timeline",
+      "displayName": "Project Timeline",
+      "width": 1280,
+      "height": 720,
+      "objects": {
+        "background": [
+          {
+            "properties": {
+              "color": {
+                "solid": {
+                  "color": "#F0F2F5"
+                }
+              },
+              "transparency": {
+                "expr": {
+                  "Literal": {
+                    "Value": "0D"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "visualContainers": [
+        {
+          "name": "ca12982e",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 1280,
+            "height": 52,
+            "z": 0
+          },
+          "visual": {
+            "visualType": "shape",
+            "objects": {
+              "fill": [
+                {
+                  "properties": {
+                    "fillColor": {
+                      "solid": {
+                        "color": "#1E3A5F"
+                      }
+                    }
+                  }
+                }
+              ],
+              "border": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "false"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "e1a54232",
+          "position": {
+            "x": 8,
+            "y": 8,
+            "width": 400,
+            "height": 38,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "textbox",
+            "objects": {
+              "general": [
+                {
+                  "properties": {
+                    "paragraphs": [
+                      {
+                        "textRuns": [
+                          {
+                            "value": "\ud83d\udcc5  Project Timeline",
+                            "textRunStyle": {
+                              "fontWeight": "bold",
+                              "fontSize": "16pt",
+                              "color": {
+                                "solid": {
+                                  "color": "#FFFFFF"
+                                }
+                              }
+                            }
+                          }
+                        ],
+                        "horizontalTextAlignment": "left"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "4f0be9f5",
+          "position": {
+            "x": 820,
+            "y": 16,
+            "width": 450,
+            "height": 22,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "textbox",
+            "objects": {
+              "general": [
+                {
+                  "properties": {
+                    "paragraphs": [
+                      {
+                        "textRuns": [
+                          {
+                            "value": "Use xViz Advanced Gantt \u2014 see field mapping notes on visual",
+                            "textRunStyle": {
+                              "fontWeight": "normal",
+                              "fontSize": "9pt",
+                              "color": {
+                                "solid": {
+                                  "color": "#AACCEE"
+                                }
+                              }
+                            }
+                          }
+                        ],
+                        "horizontalTextAlignment": "left"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "37c6d55e",
+          "position": {
+            "x": 10,
+            "y": 60,
+            "width": 200,
+            "height": 80,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "card",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Fact Issue.Issues",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "labels": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    },
+                    "text": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'Total Issues'"
+                        }
+                      }
+                    },
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "9D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#666666"
+                      }
+                    }
+                  }
+                }
+              ],
+              "calloutValue": [
+                {
+                  "properties": {
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "22D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#C0392B"
+                      }
+                    }
+                  }
+                }
+              ],
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "b6a5bd7e",
+          "position": {
+            "x": 221,
+            "y": 60,
+            "width": 200,
+            "height": 80,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "card",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Fact Issue.Open Issues",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "labels": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    },
+                    "text": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'Open'"
+                        }
+                      }
+                    },
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "9D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#666666"
+                      }
+                    }
+                  }
+                }
+              ],
+              "calloutValue": [
+                {
+                  "properties": {
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "22D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#2E86AB"
+                      }
+                    }
+                  }
+                }
+              ],
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "f3971a1d",
+          "position": {
+            "x": 432,
+            "y": 60,
+            "width": 200,
+            "height": 80,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "card",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Fact Issue.Done Issues",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "labels": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    },
+                    "text": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'Done'"
+                        }
+                      }
+                    },
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "9D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#666666"
+                      }
+                    }
+                  }
+                }
+              ],
+              "calloutValue": [
+                {
+                  "properties": {
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "22D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#27AE60"
+                      }
+                    }
+                  }
+                }
+              ],
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "eeb99b3c",
+          "position": {
+            "x": 643,
+            "y": 60,
+            "width": 200,
+            "height": 80,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "card",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Fact Issue.% Complete (Count)",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "labels": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    },
+                    "text": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'% Complete'"
+                        }
+                      }
+                    },
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "9D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#666666"
+                      }
+                    }
+                  }
+                }
+              ],
+              "calloutValue": [
+                {
+                  "properties": {
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "22D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#2E86AB"
+                      }
+                    }
+                  }
+                }
+              ],
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "7ce26d68",
+          "position": {
+            "x": 854,
+            "y": 60,
+            "width": 200,
+            "height": 80,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "card",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Fact Issue.Overdue Issues",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "labels": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    },
+                    "text": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'Overdue'"
+                        }
+                      }
+                    },
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "9D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#666666"
+                      }
+                    }
+                  }
+                }
+              ],
+              "calloutValue": [
+                {
+                  "properties": {
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "22D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#C0392B"
+                      }
+                    }
+                  }
+                }
+              ],
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "d575df66",
+          "position": {
+            "x": 1065,
+            "y": 60,
+            "width": 200,
+            "height": 80,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "card",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Fact Issue.Issues Blocked",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "labels": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    },
+                    "text": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'Blocked'"
+                        }
+                      }
+                    },
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "9D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#666666"
+                      }
+                    }
+                  }
+                }
+              ],
+              "calloutValue": [
+                {
+                  "properties": {
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "22D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#E67E22"
+                      }
+                    }
+                  }
+                }
+              ],
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "b4166254",
+          "position": {
+            "x": 10,
+            "y": 150,
+            "width": 60,
+            "height": 20,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "textbox",
+            "objects": {
+              "general": [
+                {
+                  "properties": {
+                    "paragraphs": [
+                      {
+                        "textRuns": [
+                          {
+                            "value": "Filters",
+                            "textRunStyle": {
+                              "fontWeight": "normal",
+                              "fontSize": "9pt",
+                              "color": {
+                                "solid": {
+                                  "color": "#666666"
+                                }
+                              }
+                            }
+                          }
+                        ],
+                        "horizontalTextAlignment": "left"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "1126ff8b",
+          "position": {
+            "x": 10,
+            "y": 170,
+            "width": 200,
+            "height": 44,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "slicer",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Dim Issue.Programme_Label",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "data": [
+                {
+                  "properties": {
+                    "mode": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'dropdown'"
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "general": [
+                {
+                  "properties": {
+                    "keepAllFiltersVisible": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "4f6a30e0",
+          "position": {
+            "x": 220,
+            "y": 170,
+            "width": 200,
+            "height": 44,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "slicer",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Dim Issue.Release_Label",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "data": [
+                {
+                  "properties": {
+                    "mode": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'dropdown'"
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "general": [
+                {
+                  "properties": {
+                    "keepAllFiltersVisible": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "296b0d2e",
+          "position": {
+            "x": 430,
+            "y": 170,
+            "width": 200,
+            "height": 44,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "slicer",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Dim Issue.Workstream_Label",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "data": [
+                {
+                  "properties": {
+                    "mode": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'dropdown'"
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "general": [
+                {
+                  "properties": {
+                    "keepAllFiltersVisible": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "ddf42e3c",
+          "position": {
+            "x": 640,
+            "y": 170,
+            "width": 180,
+            "height": 44,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "slicer",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Dim Status.Status_Group",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "data": [
+                {
+                  "properties": {
+                    "mode": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'dropdown'"
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "general": [
+                {
+                  "properties": {
+                    "keepAllFiltersVisible": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "646e7727",
+          "position": {
+            "x": 830,
+            "y": 170,
+            "width": 180,
+            "height": 44,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "slicer",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Dim Issue.Hierarchy_Level_Name",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "data": [
+                {
+                  "properties": {
+                    "mode": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'dropdown'"
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "general": [
+                {
+                  "properties": {
+                    "keepAllFiltersVisible": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "850d5383",
+          "position": {
+            "x": 1020,
+            "y": 170,
+            "width": 250,
+            "height": 44,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "slicer",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Dim IssueType.Issue_Category",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "data": [
+                {
+                  "properties": {
+                    "mode": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'dropdown'"
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "general": [
+                {
+                  "properties": {
+                    "keepAllFiltersVisible": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "GANTT_REPLACE_WITH_XVIZ",
+          "position": {
+            "x": 0,
+            "y": 222,
+            "width": 1280,
+            "height": 498,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "tableEx",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Dim Issue.Display_Label",
+                  "active": true
+                },
+                {
+                  "queryRef": "Dim Issue.Hierarchy_Level_Name",
+                  "active": true
+                },
+                {
+                  "queryRef": "Dim Issue.Lead_Name",
+                  "active": true
+                },
+                {
+                  "queryRef": "Fact Issue.Rollup_Start_Date",
+                  "active": true
+                },
+                {
+                  "queryRef": "Fact Issue.Rollup_End_Date",
+                  "active": true
+                },
+                {
+                  "queryRef": "Fact Issue.% Complete (Count)",
+                  "active": true
+                },
+                {
+                  "queryRef": "Dim Status.Status_Name",
+                  "active": true
+                },
+                {
+                  "queryRef": "Fact Issue.Slip_Days",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": [],
+            "$gantt_field_mapping": {
+              "note": "Replace this table with xViz Advanced Gantt Chart (AppSource)",
+              "Task_Name_Hierarchy": [
+                "Dim Issue.Level_1",
+                "Dim Issue.Level_2",
+                "Dim Issue.Level_3",
+                "Dim Issue.Level_4",
+                "Dim Issue.Level_5",
+                "Dim Issue.Level_6",
+                "Dim Issue.Level_7"
+              ],
+              "Start_Date": "Fact Issue.Rollup_Start_Date",
+              "End_Date": "Fact Issue.Rollup_End_Date",
+              "Lead": "Dim Issue.Lead_Name",
+              "Resource_Names": "Dim Issue.Resource_Names",
+              "Predecessor": "Dim Issue.Predecessor_Issue_Code",
+              "Connector_Type": "Dim Issue.Connector_Type",
+              "Milestone": "Dim Issue.Is_Milestone",
+              "Sort_By": "Dim Issue.Sort_Path ASC",
+              "Settings": {
+                "Hide_Blanks": "OFF",
+                "Today_Line": "ON",
+                "Date_Format": "DD MMM YYYY"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Resource",
+      "displayName": "Resource Report",
+      "width": 1280,
+      "height": 720,
+      "objects": {
+        "background": [
+          {
+            "properties": {
+              "color": {
+                "solid": {
+                  "color": "#F0F2F5"
+                }
+              },
+              "transparency": {
+                "expr": {
+                  "Literal": {
+                    "Value": "0D"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "visualContainers": [
+        {
+          "name": "71bc4d29",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 1280,
+            "height": 52,
+            "z": 0
+          },
+          "visual": {
+            "visualType": "shape",
+            "objects": {
+              "fill": [
+                {
+                  "properties": {
+                    "fillColor": {
+                      "solid": {
+                        "color": "#1E3A5F"
+                      }
+                    }
+                  }
+                }
+              ],
+              "border": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "false"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "273f862d",
+          "position": {
+            "x": 8,
+            "y": 8,
+            "width": 400,
+            "height": 38,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "textbox",
+            "objects": {
+              "general": [
+                {
+                  "properties": {
+                    "paragraphs": [
+                      {
+                        "textRuns": [
+                          {
+                            "value": "\ud83d\udc65  Resource Report",
+                            "textRunStyle": {
+                              "fontWeight": "bold",
+                              "fontSize": "16pt",
+                              "color": {
+                                "solid": {
+                                  "color": "#FFFFFF"
+                                }
+                              }
+                            }
+                          }
+                        ],
+                        "horizontalTextAlignment": "left"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "d0686250",
+          "position": {
+            "x": 10,
+            "y": 60,
+            "width": 200,
+            "height": 80,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "card",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Fact ResourceAllocation.People Count",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "labels": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    },
+                    "text": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'People'"
+                        }
+                      }
+                    },
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "9D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#666666"
+                      }
+                    }
+                  }
+                }
+              ],
+              "calloutValue": [
+                {
+                  "properties": {
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "22D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#2E86AB"
+                      }
+                    }
+                  }
+                }
+              ],
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "0584944e",
+          "position": {
+            "x": 221,
+            "y": 60,
+            "width": 200,
+            "height": 80,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "card",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Fact ResourceAllocation.Leads Count",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "labels": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    },
+                    "text": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'Leads'"
+                        }
+                      }
+                    },
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "9D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#666666"
+                      }
+                    }
+                  }
+                }
+              ],
+              "calloutValue": [
+                {
+                  "properties": {
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "22D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#2E86AB"
+                      }
+                    }
+                  }
+                }
+              ],
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "bc704a47",
+          "position": {
+            "x": 432,
+            "y": 60,
+            "width": 200,
+            "height": 80,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "card",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Fact ResourceAllocation.Involved Count",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "labels": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    },
+                    "text": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'Involved'"
+                        }
+                      }
+                    },
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "9D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#666666"
+                      }
+                    }
+                  }
+                }
+              ],
+              "calloutValue": [
+                {
+                  "properties": {
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "22D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#2E86AB"
+                      }
+                    }
+                  }
+                }
+              ],
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "7c659f58",
+          "position": {
+            "x": 643,
+            "y": 60,
+            "width": 200,
+            "height": 80,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "card",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Fact ResourceAllocation.Unassigned Issues",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "labels": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    },
+                    "text": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'Unassigned'"
+                        }
+                      }
+                    },
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "9D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#666666"
+                      }
+                    }
+                  }
+                }
+              ],
+              "calloutValue": [
+                {
+                  "properties": {
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "22D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#E67E22"
+                      }
+                    }
+                  }
+                }
+              ],
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "2eda696b",
+          "position": {
+            "x": 854,
+            "y": 60,
+            "width": 200,
+            "height": 80,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "card",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Fact ResourceAllocation.Items per Person",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "labels": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    },
+                    "text": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'Items/Person'"
+                        }
+                      }
+                    },
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "9D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#666666"
+                      }
+                    }
+                  }
+                }
+              ],
+              "calloutValue": [
+                {
+                  "properties": {
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "22D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#95A5A6"
+                      }
+                    }
+                  }
+                }
+              ],
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "2bdd73a9",
+          "position": {
+            "x": 1065,
+            "y": 60,
+            "width": 200,
+            "height": 80,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "card",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Fact Worklog.Hours Logged",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "labels": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    },
+                    "text": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'Hours Logged'"
+                        }
+                      }
+                    },
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "9D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#666666"
+                      }
+                    }
+                  }
+                }
+              ],
+              "calloutValue": [
+                {
+                  "properties": {
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "22D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#27AE60"
+                      }
+                    }
+                  }
+                }
+              ],
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "a48ee79b",
+          "position": {
+            "x": 10,
+            "y": 150,
+            "width": 60,
+            "height": 20,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "textbox",
+            "objects": {
+              "general": [
+                {
+                  "properties": {
+                    "paragraphs": [
+                      {
+                        "textRuns": [
+                          {
+                            "value": "Filters",
+                            "textRunStyle": {
+                              "fontWeight": "normal",
+                              "fontSize": "9pt",
+                              "color": {
+                                "solid": {
+                                  "color": "#666666"
+                                }
+                              }
+                            }
+                          }
+                        ],
+                        "horizontalTextAlignment": "left"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "23187312",
+          "position": {
+            "x": 10,
+            "y": 170,
+            "width": 185,
+            "height": 44,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "slicer",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Dim ResourceRole.Role_Name",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "data": [
+                {
+                  "properties": {
+                    "mode": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'dropdown'"
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "general": [
+                {
+                  "properties": {
+                    "keepAllFiltersVisible": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "297a584f",
+          "position": {
+            "x": 205,
+            "y": 170,
+            "width": 185,
+            "height": 44,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "slicer",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Dim Team.Team_Name",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "data": [
+                {
+                  "properties": {
+                    "mode": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'dropdown'"
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "general": [
+                {
+                  "properties": {
+                    "keepAllFiltersVisible": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "33b37c63",
+          "position": {
+            "x": 400,
+            "y": 170,
+            "width": 200,
+            "height": 44,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "slicer",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Dim Issue.Workstream_Label",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "data": [
+                {
+                  "properties": {
+                    "mode": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'dropdown'"
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "general": [
+                {
+                  "properties": {
+                    "keepAllFiltersVisible": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "f2011bc9",
+          "position": {
+            "x": 610,
+            "y": 170,
+            "width": 200,
+            "height": 44,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "slicer",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Dim Issue.Release_Label",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "data": [
+                {
+                  "properties": {
+                    "mode": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'dropdown'"
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "general": [
+                {
+                  "properties": {
+                    "keepAllFiltersVisible": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "34d96ea2",
+          "position": {
+            "x": 820,
+            "y": 170,
+            "width": 180,
+            "height": 44,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "slicer",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Dim Issue.Hierarchy_Level_Name",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "data": [
+                {
+                  "properties": {
+                    "mode": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'dropdown'"
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "general": [
+                {
+                  "properties": {
+                    "keepAllFiltersVisible": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "0d4c576e",
+          "position": {
+            "x": 1010,
+            "y": 170,
+            "width": 260,
+            "height": 44,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "slicer",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Dim Status.Status_Group",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "data": [
+                {
+                  "properties": {
+                    "mode": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'dropdown'"
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "general": [
+                {
+                  "properties": {
+                    "keepAllFiltersVisible": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "1d7c9dde",
+          "position": {
+            "x": 0,
+            "y": 222,
+            "width": 300,
+            "height": 498,
+            "z": 0
+          },
+          "visual": {
+            "visualType": "shape",
+            "objects": {
+              "fill": [
+                {
+                  "properties": {
+                    "fillColor": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    }
+                  }
+                }
+              ],
+              "border": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "false"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "c3a44540",
+          "position": {
+            "x": 8,
+            "y": 228,
+            "width": 280,
+            "height": 22,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "textbox",
+            "objects": {
+              "general": [
+                {
+                  "properties": {
+                    "paragraphs": [
+                      {
+                        "textRuns": [
+                          {
+                            "value": "People",
+                            "textRunStyle": {
+                              "fontWeight": "bold",
+                              "fontSize": "10pt",
+                              "color": {
+                                "solid": {
+                                  "color": "#1E3A5F"
+                                }
+                              }
+                            }
+                          }
+                        ],
+                        "horizontalTextAlignment": "left"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "1e15f6a8",
+          "position": {
+            "x": 0,
+            "y": 252,
+            "width": 300,
+            "height": 468,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "tableEx",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Dim Resource.Resource_Name",
+                  "active": true
+                },
+                {
+                  "queryRef": "Fact ResourceAllocation.People Count",
+                  "active": true
+                },
+                {
+                  "queryRef": "Fact Issue.Open Issues Led",
+                  "active": true
+                },
+                {
+                  "queryRef": "Fact Issue.Overdue Items Led",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "13d39891",
+          "position": {
+            "x": 308,
+            "y": 222,
+            "width": 972,
+            "height": 498,
+            "z": 0
+          },
+          "visual": {
+            "visualType": "shape",
+            "objects": {
+              "fill": [
+                {
+                  "properties": {
+                    "fillColor": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    }
+                  }
+                }
+              ],
+              "border": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "false"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "dc0a7745",
+          "position": {
+            "x": 316,
+            "y": 228,
+            "width": 600,
+            "height": 22,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "textbox",
+            "objects": {
+              "general": [
+                {
+                  "properties": {
+                    "paragraphs": [
+                      {
+                        "textRuns": [
+                          {
+                            "value": "Assigned Items by Person and Week",
+                            "textRunStyle": {
+                              "fontWeight": "bold",
+                              "fontSize": "10pt",
+                              "color": {
+                                "solid": {
+                                  "color": "#1E3A5F"
+                                }
+                              }
+                            }
+                          }
+                        ],
+                        "horizontalTextAlignment": "left"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "133ec309",
+          "position": {
+            "x": 308,
+            "y": 252,
+            "width": 972,
+            "height": 300,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "pivotTable",
+            "projections": {
+              "Rows": [
+                {
+                  "queryRef": "Dim Resource.Resource_Name",
+                  "active": true
+                }
+              ],
+              "Values": [
+                {
+                  "queryRef": "Fact ResourceAllocation.Assigned This Period",
+                  "active": true
+                },
+                {
+                  "queryRef": "Fact Issue.Open Issues Led",
+                  "active": true
+                }
+              ],
+              "Columns": [
+                {
+                  "queryRef": "Dim Date.iso_week",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "columnHeaders": [
+                {
+                  "properties": {
+                    "fontWeight": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'bold'"
+                        }
+                      }
+                    },
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "10D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "rowHeaders": [
+                {
+                  "properties": {
+                    "fontWeight": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'bold'"
+                        }
+                      }
+                    },
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "10D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "values": [
+                {
+                  "properties": {
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "10D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "393801bc",
+          "position": {
+            "x": 308,
+            "y": 558,
+            "width": 972,
+            "height": 30,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "textbox",
+            "objects": {
+              "general": [
+                {
+                  "properties": {
+                    "paragraphs": [
+                      {
+                        "textRuns": [
+                          {
+                            "value": "\ud83d\udca1 Set Dim Date to show weeks. Apply conditional formatting on 'Assigned This Period': Red >5, Amber 3-5, Green 1-2. Filter Dim Date to current + 4 weeks.",
+                            "textRunStyle": {
+                              "fontWeight": "normal",
+                              "fontSize": "8pt",
+                              "color": {
+                                "solid": {
+                                  "color": "#555555"
+                                }
+                              }
+                            }
+                          }
+                        ],
+                        "horizontalTextAlignment": "left"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "4f382841",
+          "position": {
+            "x": 308,
+            "y": 594,
+            "width": 490,
+            "height": 126,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "barChart",
+            "projections": {
+              "Category": [
+                {
+                  "queryRef": "Dim Resource.Resource_Name",
+                  "active": true
+                }
+              ],
+              "Y": [
+                {
+                  "queryRef": "Fact Issue.Open Issues Led",
+                  "active": true
+                },
+                {
+                  "queryRef": "Fact Issue.Issues Led",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "dataPoint": [
+                {
+                  "properties": {
+                    "defaultColor": {
+                      "solid": {
+                        "color": "#2E86AB"
+                      }
+                    }
+                  }
+                }
+              ],
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "4d5c736a",
+          "position": {
+            "x": 806,
+            "y": 594,
+            "width": 230,
+            "height": 126,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "donutChart",
+            "projections": {
+              "Category": [
+                {
+                  "queryRef": "Dim ResourceRole.Role_Name",
+                  "active": true
+                }
+              ],
+              "Y": [
+                {
+                  "queryRef": "Fact ResourceAllocation.People Count",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "521f8f69",
+          "position": {
+            "x": 1044,
+            "y": 594,
+            "width": 236,
+            "height": 126,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "barChart",
+            "projections": {
+              "Category": [
+                {
+                  "queryRef": "Dim Resource.Resource_Name",
+                  "active": true
+                }
+              ],
+              "Y": [
+                {
+                  "queryRef": "Fact Worklog.Hours Logged",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "dataPoint": [
+                {
+                  "properties": {
+                    "defaultColor": {
+                      "solid": {
+                        "color": "#27AE60"
+                      }
+                    }
+                  }
+                }
+              ],
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "Testing",
+      "displayName": "Test Results",
+      "width": 1280,
+      "height": 720,
+      "objects": {
+        "background": [
+          {
+            "properties": {
+              "color": {
+                "solid": {
+                  "color": "#F0F2F5"
+                }
+              },
+              "transparency": {
+                "expr": {
+                  "Literal": {
+                    "Value": "0D"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "visualContainers": [
+        {
+          "name": "b5b4f48e",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 1280,
+            "height": 52,
+            "z": 0
+          },
+          "visual": {
+            "visualType": "shape",
+            "objects": {
+              "fill": [
+                {
+                  "properties": {
+                    "fillColor": {
+                      "solid": {
+                        "color": "#1E3A5F"
+                      }
+                    }
+                  }
+                }
+              ],
+              "border": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "false"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "a3892ae3",
+          "position": {
+            "x": 8,
+            "y": 8,
+            "width": 500,
+            "height": 38,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "textbox",
+            "objects": {
+              "general": [
+                {
+                  "properties": {
+                    "paragraphs": [
+                      {
+                        "textRuns": [
+                          {
+                            "value": "\ud83e\uddea  Test Results by Test Set",
+                            "textRunStyle": {
+                              "fontWeight": "bold",
+                              "fontSize": "16pt",
+                              "color": {
+                                "solid": {
+                                  "color": "#FFFFFF"
+                                }
+                              }
+                            }
+                          }
+                        ],
+                        "horizontalTextAlignment": "left"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "dd06ad37",
+          "position": {
+            "x": 10,
+            "y": 60,
+            "width": 173,
+            "height": 80,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "card",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Fact Test.Tests Unique",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "labels": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    },
+                    "text": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'Total (Unique)'"
+                        }
+                      }
+                    },
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "9D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#666666"
+                      }
+                    }
+                  }
+                }
+              ],
+              "calloutValue": [
+                {
+                  "properties": {
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "22D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#2E86AB"
+                      }
+                    }
+                  }
+                }
+              ],
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "c7eb66fc",
+          "position": {
+            "x": 192,
+            "y": 60,
+            "width": 173,
+            "height": 80,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "card",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Fact Test.Tests Passed (Unique)",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "labels": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    },
+                    "text": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'Passed'"
+                        }
+                      }
+                    },
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "9D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#666666"
+                      }
+                    }
+                  }
+                }
+              ],
+              "calloutValue": [
+                {
+                  "properties": {
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "22D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#27AE60"
+                      }
+                    }
+                  }
+                }
+              ],
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "daab906c",
+          "position": {
+            "x": 374,
+            "y": 60,
+            "width": 173,
+            "height": 80,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "card",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Fact Test.Tests Failed",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "labels": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    },
+                    "text": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'Failed'"
+                        }
+                      }
+                    },
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "9D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#666666"
+                      }
+                    }
+                  }
+                }
+              ],
+              "calloutValue": [
+                {
+                  "properties": {
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "22D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#C0392B"
+                      }
+                    }
+                  }
+                }
+              ],
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "bdb691ad",
+          "position": {
+            "x": 556,
+            "y": 60,
+            "width": 173,
+            "height": 80,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "card",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Fact Test.Tests Not Run",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "labels": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    },
+                    "text": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'Not Run'"
+                        }
+                      }
+                    },
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "9D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#666666"
+                      }
+                    }
+                  }
+                }
+              ],
+              "calloutValue": [
+                {
+                  "properties": {
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "22D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#95A5A6"
+                      }
+                    }
+                  }
+                }
+              ],
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "4d71e3de",
+          "position": {
+            "x": 738,
+            "y": 60,
+            "width": 173,
+            "height": 80,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "card",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Fact Test.Programme Pass Rate %",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "labels": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    },
+                    "text": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'Pass Rate'"
+                        }
+                      }
+                    },
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "9D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#666666"
+                      }
+                    }
+                  }
+                }
+              ],
+              "calloutValue": [
+                {
+                  "properties": {
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "22D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#2E86AB"
+                      }
+                    }
+                  }
+                }
+              ],
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "24aa103b",
+          "position": {
+            "x": 920,
+            "y": 60,
+            "width": 173,
+            "height": 80,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "card",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Fact TestCoverage.Coverage %",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "labels": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    },
+                    "text": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'Coverage'"
+                        }
+                      }
+                    },
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "9D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#666666"
+                      }
+                    }
+                  }
+                }
+              ],
+              "calloutValue": [
+                {
+                  "properties": {
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "22D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#27AE60"
+                      }
+                    }
+                  }
+                }
+              ],
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "6e956bed",
+          "position": {
+            "x": 1102,
+            "y": 60,
+            "width": 173,
+            "height": 80,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "card",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Fact TestRunHistory.First Time Pass Rate %",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "labels": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    },
+                    "text": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'First Time Pass'"
+                        }
+                      }
+                    },
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "9D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#666666"
+                      }
+                    }
+                  }
+                }
+              ],
+              "calloutValue": [
+                {
+                  "properties": {
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "22D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#E67E22"
+                      }
+                    }
+                  }
+                }
+              ],
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "54c7f751",
+          "position": {
+            "x": 10,
+            "y": 150,
+            "width": 60,
+            "height": 20,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "textbox",
+            "objects": {
+              "general": [
+                {
+                  "properties": {
+                    "paragraphs": [
+                      {
+                        "textRuns": [
+                          {
+                            "value": "Filters",
+                            "textRunStyle": {
+                              "fontWeight": "normal",
+                              "fontSize": "9pt",
+                              "color": {
+                                "solid": {
+                                  "color": "#666666"
+                                }
+                              }
+                            }
+                          }
+                        ],
+                        "horizontalTextAlignment": "left"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "ea541930",
+          "position": {
+            "x": 10,
+            "y": 170,
+            "width": 200,
+            "height": 44,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "slicer",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Dim TestSet.Workstream",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "data": [
+                {
+                  "properties": {
+                    "mode": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'dropdown'"
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "general": [
+                {
+                  "properties": {
+                    "keepAllFiltersVisible": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "119abfe3",
+          "position": {
+            "x": 220,
+            "y": 170,
+            "width": 200,
+            "height": 44,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "slicer",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Dim TestSet.Release",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "data": [
+                {
+                  "properties": {
+                    "mode": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'dropdown'"
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "general": [
+                {
+                  "properties": {
+                    "keepAllFiltersVisible": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "e13cbaaf",
+          "position": {
+            "x": 430,
+            "y": 170,
+            "width": 220,
+            "height": 44,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "slicer",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Dim TestStatus.Test_Status_Name",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "data": [
+                {
+                  "properties": {
+                    "mode": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'dropdown'"
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "general": [
+                {
+                  "properties": {
+                    "keepAllFiltersVisible": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "e9c50510",
+          "position": {
+            "x": 660,
+            "y": 170,
+            "width": 200,
+            "height": 44,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "slicer",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Dim Resource.Resource_Name",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "data": [
+                {
+                  "properties": {
+                    "mode": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'dropdown'"
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "general": [
+                {
+                  "properties": {
+                    "keepAllFiltersVisible": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "8b699d8e",
+          "position": {
+            "x": 0,
+            "y": 222,
+            "width": 870,
+            "height": 310,
+            "z": 0
+          },
+          "visual": {
+            "visualType": "shape",
+            "objects": {
+              "fill": [
+                {
+                  "properties": {
+                    "fillColor": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    }
+                  }
+                }
+              ],
+              "border": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "false"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "d9ff2d88",
+          "position": {
+            "x": 8,
+            "y": 228,
+            "width": 500,
+            "height": 22,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "textbox",
+            "objects": {
+              "general": [
+                {
+                  "properties": {
+                    "paragraphs": [
+                      {
+                        "textRuns": [
+                          {
+                            "value": "Issue  \u203a  Test Set  \u203a  Test",
+                            "textRunStyle": {
+                              "fontWeight": "bold",
+                              "fontSize": "10pt",
+                              "color": {
+                                "solid": {
+                                  "color": "#1E3A5F"
+                                }
+                              }
+                            }
+                          }
+                        ],
+                        "horizontalTextAlignment": "left"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "TEST_MATRIX",
+          "position": {
+            "x": 0,
+            "y": 250,
+            "width": 870,
+            "height": 282,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "pivotTable",
+            "projections": {
+              "Rows": [
+                {
+                  "queryRef": "Fact Test.Parent_Issue_Code",
+                  "active": true
+                },
+                {
+                  "queryRef": "Dim TestSet.Test_Set_Label",
+                  "active": true
+                },
+                {
+                  "queryRef": "Fact Test.Test_Code",
+                  "active": true
+                }
+              ],
+              "Values": [
+                {
+                  "queryRef": "Fact Test.Tests",
+                  "active": true
+                },
+                {
+                  "queryRef": "Fact Test.Tests Passed",
+                  "active": true
+                },
+                {
+                  "queryRef": "Fact Test.Tests Failed",
+                  "active": true
+                },
+                {
+                  "queryRef": "Fact Test.Tests Blocked",
+                  "active": true
+                },
+                {
+                  "queryRef": "Fact Test.Tests Not Run",
+                  "active": true
+                },
+                {
+                  "queryRef": "Fact Test.Pass Rate %",
+                  "active": true
+                },
+                {
+                  "queryRef": "Fact Test.Test Set RAG",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "columnHeaders": [
+                {
+                  "properties": {
+                    "fontWeight": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'bold'"
+                        }
+                      }
+                    },
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "10D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "rowHeaders": [
+                {
+                  "properties": {
+                    "fontWeight": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'bold'"
+                        }
+                      }
+                    },
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "10D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "values": [
+                {
+                  "properties": {
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "10D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "76e97a3c",
+          "position": {
+            "x": 0,
+            "y": 534,
+            "width": 870,
+            "height": 30,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "textbox",
+            "objects": {
+              "general": [
+                {
+                  "properties": {
+                    "paragraphs": [
+                      {
+                        "textRuns": [
+                          {
+                            "value": "\ud83d\udca1 Conditional format 'Test Set RAG': Green=#27AE60 Amber=#E67E22 Red=#C0392B Grey=#95A5A6  |  Expand rows to see Test Set then individual Tests",
+                            "textRunStyle": {
+                              "fontWeight": "normal",
+                              "fontSize": "8pt",
+                              "color": {
+                                "solid": {
+                                  "color": "#555555"
+                                }
+                              }
+                            }
+                          }
+                        ],
+                        "horizontalTextAlignment": "left"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "26bf90d6",
+          "position": {
+            "x": 0,
+            "y": 568,
+            "width": 280,
+            "height": 152,
+            "z": 0
+          },
+          "visual": {
+            "visualType": "shape",
+            "objects": {
+              "fill": [
+                {
+                  "properties": {
+                    "fillColor": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    }
+                  }
+                }
+              ],
+              "border": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "false"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "e69c5bd2",
+          "position": {
+            "x": 8,
+            "y": 572,
+            "width": 260,
+            "height": 20,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "textbox",
+            "objects": {
+              "general": [
+                {
+                  "properties": {
+                    "paragraphs": [
+                      {
+                        "textRuns": [
+                          {
+                            "value": "Status Breakdown",
+                            "textRunStyle": {
+                              "fontWeight": "bold",
+                              "fontSize": "9pt",
+                              "color": {
+                                "solid": {
+                                  "color": "#1E3A5F"
+                                }
+                              }
+                            }
+                          }
+                        ],
+                        "horizontalTextAlignment": "left"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "9dda64bd",
+          "position": {
+            "x": 0,
+            "y": 592,
+            "width": 280,
+            "height": 128,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "donutChart",
+            "projections": {
+              "Category": [
+                {
+                  "queryRef": "Dim TestStatus.Test_Status_Name",
+                  "active": true
+                }
+              ],
+              "Y": [
+                {
+                  "queryRef": "Fact Test.Tests Unique",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "48cef99f",
+          "position": {
+            "x": 288,
+            "y": 568,
+            "width": 390,
+            "height": 152,
+            "z": 0
+          },
+          "visual": {
+            "visualType": "shape",
+            "objects": {
+              "fill": [
+                {
+                  "properties": {
+                    "fillColor": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    }
+                  }
+                }
+              ],
+              "border": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "false"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "ba80a7d6",
+          "position": {
+            "x": 296,
+            "y": 572,
+            "width": 370,
+            "height": 20,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "textbox",
+            "objects": {
+              "general": [
+                {
+                  "properties": {
+                    "paragraphs": [
+                      {
+                        "textRuns": [
+                          {
+                            "value": "Pass Rate Trend",
+                            "textRunStyle": {
+                              "fontWeight": "bold",
+                              "fontSize": "9pt",
+                              "color": {
+                                "solid": {
+                                  "color": "#1E3A5F"
+                                }
+                              }
+                            }
+                          }
+                        ],
+                        "horizontalTextAlignment": "left"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "c5d86529",
+          "position": {
+            "x": 288,
+            "y": 592,
+            "width": 390,
+            "height": 128,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "lineChart",
+            "projections": {
+              "Category": [
+                {
+                  "queryRef": "Dim Date.date",
+                  "active": true
+                }
+              ],
+              "Y": [
+                {
+                  "queryRef": "Fact TestRunHistory.Pass Rate Trend %",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "502fe8f2",
+          "position": {
+            "x": 290,
+            "y": 714,
+            "width": 380,
+            "height": 20,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "textbox",
+            "objects": {
+              "general": [
+                {
+                  "properties": {
+                    "paragraphs": [
+                      {
+                        "textRuns": [
+                          {
+                            "value": "\ud83d\udca1 Set Dim Date axis to Week grouping",
+                            "textRunStyle": {
+                              "fontWeight": "normal",
+                              "fontSize": "8pt",
+                              "color": {
+                                "solid": {
+                                  "color": "#555555"
+                                }
+                              }
+                            }
+                          }
+                        ],
+                        "horizontalTextAlignment": "left"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "f8fdfb2b",
+          "position": {
+            "x": 686,
+            "y": 222,
+            "width": 594,
+            "height": 498,
+            "z": 0
+          },
+          "visual": {
+            "visualType": "shape",
+            "objects": {
+              "fill": [
+                {
+                  "properties": {
+                    "fillColor": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    }
+                  }
+                }
+              ],
+              "border": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "false"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "227e704a",
+          "position": {
+            "x": 694,
+            "y": 228,
+            "width": 400,
+            "height": 22,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "textbox",
+            "objects": {
+              "general": [
+                {
+                  "properties": {
+                    "paragraphs": [
+                      {
+                        "textRuns": [
+                          {
+                            "value": "Requirement Coverage",
+                            "textRunStyle": {
+                              "fontWeight": "bold",
+                              "fontSize": "10pt",
+                              "color": {
+                                "solid": {
+                                  "color": "#1E3A5F"
+                                }
+                              }
+                            }
+                          }
+                        ],
+                        "horizontalTextAlignment": "left"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "ea96fbaa",
+          "position": {
+            "x": 694,
+            "y": 256,
+            "width": 185,
+            "height": 72,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "card",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Fact TestCoverage.Requirements Total",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "labels": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    },
+                    "text": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'Requirements Total'"
+                        }
+                      }
+                    },
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "9D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#666666"
+                      }
+                    }
+                  }
+                }
+              ],
+              "calloutValue": [
+                {
+                  "properties": {
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "22D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#2E86AB"
+                      }
+                    }
+                  }
+                }
+              ],
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "128f0c70",
+          "position": {
+            "x": 890,
+            "y": 256,
+            "width": 185,
+            "height": 72,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "card",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Fact TestCoverage.Requirements Covered",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "labels": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    },
+                    "text": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'Covered'"
+                        }
+                      }
+                    },
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "9D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#666666"
+                      }
+                    }
+                  }
+                }
+              ],
+              "calloutValue": [
+                {
+                  "properties": {
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "22D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#27AE60"
+                      }
+                    }
+                  }
+                }
+              ],
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "c951603e",
+          "position": {
+            "x": 1088,
+            "y": 256,
+            "width": 185,
+            "height": 72,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "card",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Fact TestCoverage.Requirements Uncovered",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "labels": [
+                {
+                  "properties": {
+                    "show": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "true"
+                        }
+                      }
+                    },
+                    "text": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "'Uncovered'"
+                        }
+                      }
+                    },
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "9D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#666666"
+                      }
+                    }
+                  }
+                }
+              ],
+              "calloutValue": [
+                {
+                  "properties": {
+                    "fontSize": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "22D"
+                        }
+                      }
+                    },
+                    "color": {
+                      "solid": {
+                        "color": "#C0392B"
+                      }
+                    }
+                  }
+                }
+              ],
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "3f75c2b6",
+          "position": {
+            "x": 686,
+            "y": 336,
+            "width": 594,
+            "height": 200,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "barChart",
+            "projections": {
+              "Category": [
+                {
+                  "queryRef": "Dim Issue.Workstream_Label",
+                  "active": true
+                }
+              ],
+              "Y": [
+                {
+                  "queryRef": "Fact TestCoverage.Requirements Covered",
+                  "active": true
+                },
+                {
+                  "queryRef": "Fact TestCoverage.Requirements Uncovered",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "dataPoint": [
+                {
+                  "properties": {
+                    "defaultColor": {
+                      "solid": {
+                        "color": "#2E86AB"
+                      }
+                    }
+                  }
+                }
+              ],
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "89439826",
+          "position": {
+            "x": 694,
+            "y": 542,
+            "width": 400,
+            "height": 20,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "textbox",
+            "objects": {
+              "general": [
+                {
+                  "properties": {
+                    "paragraphs": [
+                      {
+                        "textRuns": [
+                          {
+                            "value": "Uncovered Requirements",
+                            "textRunStyle": {
+                              "fontWeight": "bold",
+                              "fontSize": "9pt",
+                              "color": {
+                                "solid": {
+                                  "color": "#1E3A5F"
+                                }
+                              }
+                            }
+                          }
+                        ],
+                        "horizontalTextAlignment": "left"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "888119ed",
+          "position": {
+            "x": 686,
+            "y": 564,
+            "width": 594,
+            "height": 156,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "tableEx",
+            "projections": {
+              "Values": [
+                {
+                  "queryRef": "Fact TestCoverage.Requirement_Code",
+                  "active": true
+                },
+                {
+                  "queryRef": "Dim Issue.Workstream_Label",
+                  "active": true
+                },
+                {
+                  "queryRef": "Dim Issue.Release_Label",
+                  "active": true
+                }
+              ]
+            },
+            "objects": {
+              "background": [
+                {
+                  "properties": {
+                    "color": {
+                      "solid": {
+                        "color": "#FFFFFF"
+                      }
+                    },
+                    "transparency": {
+                      "expr": {
+                        "Literal": {
+                          "Value": "0D"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        },
+        {
+          "name": "f1a5fb09",
+          "position": {
+            "x": 688,
+            "y": 720,
+            "width": 590,
+            "height": 20,
+            "z": 1
+          },
+          "visual": {
+            "visualType": "textbox",
+            "objects": {
+              "general": [
+                {
+                  "properties": {
+                    "paragraphs": [
+                      {
+                        "textRuns": [
+                          {
+                            "value": "\ud83d\udca1 This table shows Is_Covered = False. Add visual-level filter: Fact TestCoverage[Is_Covered] = false",
+                            "textRunStyle": {
+                              "fontWeight": "normal",
+                              "fontSize": "8pt",
+                              "color": {
+                                "solid": {
+                                  "color": "#555555"
+                                }
+                              }
+                            }
+                          }
+                        ],
+                        "horizontalTextAlignment": "left"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "filters": []
+          }
+        }
+      ]
+    }
+  ],
+  "config": "{\"version\": \"5.49\", \"themeCollection\": {\"baseTheme\": {\"name\": \"CY24SU07\", \"version\": \"5.49\", \"type\": 2}}, \"activeSectionIndex\": 0, \"defaultDrillFilterOtherVisuals\": true, \"filterConfig\": {\"filters\": []}}"
+}

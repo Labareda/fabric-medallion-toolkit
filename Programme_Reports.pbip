@@ -1,0 +1,8 @@
+{
+  "version": "1.0",
+  "artifacts": [
+    {"report": {"path": "Programme_Reports.Report"}},
+    {"semanticModel": {"path": "Programme_Reports.SemanticModel"}}
+  ],
+  "settings": {"enableAutoRecovery": true}
+}

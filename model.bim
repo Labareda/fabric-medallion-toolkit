@@ -1,0 +1,1877 @@
+{
+  "name": "Programme Reports",
+  "compatibilityLevel": 1604,
+  "culture": "en-GB",
+  "model": {
+    "tables": [
+      {
+        "name": "Dim Date",
+        "columns": [
+          {
+            "name": "date",
+            "dataType": "dateTime"
+          },
+          {
+            "name": "year",
+            "dataType": "int64"
+          },
+          {
+            "name": "quarter",
+            "dataType": "string"
+          },
+          {
+            "name": "month_number",
+            "dataType": "int64",
+            "isHidden": true
+          },
+          {
+            "name": "month_year",
+            "dataType": "string"
+          },
+          {
+            "name": "month_sort",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "iso_week",
+            "dataType": "int64"
+          },
+          {
+            "name": "day_name",
+            "dataType": "string"
+          },
+          {
+            "name": "is_working_day",
+            "dataType": "boolean"
+          },
+          {
+            "name": "is_today",
+            "dataType": "boolean"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Dim Date",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Lakehouse.Contents(null){[Id=\"Gold\",Kind=\"Workspace\"]}[Data],\n    t = Source{[Schema=\"gold\",Item=\"dim_date\"]}[Data]\nin t"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Dim Due Date",
+        "columns": [
+          {
+            "name": "date",
+            "dataType": "dateTime"
+          },
+          {
+            "name": "year",
+            "dataType": "int64"
+          },
+          {
+            "name": "month_year",
+            "dataType": "string"
+          },
+          {
+            "name": "quarter",
+            "dataType": "string"
+          },
+          {
+            "name": "iso_week",
+            "dataType": "int64"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Dim Due Date",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Lakehouse.Contents(null){[Id=\"Gold\",Kind=\"Workspace\"]}[Data],\n    t = Source{[Schema=\"gold\",Item=\"dim_date\"]}[Data]\nin t"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Dim Issue",
+        "columns": [
+          {
+            "name": "Issue_Key",
+            "dataType": "string"
+          },
+          {
+            "name": "Issue_Id",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Issue_Code",
+            "dataType": "string"
+          },
+          {
+            "name": "Summary",
+            "dataType": "string"
+          },
+          {
+            "name": "Display_Label",
+            "dataType": "string",
+            "sortByColumn": "Sort_Path"
+          },
+          {
+            "name": "Is_Milestone",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Hierarchy_Level_Name",
+            "dataType": "string"
+          },
+          {
+            "name": "Parent_Issue_Id",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Parent_Issue_Key",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Is_Leaf",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Has_Children",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Sort_Path",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Rank",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Level_1",
+            "dataType": "string",
+            "displayFolder": "Gantt Hierarchy"
+          },
+          {
+            "name": "Level_2",
+            "dataType": "string",
+            "displayFolder": "Gantt Hierarchy"
+          },
+          {
+            "name": "Level_3",
+            "dataType": "string",
+            "displayFolder": "Gantt Hierarchy"
+          },
+          {
+            "name": "Level_4",
+            "dataType": "string",
+            "displayFolder": "Gantt Hierarchy"
+          },
+          {
+            "name": "Level_5",
+            "dataType": "string",
+            "displayFolder": "Gantt Hierarchy"
+          },
+          {
+            "name": "Level_6",
+            "dataType": "string",
+            "displayFolder": "Gantt Hierarchy"
+          },
+          {
+            "name": "Level_7",
+            "dataType": "string",
+            "displayFolder": "Gantt Hierarchy"
+          },
+          {
+            "name": "Depth",
+            "dataType": "int64",
+            "isHidden": true
+          },
+          {
+            "name": "Programme_Label",
+            "dataType": "string",
+            "displayFolder": "Typed Hierarchy"
+          },
+          {
+            "name": "Release_Label",
+            "dataType": "string",
+            "displayFolder": "Typed Hierarchy"
+          },
+          {
+            "name": "Initiative_Label",
+            "dataType": "string",
+            "displayFolder": "Typed Hierarchy"
+          },
+          {
+            "name": "Workstream_Label",
+            "dataType": "string",
+            "displayFolder": "Typed Hierarchy"
+          },
+          {
+            "name": "Epic_Label",
+            "dataType": "string",
+            "displayFolder": "Typed Hierarchy"
+          },
+          {
+            "name": "Lead_Name",
+            "dataType": "string"
+          },
+          {
+            "name": "Resource_Names",
+            "dataType": "string"
+          },
+          {
+            "name": "Resource_Count",
+            "dataType": "int64"
+          },
+          {
+            "name": "Has_No_Lead",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Predecessor_Issue_Code",
+            "dataType": "string"
+          },
+          {
+            "name": "Connector_Type",
+            "dataType": "string"
+          },
+          {
+            "name": "Project_Id",
+            "dataType": "string",
+            "isHidden": true
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Dim Issue",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Lakehouse.Contents(null){[Id=\"Gold\",Kind=\"Workspace\"]}[Data],\n    t = Source{[Schema=\"gold\",Item=\"dim_issue\"]}[Data]\nin t"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Dim IssueType",
+        "columns": [
+          {
+            "name": "IssueType_Key",
+            "dataType": "string"
+          },
+          {
+            "name": "IssueType_Id",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "IssueType_Name",
+            "dataType": "string"
+          },
+          {
+            "name": "Is_Subtask",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Hierarchy_Level",
+            "dataType": "int64",
+            "isHidden": true
+          },
+          {
+            "name": "Issue_Category",
+            "dataType": "string"
+          },
+          {
+            "name": "Tier_Name",
+            "dataType": "string"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Dim IssueType",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Lakehouse.Contents(null){[Id=\"Gold\",Kind=\"Workspace\"]}[Data],\n    t = Source{[Schema=\"gold\",Item=\"dim_issue_type\"]}[Data]\nin t"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Dim Status",
+        "columns": [
+          {
+            "name": "Status_Key",
+            "dataType": "string"
+          },
+          {
+            "name": "Status_Id",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Status_Name",
+            "dataType": "string",
+            "sortByColumn": "Sort_Order"
+          },
+          {
+            "name": "Status_Group",
+            "dataType": "string"
+          },
+          {
+            "name": "Flow_State",
+            "dataType": "string"
+          },
+          {
+            "name": "Is_Done",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Is_Blocked",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Sort_Order",
+            "dataType": "int64",
+            "isHidden": true
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Dim Status",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Lakehouse.Contents(null){[Id=\"Gold\",Kind=\"Workspace\"]}[Data],\n    t = Source{[Schema=\"gold\",Item=\"dim_status\"]}[Data]\nin t"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Dim Priority",
+        "columns": [
+          {
+            "name": "Priority_Key",
+            "dataType": "string"
+          },
+          {
+            "name": "Priority_Id",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Priority_Name",
+            "dataType": "string",
+            "sortByColumn": "Sort_Order"
+          },
+          {
+            "name": "Priority_Colour",
+            "dataType": "string"
+          },
+          {
+            "name": "Sort_Order",
+            "dataType": "int64",
+            "isHidden": true
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Dim Priority",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Lakehouse.Contents(null){[Id=\"Gold\",Kind=\"Workspace\"]}[Data],\n    t = Source{[Schema=\"gold\",Item=\"dim_priority\"]}[Data]\nin t"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Dim Project",
+        "columns": [
+          {
+            "name": "Project_Key",
+            "dataType": "string"
+          },
+          {
+            "name": "Project_Id",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Project_Code",
+            "dataType": "string"
+          },
+          {
+            "name": "Project_Name",
+            "dataType": "string"
+          },
+          {
+            "name": "Project_Lead",
+            "dataType": "string"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Dim Project",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Lakehouse.Contents(null){[Id=\"Gold\",Kind=\"Workspace\"]}[Data],\n    t = Source{[Schema=\"gold\",Item=\"dim_project\"]}[Data]\nin t"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Dim Resolution",
+        "columns": [
+          {
+            "name": "Resolution_Key",
+            "dataType": "string"
+          },
+          {
+            "name": "Resolution_Id",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Resolution_Name",
+            "dataType": "string"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Dim Resolution",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Lakehouse.Contents(null){[Id=\"Gold\",Kind=\"Workspace\"]}[Data],\n    t = Source{[Schema=\"gold\",Item=\"dim_resolution\"]}[Data]\nin t"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Dim Resource",
+        "columns": [
+          {
+            "name": "Resource_Key",
+            "dataType": "string"
+          },
+          {
+            "name": "Resource_Account_Id",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Resource_Name",
+            "dataType": "string"
+          },
+          {
+            "name": "Email",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Is_Active",
+            "dataType": "boolean"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Dim Resource",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Lakehouse.Contents(null){[Id=\"Gold\",Kind=\"Workspace\"]}[Data],\n    t = Source{[Schema=\"gold\",Item=\"dim_resource\"]}[Data]\nin t"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Dim ResourceRole",
+        "columns": [
+          {
+            "name": "Role_Key",
+            "dataType": "string"
+          },
+          {
+            "name": "Role_Name",
+            "dataType": "string",
+            "sortByColumn": "Role_Sort_Order"
+          },
+          {
+            "name": "Is_Lead",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Contributes_To_Effort",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Role_Sort_Order",
+            "dataType": "int64",
+            "isHidden": true
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Dim ResourceRole",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Lakehouse.Contents(null){[Id=\"Gold\",Kind=\"Workspace\"]}[Data],\n    t = Source{[Schema=\"gold\",Item=\"dim_role\"]}[Data]\nin t"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Dim Team",
+        "columns": [
+          {
+            "name": "Team_Key",
+            "dataType": "string"
+          },
+          {
+            "name": "Team_Name",
+            "dataType": "string"
+          },
+          {
+            "name": "Team_Id",
+            "dataType": "string",
+            "isHidden": true
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Dim Team",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Lakehouse.Contents(null){[Id=\"Gold\",Kind=\"Workspace\"]}[Data],\n    t = Source{[Schema=\"gold\",Item=\"dim_team\"]}[Data]\nin t"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Dim TestSet",
+        "columns": [
+          {
+            "name": "Test_Set_Key",
+            "dataType": "string"
+          },
+          {
+            "name": "Test_Set_Id",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Test_Set_Code",
+            "dataType": "string"
+          },
+          {
+            "name": "Test_Set_Name",
+            "dataType": "string"
+          },
+          {
+            "name": "Test_Set_Label",
+            "dataType": "string"
+          },
+          {
+            "name": "Workstream",
+            "dataType": "string"
+          },
+          {
+            "name": "Release",
+            "dataType": "string"
+          },
+          {
+            "name": "Status_Name",
+            "dataType": "string"
+          },
+          {
+            "name": "Lead_Name",
+            "dataType": "string"
+          },
+          {
+            "name": "Has_No_Lead",
+            "dataType": "boolean"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Dim TestSet",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Lakehouse.Contents(null){[Id=\"Gold\",Kind=\"Workspace\"]}[Data],\n    t = Source{[Schema=\"gold\",Item=\"dim_test_set\"]}[Data]\nin t"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Dim TestStatus",
+        "columns": [
+          {
+            "name": "Test_Status_Key",
+            "dataType": "string"
+          },
+          {
+            "name": "Test_Status_Name",
+            "dataType": "string",
+            "sortByColumn": "Test_Status_Sort_Order"
+          },
+          {
+            "name": "Description",
+            "dataType": "string"
+          },
+          {
+            "name": "Colour",
+            "dataType": "string"
+          },
+          {
+            "name": "Coverage_Status",
+            "dataType": "string"
+          },
+          {
+            "name": "Is_Pass",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Is_Fail",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Is_Blocked",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Is_Not_Run",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Test_Status_Sort_Order",
+            "dataType": "int64",
+            "isHidden": true
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Dim TestStatus",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Lakehouse.Contents(null){[Id=\"Gold\",Kind=\"Workspace\"]}[Data],\n    t = Source{[Schema=\"gold\",Item=\"dim_test_status\"]}[Data]\nin t"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Fact Issue",
+        "columns": [
+          {
+            "name": "Issue_Fact_Key",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Issue_Code",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Story_Points",
+            "dataType": "double",
+            "displayFolder": "Effort"
+          },
+          {
+            "name": "Original_Estimate_Hours",
+            "dataType": "double",
+            "displayFolder": "Effort"
+          },
+          {
+            "name": "Remaining_Estimate_Hours",
+            "dataType": "double",
+            "displayFolder": "Effort"
+          },
+          {
+            "name": "Time_Spent_Hours",
+            "dataType": "double",
+            "displayFolder": "Effort"
+          },
+          {
+            "name": "Risk_Total_Score",
+            "dataType": "double",
+            "displayFolder": "Risk"
+          },
+          {
+            "name": "Planned_Start_Date",
+            "dataType": "dateTime",
+            "displayFolder": "Dates"
+          },
+          {
+            "name": "Planned_End_Date",
+            "dataType": "dateTime",
+            "displayFolder": "Dates"
+          },
+          {
+            "name": "Actual_Start_Date",
+            "dataType": "dateTime",
+            "displayFolder": "Dates"
+          },
+          {
+            "name": "Actual_End_Date",
+            "dataType": "dateTime",
+            "displayFolder": "Dates"
+          },
+          {
+            "name": "Created_Date",
+            "dataType": "dateTime",
+            "displayFolder": "Dates"
+          },
+          {
+            "name": "Rollup_Start_Date",
+            "dataType": "dateTime",
+            "displayFolder": "Dates"
+          },
+          {
+            "name": "Rollup_End_Date",
+            "dataType": "dateTime",
+            "displayFolder": "Dates"
+          },
+          {
+            "name": "Has_Own_Dates",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Duration_Days",
+            "dataType": "int64",
+            "displayFolder": "Schedule"
+          },
+          {
+            "name": "Slip_Days",
+            "dataType": "int64",
+            "displayFolder": "Schedule"
+          },
+          {
+            "name": "Age_Days",
+            "dataType": "int64",
+            "displayFolder": "Schedule"
+          },
+          {
+            "name": "Is_Overdue",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Is_Done",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Issue_Key",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Project_Key",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Status_Key",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Priority_Key",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Resolution_Key",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "IssueType_Key",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Team_Key",
+            "dataType": "string",
+            "isHidden": true
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Fact Issue",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Lakehouse.Contents(null){[Id=\"Gold\",Kind=\"Workspace\"]}[Data],\n    t = Source{[Schema=\"gold\",Item=\"fact_issue\"]}[Data]\nin t"
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Issues",
+            "expression": "COUNTROWS('Fact Issue')",
+            "displayFolder": "Counts",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Open Issues",
+            "expression": "CALCULATE(COUNTROWS('Fact Issue'),'Fact Issue'[Is_Done]=FALSE())",
+            "displayFolder": "Counts",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Done Issues",
+            "expression": "CALCULATE(COUNTROWS('Fact Issue'),'Fact Issue'[Is_Done]=TRUE())",
+            "displayFolder": "Counts",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Overdue Issues",
+            "expression": "CALCULATE(COUNTROWS('Fact Issue'),'Fact Issue'[Is_Overdue]=TRUE())",
+            "displayFolder": "Counts",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Issues Blocked",
+            "expression": "CALCULATE(COUNTROWS('Fact Issue'),RELATED('Dim Status'[Is_Blocked])=TRUE())",
+            "displayFolder": "Counts",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Story Points",
+            "expression": "SUM('Fact Issue'[Story_Points])",
+            "displayFolder": "Effort",
+            "formatString": "#,0.0"
+          },
+          {
+            "name": "Story Points Done",
+            "expression": "CALCULATE(SUM('Fact Issue'[Story_Points]),'Fact Issue'[Is_Done]=TRUE())",
+            "displayFolder": "Effort",
+            "formatString": "#,0.0"
+          },
+          {
+            "name": "% Complete (Count)",
+            "expression": "DIVIDE([Done Issues],[Issues])",
+            "displayFolder": "Effort",
+            "formatString": "0%"
+          },
+          {
+            "name": "% Complete (Points)",
+            "expression": "DIVIDE([Story Points Done],[Story Points])",
+            "displayFolder": "Effort",
+            "formatString": "0%"
+          },
+          {
+            "name": "Remaining Hours",
+            "expression": "SUM('Fact Issue'[Remaining_Estimate_Hours])",
+            "displayFolder": "Effort",
+            "formatString": "#,0.0"
+          },
+          {
+            "name": "Time Spent Hours",
+            "expression": "SUM('Fact Issue'[Time_Spent_Hours])",
+            "displayFolder": "Effort",
+            "formatString": "#,0.0"
+          },
+          {
+            "name": "Issues Led",
+            "expression": "CALCULATE([Issues],\n    CROSSFILTER('Dim Issue'[Issue_Key],'Fact ResourceAllocation'[Issue_Key],BOTH))",
+            "displayFolder": "Resource",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Open Issues Led",
+            "expression": "CALCULATE([Open Issues],\n    CROSSFILTER('Dim Issue'[Issue_Key],'Fact ResourceAllocation'[Issue_Key],BOTH))",
+            "displayFolder": "Resource",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Overdue Items Led",
+            "expression": "CALCULATE([Overdue Issues],\n    CROSSFILTER('Dim Issue'[Issue_Key],'Fact ResourceAllocation'[Issue_Key],BOTH))",
+            "displayFolder": "Resource",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Story Points Led",
+            "expression": "CALCULATE([Story Points],\n    CROSSFILTER('Dim Issue'[Issue_Key],'Fact ResourceAllocation'[Issue_Key],BOTH))",
+            "displayFolder": "Resource",
+            "formatString": "#,0.0"
+          }
+        ]
+      },
+      {
+        "name": "Fact IssueHistory",
+        "columns": [
+          {
+            "name": "Issue_History_Key",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Issue_Code",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Valid_From_Date",
+            "dataType": "dateTime"
+          },
+          {
+            "name": "Valid_To_Date",
+            "dataType": "dateTime"
+          },
+          {
+            "name": "Is_Current",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Status_Name",
+            "dataType": "string"
+          },
+          {
+            "name": "Story_Points",
+            "dataType": "double"
+          },
+          {
+            "name": "Is_Done",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Is_Reopen",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Days_In_Period",
+            "dataType": "double",
+            "displayFolder": "Flow"
+          },
+          {
+            "name": "Hours_In_Period",
+            "dataType": "double",
+            "displayFolder": "Flow"
+          },
+          {
+            "name": "Issue_Key",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Status_Key",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Changed_By_Key",
+            "dataType": "string",
+            "isHidden": true
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Fact IssueHistory",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Lakehouse.Contents(null){[Id=\"Gold\",Kind=\"Workspace\"]}[Data],\n    t = Source{[Schema=\"gold\",Item=\"fact_issue_history\"]}[Data]\nin t"
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Open Issues (As At)",
+            "expression": "VAR _d=MAX('Dim Date'[date])\nRETURN CALCULATE(COUNTROWS('Fact IssueHistory'),\n    'Fact IssueHistory'[Valid_From_Date]<=_d,\n    OR(ISBLANK('Fact IssueHistory'[Valid_To_Date]),'Fact IssueHistory'[Valid_To_Date]>_d),\n    'Fact IssueHistory'[Is_Done]=FALSE())",
+            "displayFolder": "Trend",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Scope Total (As At)",
+            "expression": "VAR _d=MAX('Dim Date'[date])\nRETURN CALCULATE(COUNTROWS('Fact IssueHistory'),\n    'Fact IssueHistory'[Valid_From_Date]<=_d,\n    OR(ISBLANK('Fact IssueHistory'[Valid_To_Date]),'Fact IssueHistory'[Valid_To_Date]>_d))",
+            "displayFolder": "Trend",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Flow Efficiency %",
+            "expression": "DIVIDE(\n    CALCULATE(SUM('Fact IssueHistory'[Days_In_Period]),RELATED('Dim Status'[Flow_State])=\"Active\"),\n    SUM('Fact IssueHistory'[Days_In_Period]))",
+            "displayFolder": "Flow",
+            "formatString": "0%"
+          },
+          {
+            "name": "Ageing WIP Days",
+            "expression": "CALCULATE(AVERAGE('Fact IssueHistory'[Days_In_Period]),\n    'Fact IssueHistory'[Is_Current]=TRUE(),'Fact IssueHistory'[Is_Done]=FALSE())",
+            "displayFolder": "Flow",
+            "formatString": "0.0"
+          },
+          {
+            "name": "Reopen Count",
+            "expression": "CALCULATE(COUNTROWS('Fact IssueHistory'),'Fact IssueHistory'[Is_Reopen]=TRUE())",
+            "displayFolder": "Flow",
+            "formatString": "#,0"
+          }
+        ]
+      },
+      {
+        "name": "Fact ResourceAllocation",
+        "columns": [
+          {
+            "name": "Resource_Allocation_Key",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Allocation_Weight",
+            "dataType": "double"
+          },
+          {
+            "name": "Allocation_Count",
+            "dataType": "int64"
+          },
+          {
+            "name": "Issue_Key",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Resource_Key",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Role_Key",
+            "dataType": "string",
+            "isHidden": true
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Fact ResourceAllocation",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Lakehouse.Contents(null){[Id=\"Gold\",Kind=\"Workspace\"]}[Data],\n    t = Source{[Schema=\"gold\",Item=\"fact_resource_allocation\"]}[Data]\nin t"
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "People Count",
+            "expression": "DISTINCTCOUNT('Fact ResourceAllocation'[Resource_Key])",
+            "displayFolder": "Resource",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Leads Count",
+            "expression": "CALCULATE(DISTINCTCOUNT('Fact ResourceAllocation'[Resource_Key]),\n    'Dim ResourceRole'[Role_Name]=\"Lead\")",
+            "displayFolder": "Resource",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Involved Count",
+            "expression": "CALCULATE(DISTINCTCOUNT('Fact ResourceAllocation'[Resource_Key]),\n    'Dim ResourceRole'[Role_Name]=\"Involved\")",
+            "displayFolder": "Resource",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Items per Person",
+            "expression": "DIVIDE(DISTINCTCOUNT('Fact ResourceAllocation'[Issue_Key]),\n    DISTINCTCOUNT('Fact ResourceAllocation'[Resource_Key]))",
+            "displayFolder": "Resource",
+            "formatString": "0.0"
+          },
+          {
+            "name": "Unassigned Issues",
+            "expression": "CALCULATE(COUNTROWS('Fact Issue'),RELATED('Dim Issue'[Has_No_Lead])=TRUE())",
+            "displayFolder": "Resource",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Assigned This Period",
+            "expression": "CALCULATE([Open Issues Led],\n    CROSSFILTER('Dim Issue'[Issue_Key],'Fact ResourceAllocation'[Issue_Key],BOTH))",
+            "displayFolder": "Resource",
+            "formatString": "#,0"
+          }
+        ]
+      },
+      {
+        "name": "Fact Worklog",
+        "columns": [
+          {
+            "name": "Worklog_Fact_Key",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Started_Date",
+            "dataType": "dateTime"
+          },
+          {
+            "name": "Time_Spent_Hours",
+            "dataType": "double"
+          },
+          {
+            "name": "Issue_Key",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Author_Key",
+            "dataType": "string",
+            "isHidden": true
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Fact Worklog",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Lakehouse.Contents(null){[Id=\"Gold\",Kind=\"Workspace\"]}[Data],\n    t = Source{[Schema=\"gold\",Item=\"fact_worklog\"]}[Data]\nin t"
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Hours Logged",
+            "expression": "SUM('Fact Worklog'[Time_Spent_Hours])",
+            "displayFolder": "Effort",
+            "formatString": "#,0.0"
+          }
+        ]
+      },
+      {
+        "name": "Fact Test",
+        "columns": [
+          {
+            "name": "Test_Fact_Key",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Test_Set_Id",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Test_Id",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Test_Set_Code",
+            "dataType": "string"
+          },
+          {
+            "name": "Test_Code",
+            "dataType": "string"
+          },
+          {
+            "name": "Parent_Issue_Code",
+            "dataType": "string"
+          },
+          {
+            "name": "Latest_Run_Date",
+            "dataType": "dateTime"
+          },
+          {
+            "name": "Run_Count",
+            "dataType": "int64"
+          },
+          {
+            "name": "Pass_Count",
+            "dataType": "int64"
+          },
+          {
+            "name": "Fail_Count",
+            "dataType": "int64"
+          },
+          {
+            "name": "Test_Count",
+            "dataType": "int64"
+          },
+          {
+            "name": "Is_Pass",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Is_Fail",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Is_Blocked",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Is_Not_Run",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Is_Executed",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Test_Set_Key",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Test_Status_Key",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Executor_Key",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Test_Issue_Key",
+            "dataType": "string",
+            "isHidden": true
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Fact Test",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Lakehouse.Contents(null){[Id=\"Gold\",Kind=\"Workspace\"]}[Data],\n    t = Source{[Schema=\"gold\",Item=\"fact_test\"]}[Data]\nin t"
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Tests",
+            "expression": "COUNTROWS('Fact Test')",
+            "displayFolder": "Test Counts",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Tests Passed",
+            "expression": "CALCULATE([Tests],'Fact Test'[Is_Pass]=TRUE())",
+            "displayFolder": "Test Counts",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Tests Failed",
+            "expression": "CALCULATE([Tests],'Fact Test'[Is_Fail]=TRUE())",
+            "displayFolder": "Test Counts",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Tests Blocked",
+            "expression": "CALCULATE([Tests],'Fact Test'[Is_Blocked]=TRUE())",
+            "displayFolder": "Test Counts",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Tests Not Run",
+            "expression": "CALCULATE([Tests],'Fact Test'[Is_Not_Run]=TRUE())",
+            "displayFolder": "Test Counts",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Tests Executed",
+            "expression": "CALCULATE([Tests],'Fact Test'[Is_Executed]=TRUE())",
+            "displayFolder": "Test Counts",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Tests Unique",
+            "expression": "DISTINCTCOUNT('Fact Test'[Test_Code])",
+            "displayFolder": "Test Counts",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Tests Passed (Unique)",
+            "expression": "CALCULATE(DISTINCTCOUNT('Fact Test'[Test_Code]),'Fact Test'[Is_Pass]=TRUE())",
+            "displayFolder": "Test Counts",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Pass Rate %",
+            "expression": "DIVIDE([Tests Passed],[Tests])",
+            "displayFolder": "Test Rates",
+            "formatString": "0%"
+          },
+          {
+            "name": "Pass Rate (Executed) %",
+            "expression": "DIVIDE([Tests Passed],[Tests Executed])",
+            "displayFolder": "Test Rates",
+            "formatString": "0%"
+          },
+          {
+            "name": "Programme Pass Rate %",
+            "expression": "DIVIDE([Tests Passed (Unique)],[Tests Unique])",
+            "displayFolder": "Test Rates",
+            "formatString": "0%"
+          },
+          {
+            "name": "Execution Progress %",
+            "expression": "DIVIDE([Tests Executed],[Tests])",
+            "displayFolder": "Test Rates",
+            "formatString": "0%"
+          },
+          {
+            "name": "Test Set RAG",
+            "expression": "SWITCH(TRUE(),[Tests]=0,\"Grey\",[Tests Failed]>0,\"Red\",[Tests Not Run]>0,\"Amber\",[Pass Rate %]=1,\"Green\",\"Amber\")",
+            "displayFolder": "Test Status"
+          }
+        ]
+      },
+      {
+        "name": "Fact TestCoverage",
+        "columns": [
+          {
+            "name": "Coverage_Key",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Requirement_Id",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Test_Set_Id",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Requirement_Code",
+            "dataType": "string"
+          },
+          {
+            "name": "Test_Set_Code",
+            "dataType": "string"
+          },
+          {
+            "name": "Is_Covered",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Tests_In_Set",
+            "dataType": "int64"
+          },
+          {
+            "name": "Tests_Passed",
+            "dataType": "int64"
+          },
+          {
+            "name": "Tests_Failed",
+            "dataType": "int64"
+          },
+          {
+            "name": "Tests_Not_Run",
+            "dataType": "int64"
+          },
+          {
+            "name": "Coverage_Count",
+            "dataType": "int64"
+          },
+          {
+            "name": "Requirement_Key",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Test_Set_Key",
+            "dataType": "string",
+            "isHidden": true
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Fact TestCoverage",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Lakehouse.Contents(null){[Id=\"Gold\",Kind=\"Workspace\"]}[Data],\n    t = Source{[Schema=\"gold\",Item=\"fact_test_coverage\"]}[Data]\nin t"
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Requirements Total",
+            "expression": "DISTINCTCOUNT('Fact TestCoverage'[Requirement_Code])",
+            "displayFolder": "Coverage",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Requirements Covered",
+            "expression": "CALCULATE(DISTINCTCOUNT('Fact TestCoverage'[Requirement_Code]),'Fact TestCoverage'[Is_Covered]=TRUE())",
+            "displayFolder": "Coverage",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Requirements Uncovered",
+            "expression": "[Requirements Total]-[Requirements Covered]",
+            "displayFolder": "Coverage",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Coverage %",
+            "expression": "DIVIDE([Requirements Covered],[Requirements Total])",
+            "displayFolder": "Coverage",
+            "formatString": "0%"
+          }
+        ]
+      },
+      {
+        "name": "Fact TestRunHistory",
+        "columns": [
+          {
+            "name": "Run_History_Key",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Test_Code",
+            "dataType": "string"
+          },
+          {
+            "name": "Execution_Code",
+            "dataType": "string"
+          },
+          {
+            "name": "Started_Date",
+            "dataType": "dateTime"
+          },
+          {
+            "name": "Finished_Date",
+            "dataType": "dateTime"
+          },
+          {
+            "name": "Duration_Mins",
+            "dataType": "double"
+          },
+          {
+            "name": "Run_Count",
+            "dataType": "int64"
+          },
+          {
+            "name": "Run_Number",
+            "dataType": "int64"
+          },
+          {
+            "name": "Is_Latest_Run",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Is_First_Run",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Is_Pass",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Is_Fail",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Is_Blocked",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Passed_First_Time",
+            "dataType": "boolean"
+          },
+          {
+            "name": "Test_Status_Key",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Executor_Key",
+            "dataType": "string",
+            "isHidden": true
+          },
+          {
+            "name": "Test_Issue_Key",
+            "dataType": "string",
+            "isHidden": true
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Fact TestRunHistory",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Lakehouse.Contents(null){[Id=\"Gold\",Kind=\"Workspace\"]}[Data],\n    t = Source{[Schema=\"gold\",Item=\"fact_test_run_history\"]}[Data]\nin t"
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Runs",
+            "expression": "COUNTROWS('Fact TestRunHistory')",
+            "displayFolder": "Run History",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Runs Passed",
+            "expression": "CALCULATE([Runs],'Fact TestRunHistory'[Is_Pass]=TRUE())",
+            "displayFolder": "Run History",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Pass Rate Trend %",
+            "expression": "DIVIDE([Runs Passed],[Runs])",
+            "displayFolder": "Run History",
+            "formatString": "0%"
+          },
+          {
+            "name": "First Time Pass Rate %",
+            "expression": "DIVIDE(\n    CALCULATE([Runs],'Fact TestRunHistory'[Passed_First_Time]=TRUE()),\n    CALCULATE([Runs],'Fact TestRunHistory'[Is_First_Run]=TRUE()))",
+            "displayFolder": "Run History",
+            "formatString": "0%"
+          },
+          {
+            "name": "Avg Duration Mins",
+            "expression": "AVERAGE('Fact TestRunHistory'[Duration_Mins])",
+            "displayFolder": "Run History",
+            "formatString": "0.0"
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "fromTable": "Fact Issue",
+        "fromColumn": "Issue_Key",
+        "toTable": "Dim Issue",
+        "toColumn": "Issue_Key",
+        "crossFilteringBehavior": "bothDirections",
+        "isActive": true,
+        "cardinality": "oneToOne"
+      },
+      {
+        "fromTable": "Fact Issue",
+        "fromColumn": "Project_Key",
+        "toTable": "Dim Project",
+        "toColumn": "Project_Key",
+        "crossFilteringBehavior": "none",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact Issue",
+        "fromColumn": "IssueType_Key",
+        "toTable": "Dim IssueType",
+        "toColumn": "IssueType_Key",
+        "crossFilteringBehavior": "none",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact Issue",
+        "fromColumn": "Status_Key",
+        "toTable": "Dim Status",
+        "toColumn": "Status_Key",
+        "crossFilteringBehavior": "none",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact Issue",
+        "fromColumn": "Priority_Key",
+        "toTable": "Dim Priority",
+        "toColumn": "Priority_Key",
+        "crossFilteringBehavior": "none",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact Issue",
+        "fromColumn": "Resolution_Key",
+        "toTable": "Dim Resolution",
+        "toColumn": "Resolution_Key",
+        "crossFilteringBehavior": "none",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact Issue",
+        "fromColumn": "Team_Key",
+        "toTable": "Dim Team",
+        "toColumn": "Team_Key",
+        "crossFilteringBehavior": "none",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact Issue",
+        "fromColumn": "Created_Date",
+        "toTable": "Dim Date",
+        "toColumn": "date",
+        "crossFilteringBehavior": "none",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact Issue",
+        "fromColumn": "Planned_Start_Date",
+        "toTable": "Dim Date",
+        "toColumn": "date",
+        "crossFilteringBehavior": "none",
+        "isActive": false,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact Issue",
+        "fromColumn": "Actual_Start_Date",
+        "toTable": "Dim Date",
+        "toColumn": "date",
+        "crossFilteringBehavior": "none",
+        "isActive": false,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact Issue",
+        "fromColumn": "Rollup_Start_Date",
+        "toTable": "Dim Date",
+        "toColumn": "date",
+        "crossFilteringBehavior": "none",
+        "isActive": false,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact Issue",
+        "fromColumn": "Planned_End_Date",
+        "toTable": "Dim Due Date",
+        "toColumn": "date",
+        "crossFilteringBehavior": "none",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact Issue",
+        "fromColumn": "Actual_End_Date",
+        "toTable": "Dim Due Date",
+        "toColumn": "date",
+        "crossFilteringBehavior": "none",
+        "isActive": false,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact Issue",
+        "fromColumn": "Rollup_End_Date",
+        "toTable": "Dim Due Date",
+        "toColumn": "date",
+        "crossFilteringBehavior": "none",
+        "isActive": false,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact IssueHistory",
+        "fromColumn": "Issue_Key",
+        "toTable": "Dim Issue",
+        "toColumn": "Issue_Key",
+        "crossFilteringBehavior": "none",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact IssueHistory",
+        "fromColumn": "Status_Key",
+        "toTable": "Dim Status",
+        "toColumn": "Status_Key",
+        "crossFilteringBehavior": "none",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact IssueHistory",
+        "fromColumn": "Changed_By_Key",
+        "toTable": "Dim Resource",
+        "toColumn": "Resource_Key",
+        "crossFilteringBehavior": "none",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact IssueHistory",
+        "fromColumn": "Valid_From_Date",
+        "toTable": "Dim Date",
+        "toColumn": "date",
+        "crossFilteringBehavior": "none",
+        "isActive": false,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact ResourceAllocation",
+        "fromColumn": "Issue_Key",
+        "toTable": "Dim Issue",
+        "toColumn": "Issue_Key",
+        "crossFilteringBehavior": "none",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact ResourceAllocation",
+        "fromColumn": "Resource_Key",
+        "toTable": "Dim Resource",
+        "toColumn": "Resource_Key",
+        "crossFilteringBehavior": "none",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact ResourceAllocation",
+        "fromColumn": "Role_Key",
+        "toTable": "Dim ResourceRole",
+        "toColumn": "Role_Key",
+        "crossFilteringBehavior": "none",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact Worklog",
+        "fromColumn": "Issue_Key",
+        "toTable": "Dim Issue",
+        "toColumn": "Issue_Key",
+        "crossFilteringBehavior": "none",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact Worklog",
+        "fromColumn": "Author_Key",
+        "toTable": "Dim Resource",
+        "toColumn": "Resource_Key",
+        "crossFilteringBehavior": "none",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact Worklog",
+        "fromColumn": "Started_Date",
+        "toTable": "Dim Date",
+        "toColumn": "date",
+        "crossFilteringBehavior": "none",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact Test",
+        "fromColumn": "Test_Set_Key",
+        "toTable": "Dim TestSet",
+        "toColumn": "Test_Set_Key",
+        "crossFilteringBehavior": "none",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact Test",
+        "fromColumn": "Test_Status_Key",
+        "toTable": "Dim TestStatus",
+        "toColumn": "Test_Status_Key",
+        "crossFilteringBehavior": "none",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact Test",
+        "fromColumn": "Executor_Key",
+        "toTable": "Dim Resource",
+        "toColumn": "Resource_Key",
+        "crossFilteringBehavior": "none",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact Test",
+        "fromColumn": "Test_Issue_Key",
+        "toTable": "Dim Issue",
+        "toColumn": "Issue_Key",
+        "crossFilteringBehavior": "none",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact TestCoverage",
+        "fromColumn": "Requirement_Key",
+        "toTable": "Dim Issue",
+        "toColumn": "Issue_Key",
+        "crossFilteringBehavior": "none",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact TestCoverage",
+        "fromColumn": "Test_Set_Key",
+        "toTable": "Dim TestSet",
+        "toColumn": "Test_Set_Key",
+        "crossFilteringBehavior": "none",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact TestRunHistory",
+        "fromColumn": "Test_Status_Key",
+        "toTable": "Dim TestStatus",
+        "toColumn": "Test_Status_Key",
+        "crossFilteringBehavior": "none",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact TestRunHistory",
+        "fromColumn": "Executor_Key",
+        "toTable": "Dim Resource",
+        "toColumn": "Resource_Key",
+        "crossFilteringBehavior": "none",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact TestRunHistory",
+        "fromColumn": "Test_Issue_Key",
+        "toTable": "Dim Issue",
+        "toColumn": "Issue_Key",
+        "crossFilteringBehavior": "none",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact TestRunHistory",
+        "fromColumn": "Started_Date",
+        "toTable": "Dim Date",
+        "toColumn": "date",
+        "crossFilteringBehavior": "none",
+        "isActive": true,
+        "cardinality": "manyToOne"
+      },
+      {
+        "fromTable": "Fact TestRunHistory",
+        "fromColumn": "Finished_Date",
+        "toTable": "Dim Date",
+        "toColumn": "date",
+        "crossFilteringBehavior": "none",
+        "isActive": false,
+        "cardinality": "manyToOne"
+      }
+    ],
+    "annotations": [
+      {
+        "name": "PBIDesktopVersion",
+        "value": "2.138.0"
+      }
+    ]
+  }
+}
