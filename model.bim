@@ -284,11 +284,6 @@
             "dataType": "boolean"
           },
           {
-            "name": "Hierarchy_Level",
-            "dataType": "int64",
-            "isHidden": true
-          },
-          {
             "name": "Issue_Category",
             "dataType": "string"
           },
@@ -428,34 +423,6 @@
             "source": {
               "type": "m",
               "expression": "let\n    Source = Lakehouse.Contents(null){[Id=\"Gold\",Kind=\"Workspace\"]}[Data],\n    t = Source{[Schema=\"gold\",Item=\"dim_project\"]}[Data]\nin t"
-            }
-          }
-        ]
-      },
-      {
-        "name": "Dim Resolution",
-        "columns": [
-          {
-            "name": "Resolution_Key",
-            "dataType": "string"
-          },
-          {
-            "name": "Resolution_Id",
-            "dataType": "string",
-            "isHidden": true
-          },
-          {
-            "name": "Resolution_Name",
-            "dataType": "string"
-          }
-        ],
-        "partitions": [
-          {
-            "name": "Dim Resolution",
-            "mode": "import",
-            "source": {
-              "type": "m",
-              "expression": "let\n    Source = Lakehouse.Contents(null){[Id=\"Gold\",Kind=\"Workspace\"]}[Data],\n    t = Source{[Schema=\"gold\",Item=\"dim_resolution\"]}[Data]\nin t"
             }
           }
         ]
@@ -796,11 +763,6 @@
             "isHidden": true
           },
           {
-            "name": "Resolution_Key",
-            "dataType": "string",
-            "isHidden": true
-          },
-          {
             "name": "IssueType_Key",
             "dataType": "string",
             "isHidden": true
@@ -830,25 +792,25 @@
           },
           {
             "name": "Open Issues",
-            "expression": "CALCULATE(COUNTROWS('Fact Issue'),'Fact Issue'[Is_Done]=FALSE())",
+            "expression": "CALCULATE([Issues],'Fact Issue'[Is_Done]=FALSE())",
             "displayFolder": "Counts",
             "formatString": "#,0"
           },
           {
             "name": "Done Issues",
-            "expression": "CALCULATE(COUNTROWS('Fact Issue'),'Fact Issue'[Is_Done]=TRUE())",
+            "expression": "CALCULATE([Issues],'Fact Issue'[Is_Done]=TRUE())",
             "displayFolder": "Counts",
             "formatString": "#,0"
           },
           {
             "name": "Overdue Issues",
-            "expression": "CALCULATE(COUNTROWS('Fact Issue'),'Fact Issue'[Is_Overdue]=TRUE())",
+            "expression": "CALCULATE([Issues],'Fact Issue'[Is_Overdue]=TRUE())",
             "displayFolder": "Counts",
             "formatString": "#,0"
           },
           {
             "name": "Issues Blocked",
-            "expression": "CALCULATE(COUNTROWS('Fact Issue'),RELATED('Dim Status'[Is_Blocked])=TRUE())",
+            "expression": "CALCULATE([Issues],RELATED('Dim Status'[Is_Blocked])=TRUE())",
             "displayFolder": "Counts",
             "formatString": "#,0"
           },
@@ -860,7 +822,7 @@
           },
           {
             "name": "Story Points Done",
-            "expression": "CALCULATE(SUM('Fact Issue'[Story_Points]),'Fact Issue'[Is_Done]=TRUE())",
+            "expression": "CALCULATE([Story Points],'Fact Issue'[Is_Done]=TRUE())",
             "displayFolder": "Effort",
             "formatString": "#,0.0"
           },
@@ -887,6 +849,12 @@
             "expression": "SUM('Fact Issue'[Time_Spent_Hours])",
             "displayFolder": "Effort",
             "formatString": "#,0.0"
+          },
+          {
+            "name": "Avg Slip Days",
+            "expression": "AVERAGEX(FILTER('Fact Issue',NOT ISBLANK('Fact Issue'[Slip_Days])),'Fact Issue'[Slip_Days])",
+            "displayFolder": "Schedule",
+            "formatString": "0"
           },
           {
             "name": "Issues Led",
@@ -1034,7 +1002,8 @@
           },
           {
             "name": "Allocation_Weight",
-            "dataType": "double"
+            "dataType": "double",
+            "isHidden": true
           },
           {
             "name": "Allocation_Count",
@@ -1075,31 +1044,25 @@
           },
           {
             "name": "Leads Count",
-            "expression": "CALCULATE(DISTINCTCOUNT('Fact ResourceAllocation'[Resource_Key]),\n    'Dim ResourceRole'[Role_Name]=\"Lead\")",
+            "expression": "CALCULATE(DISTINCTCOUNT('Fact ResourceAllocation'[Resource_Key]),'Dim ResourceRole'[Role_Name]=\"Lead\")",
             "displayFolder": "Resource",
             "formatString": "#,0"
           },
           {
             "name": "Involved Count",
-            "expression": "CALCULATE(DISTINCTCOUNT('Fact ResourceAllocation'[Resource_Key]),\n    'Dim ResourceRole'[Role_Name]=\"Involved\")",
+            "expression": "CALCULATE(DISTINCTCOUNT('Fact ResourceAllocation'[Resource_Key]),'Dim ResourceRole'[Role_Name]=\"Involved\")",
             "displayFolder": "Resource",
             "formatString": "#,0"
           },
           {
             "name": "Items per Person",
-            "expression": "DIVIDE(DISTINCTCOUNT('Fact ResourceAllocation'[Issue_Key]),\n    DISTINCTCOUNT('Fact ResourceAllocation'[Resource_Key]))",
+            "expression": "DIVIDE(DISTINCTCOUNT('Fact ResourceAllocation'[Issue_Key]),DISTINCTCOUNT('Fact ResourceAllocation'[Resource_Key]))",
             "displayFolder": "Resource",
             "formatString": "0.0"
           },
           {
             "name": "Unassigned Issues",
-            "expression": "CALCULATE(COUNTROWS('Fact Issue'),RELATED('Dim Issue'[Has_No_Lead])=TRUE())",
-            "displayFolder": "Resource",
-            "formatString": "#,0"
-          },
-          {
-            "name": "Assigned This Period",
-            "expression": "CALCULATE([Open Issues Led],\n    CROSSFILTER('Dim Issue'[Issue_Key],'Fact ResourceAllocation'[Issue_Key],BOTH))",
+            "expression": "CALCULATE([Issues],RELATED('Dim Issue'[Has_No_Lead])=TRUE())",
             "displayFolder": "Resource",
             "formatString": "#,0"
           }
@@ -1308,7 +1271,7 @@
             "formatString": "0%"
           },
           {
-            "name": "Pass Rate (Executed) %",
+            "name": "Pass Rate Executed %",
             "expression": "DIVIDE([Tests Passed],[Tests Executed])",
             "displayFolder": "Test Rates",
             "formatString": "0%"
@@ -1337,16 +1300,6 @@
         "columns": [
           {
             "name": "Coverage_Key",
-            "dataType": "string",
-            "isHidden": true
-          },
-          {
-            "name": "Requirement_Id",
-            "dataType": "string",
-            "isHidden": true
-          },
-          {
-            "name": "Test_Set_Id",
             "dataType": "string",
             "isHidden": true
           },
@@ -1452,7 +1405,8 @@
           },
           {
             "name": "Finished_Date",
-            "dataType": "dateTime"
+            "dataType": "dateTime",
+            "isHidden": true
           },
           {
             "name": "Duration_Mins",
@@ -1592,15 +1546,6 @@
         "fromColumn": "Priority_Key",
         "toTable": "Dim Priority",
         "toColumn": "Priority_Key",
-        "crossFilteringBehavior": "none",
-        "isActive": true,
-        "cardinality": "manyToOne"
-      },
-      {
-        "fromTable": "Fact Issue",
-        "fromColumn": "Resolution_Key",
-        "toTable": "Dim Resolution",
-        "toColumn": "Resolution_Key",
         "crossFilteringBehavior": "none",
         "isActive": true,
         "cardinality": "manyToOne"
