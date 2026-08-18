@@ -102,18 +102,7 @@ schema = fmt.TableSchema(
                 "unknown_value": "Unknown",
             },
         },
-        # Requirement key -> Dim_Issue (role-playing) for coverage reporting.
-        # This is the parent requirement that links to the test set via
-        # "is tested by". NULL when no requirement link exists.
-        "Requirement_Key": {
-            "type": "string",
-            "lookup_missing_from": {
-                "table": f"{GOLD_SCHEMA}.dim_issue",
-                "natural_key_column": "Parent_Issue_Code",
-                "key_column": "Issue_Key",
-                "unknown_value": "Unknown",
-            },
-        },
+
     },
 )
 
@@ -211,7 +200,6 @@ df = spark.sql(f"""
         ts.Test_Status_Key,
         res.Resource_Key                             AS Executor_Key,
         di.Issue_Key                                 AS Test_Issue_Key,
-        req_dim.Issue_Key                            AS Requirement_Key
     FROM memberships m
     LEFT JOIN latest_runs lr
            ON lr.test_issue_id = m.Test_Id AND lr.rn = 1
@@ -227,8 +215,7 @@ df = spark.sql(f"""
            ON res.Resource_Account_Id = lr.executed_by_id
     LEFT JOIN {GOLD_SCHEMA}.dim_issue di
            ON di.Issue_Id = m.Test_Id
-    LEFT JOIN {GOLD_SCHEMA}.dim_issue req_dim
-           ON req_dim.Issue_Code = pr.Requirement_Code
+
 """)
 
 # CELL ********************
