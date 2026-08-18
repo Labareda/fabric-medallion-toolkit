@@ -86,7 +86,6 @@ schema = fmt.TableSchema(
         "Created_Date":       {"type": "date"},
         "Rollup_Start_Date":  {"type": "date"},
         "Rollup_End_Date":    {"type": "date"},
-        "Has_Own_Dates":      {"type": "boolean", "default": False},
 
         # Derived schedule health -- computed here rather than in DAX so every
         # tool (Power BI, Tableau, a SQL query) gets the same answer.
@@ -244,7 +243,9 @@ df = fmt.rollup_hierarchy_dates(
     df.join(issue_parents, on="Issue_Id", how="left"),
     id_column="Issue_Id", parent_id_column="Parent_Issue_Id",
     start_column="Planned_Start_Date", end_column="Planned_End_Date",
-).drop("Parent_Issue_Id")
+    # Has_Own_Dates (the wheel's default out_flag) is dropped -- redundant
+    # with Planned_Start_Date IS NOT NULL, simplified out of the model.
+).drop("Parent_Issue_Id", "Has_Own_Dates")
 
 # CELL ********************
 fmt.merge(spark, df, schema)

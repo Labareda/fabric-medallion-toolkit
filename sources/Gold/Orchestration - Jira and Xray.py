@@ -23,6 +23,13 @@
 #   - removed: Fact_Comment (comment_body is the largest table in the model
 #     and powers none of the requested reports). If comment ACTIVITY is wanted
 #     later, build it without the body and add it back here.
+#   + Dim Test Set, Fact Test, Fact Test Coverage -- these notebooks existed
+#     in sources/Gold but were never actually scheduled here (the exact
+#     "built but never run" trap warned about above for Fact_Comment). Now
+#     wired in, all OPTIONAL (Xray-dependent) like the rest of the test
+#     tables, so the Test Report actually gets fresh data.
+#   ~ Fact_Test_Run now consolidates what used to be two overlapping,
+#     same-grain run tables (fact_test_run / fact_test_run_history).
 
 # CELL ********************
 from notebookutils import mssparkutils
@@ -52,6 +59,7 @@ DIMENSION_NOTEBOOKS = {
     "Gold - Dim_Link_Type": [],
     "Gold - Dim_Version": [],
     "Gold - Dim_Test_Status": [],
+    "Gold - Dim Test Set": [],
     # Dim_Issue joins Dim_Project for Sort_Path's project-code root prefix.
     # The alphabet actively gets this WRONG (I < P), and it's the exact
     # TABLE_OR_VIEW_NOT_FOUND this pipeline used to die on. Still the only
@@ -75,6 +83,11 @@ FACT_NOTEBOOKS = {
     "Gold - Fact_Resource_Allocation": [],
     "Gold - Fact_Worklog": [],
     "Gold - Fact_Test_Run": [],
+    "Gold - Fact Test": [],
+    # Reads Gold.gold.fact_test (set_stats CTE) -- the one fact that reads
+    # another fact in this model, so it's the one exception to "facts only
+    # depend on other facts here, never implicitly."
+    "Gold - Fact Test Coverage": ["Gold - Fact Test"],
     "Gold - Bridge_Issue_Link": [],
     "Gold - Bridge_Issue_Label": [],
     "Gold - Bridge_Test_Set_Test": [],
@@ -97,7 +110,10 @@ OPTIONAL_STEPS = {
     "S2B - Xray",
     "B2S - Xray",
     "Gold - Dim_Test_Status",
+    "Gold - Dim Test Set",
     "Gold - Fact_Test_Run",
+    "Gold - Fact Test",
+    "Gold - Fact Test Coverage",
     "Gold - Bridge_Test_Set_Test",
 }
 

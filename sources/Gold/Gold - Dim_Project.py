@@ -26,7 +26,6 @@ schema = fmt.TableSchema(
         "Project_Code":   {"type": "string", "default": "Unknown"},
         "Project_Name":   {"type": "string", "default": "Unknown"},
         "Project_Type":   {"type": "string", "default": "Unknown"},
-        "Project_Style":  {"type": "string", "default": "Unknown"},
         "Project_Lead":   {"type": "string", "default": "Unassigned"},
     },
 )
@@ -38,7 +37,6 @@ df = spark.sql("""
         p.key             AS Project_Code,
         p.name            AS Project_Name,
         p.projectTypeKey  AS Project_Type,
-        p.style           AS Project_Style,
         p.lead_displayName AS Project_Lead
     FROM Silver.jira.projects p
 """)

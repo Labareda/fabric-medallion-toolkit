@@ -75,6 +75,20 @@ schema = fmt.TableSchema(
                                      "natural_key_column": "Issue_Id", "key_column": "Issue_Key",
                                      "unknown_value": "Unknown"},
         },
+        # Project_Key/Team_Key sit directly on every fact table so a project
+        # or team slicer filters in one hop -- matches Fact_Issue.
+        "Project_Key": {
+            "type": "string",
+            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_project",
+                                     "natural_key_column": "Project_Id", "key_column": "Project_Key",
+                                     "unknown_value": "Unknown"},
+        },
+        "Team_Key": {
+            "type": "string",
+            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_team",
+                                     "natural_key_column": "Team_Name", "key_column": "Team_Key",
+                                     "unknown_value": "Unknown"},
+        },
         "Status_Key": {
             "type": "string",
             "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_status",
@@ -215,12 +229,17 @@ df = spark.sql(f"""
         (BIGINT(COALESCE(f.valid_to, CURRENT_TIMESTAMP())) - BIGINT(f.changed_at)) / 3600.0  AS Hours_In_Period,
         1 AS Period_Count,
         di.Issue_Key,
+        project.Project_Key,
+        team.Team_Key,
         st.Status_Key,
         res.Resource_Key AS Changed_By_Key
     FROM filled f
     LEFT JOIN status_by_name st ON st.Status_Name = f.status
     LEFT JOIN status_by_name sf ON sf.Status_Name = f.from_status
-    LEFT JOIN {GOLD_SCHEMA}.dim_issue di    ON f.issue_id = di.Issue_Id
+    LEFT JOIN Silver.jira.issues i           ON f.issue_id = i.id
+    LEFT JOIN {GOLD_SCHEMA}.dim_issue di     ON f.issue_id = di.Issue_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_project project ON i.fields_project_id = project.Project_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_team team    ON i.fields_team_name = team.Team_Name
     LEFT JOIN {GOLD_SCHEMA}.dim_resource res ON f.author_account_id = res.Resource_Account_Id
 """)
 

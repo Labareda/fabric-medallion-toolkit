@@ -21,7 +21,6 @@ schema = fmt.TableSchema(
         "Priority_Id":    {"type": "string", "merge_field": True, "missing": "Unknown"},
         "Priority_Name":  {"type": "string", "default": "Unknown"},
         "Description":    {"type": "string", "default": ""},
-        "Priority_Colour":{"type": "string", "default": ""},
         "Sort_Order":     {"type": "int", "default": 9},
     },
 )
@@ -32,7 +31,6 @@ df = spark.sql("""
         p.id          AS Priority_Id,
         p.name        AS Priority_Name,
         p.description AS Description,
-        p.statusColor AS Priority_Colour,
         CASE p.name WHEN 'Highest' THEN 1 WHEN 'High' THEN 2 WHEN 'Medium' THEN 3
                     WHEN 'Low' THEN 4 WHEN 'Lowest' THEN 5 ELSE 9 END AS Sort_Order
     FROM Silver.jira.priorities p
