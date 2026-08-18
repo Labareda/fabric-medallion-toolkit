@@ -10,12 +10,9 @@
 # CHANGES FROM "Orchestration - Jira":
 #   + Xray source added as a second extraction branch (see OPTIONAL_STEPS --
 #     an Xray outage no longer blocks the Jira reporting refresh)
-#   + Dim_Resolution, Dim_Role, Dim_Team, Dim_Link_Type, Dim_Version,
-#     Dim_Test_Status
-#   + Fact_Issue_History, Fact_Worklog, Fact_Test_Run,
-#     Bridge_Issue_Label, Bridge_Test_Set_Test
-#   ~ renamed: Fact_ResourceAllocation -> Fact_Resource_Allocation,
-#     Bridge_IssueLink -> Bridge_Issue_Link
+#   + Dim_Resolution, Dim_Role, Dim_Team, Dim_Test_Status
+#   + Fact_Issue_History, Fact_Worklog, Fact_Test_Run
+#   ~ renamed: Fact_ResourceAllocation -> Fact_Resource_Allocation
 #   - removed: Dim_Board, Dim_Sprint, Bridge_IssueSprint (the client barely
 #     uses sprints; trend now comes from Fact_Issue_History instead of sprint
 #     burndown). Delete the notebooks too, or they rot unscheduled -- which is
@@ -23,6 +20,12 @@
 #   - removed: Fact_Comment (comment_body is the largest table in the model
 #     and powers none of the requested reports). If comment ACTIVITY is wanted
 #     later, build it without the body and add it back here.
+#   - removed: Dim_Version, Bridge_Issue_Link, Bridge_Issue_Label,
+#     Bridge_Test_Set_Test -- notebooks deleted from sources/Gold; nothing
+#     schedules them any more. Dim_Link_Type has no consumer left either
+#     (it existed to be joined by Bridge_Issue_Link) -- keeping it here as a
+#     built-but-unused dimension unless issue-link traceability reporting
+#     comes back into scope, in which case delete it too.
 #   + Dim Test Set, Fact Test, Fact Test Coverage -- these notebooks existed
 #     in sources/Gold but were never actually scheduled here (the exact
 #     "built but never run" trap warned about above for Fact_Comment). Now
@@ -57,8 +60,7 @@ DIMENSION_NOTEBOOKS = {
     "Gold - Dim_Priority": [],
     "Gold - Dim_Resolution": [],
     "Gold - Dim_Link_Type": [],
-    "Gold - Dim_Version": [],
-    "Gold - Dim_Test_Status": [],
+    "Gold - Dim Test Status": [],
     "Gold - Dim Test Set": [],
     # Dim_Issue joins Dim_Project for Sort_Path's project-code root prefix.
     # The alphabet actively gets this WRONG (I < P), and it's the exact
@@ -88,9 +90,6 @@ FACT_NOTEBOOKS = {
     # another fact in this model, so it's the one exception to "facts only
     # depend on other facts here, never implicitly."
     "Gold - Fact Test Coverage": ["Gold - Fact Test"],
-    "Gold - Bridge_Issue_Link": [],
-    "Gold - Bridge_Issue_Label": [],
-    "Gold - Bridge_Test_Set_Test": [],
 }
 
 # --- Steps allowed to fail without killing the run -------------------------
@@ -109,12 +108,11 @@ FACT_NOTEBOOKS = {
 OPTIONAL_STEPS = {
     "S2B - Xray",
     "B2S - Xray",
-    "Gold - Dim_Test_Status",
+    "Gold - Dim Test Status",
     "Gold - Dim Test Set",
     "Gold - Fact_Test_Run",
     "Gold - Fact Test",
     "Gold - Fact Test Coverage",
-    "Gold - Bridge_Test_Set_Test",
 }
 
 LAKEHOUSES_TO_REFRESH = ["Silver", "Gold"]

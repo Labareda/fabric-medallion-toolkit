@@ -32,7 +32,7 @@
 #       Test 3   NOT RUN
 #
 # Latest run status is denormalised onto each row. For trend over time,
-# Fact_Test_Run_History (separate notebook) carries every run.
+# Fact_Test_Run (separate notebook) carries every run.
 #
 # PARENT ISSUE CONTEXT
 # Each test set is linked to one or more parent issues (Stories/Requirements)
@@ -59,30 +59,27 @@ schema = fmt.TableSchema(
         "Test_Id":       {"type": "string", "merge_field": True},
 
         # Natural keys for display and drill-through
-        "Test_Set_Code": {"type": "string", "default": "Unknown"},
-        "Test_Code":     {"type": "string", "default": "Unknown"},
+        "Test_Set_Code":     {"type": "string", "default": "Unknown"},
+        "Test_Code":         {"type": "string", "default": "Unknown"},
         "Parent_Issue_Code": {"type": "string"},
-
-        # Date
-        "Latest_Run_Date": {"type": "date"},
 
         # Latest run status -- denormalised for simplicity
         # "NOT RUN" when no run exists, matching Dim_Test_Status
-        "Latest_Status":        {"type": "string", "default": "NOT RUN"},
-        "Latest_Run_Date":      {"type": "date"},
-        "Latest_Executor":      {"type": "string"},
-        "Execution_Code":       {"type": "string"},
-        "Run_Count":            {"type": "int", "default": 0},
-        "Pass_Count":           {"type": "int", "default": 0},
-        "Fail_Count":           {"type": "int", "default": 0},
+        "Latest_Status":   {"type": "string", "default": "NOT RUN"},
+        "Latest_Run_Date": {"type": "date"},
+        "Latest_Executor": {"type": "string"},
+        "Execution_Code":  {"type": "string"},
+        "Run_Count":       {"type": "int", "default": 0},
+        "Pass_Count":      {"type": "int", "default": 0},
+        "Fail_Count":      {"type": "int", "default": 0},
 
         # Measures
-        "Test_Count":           {"type": "int", "default": 1},
-        "Is_Pass":              {"type": "boolean", "default": False},
-        "Is_Fail":              {"type": "boolean", "default": False},
-        "Is_Blocked":           {"type": "boolean", "default": False},
-        "Is_Not_Run":           {"type": "boolean", "default": True},
-        "Is_Executed":          {"type": "boolean", "default": False},
+        "Test_Count":  {"type": "int", "default": 1},
+        "Is_Pass":     {"type": "boolean", "default": False},
+        "Is_Fail":     {"type": "boolean", "default": False},
+        "Is_Blocked":  {"type": "boolean", "default": False},
+        "Is_Not_Run":  {"type": "boolean", "default": True},
+        "Is_Executed": {"type": "boolean", "default": False},
 
         # Surrogate FKs
         "Test_Set_Key": {
@@ -129,9 +126,10 @@ df = spark.sql(f"""
     latest_runs AS (
         SELECT
             test_issue_id,
-            status_name,
+            status_name                AS Latest_Status,
             executed_by_id,
-            CAST(started_on AS date)  AS Latest_Run_Date,
+            execution_issue_key        AS Execution_Code,
+            CAST(started_on AS date)   AS Latest_Run_Date,
             ROW_NUMBER() OVER (
                 PARTITION BY test_issue_id
                 ORDER BY CAST(started_on AS timestamp) DESC
@@ -143,26 +141,21 @@ df = spark.sql(f"""
     run_counts AS (
         SELECT
             test_issue_id,
-            COUNT(*)                                AS Run_Count,
-            SUM(CASE WHEN status_name = 'PASSED'  THEN 1 ELSE 0 END) AS Pass_Count,
-            SUM(CASE WHEN status_name = 'FAILED'  THEN 1 ELSE 0 END) AS Fail_Count
+            COUNT(*)                                                    AS Run_Count,
+            SUM(CASE WHEN status_name = 'PASSED' THEN 1 ELSE 0 END)     AS Pass_Count,
+            SUM(CASE WHEN status_name = 'FAILED' THEN 1 ELSE 0 END)     AS Fail_Count
         FROM Silver.xray.test_runs
         GROUP BY test_issue_id
     ),
 
     -- First parent issue linked to each test set via "is tested by"
-    -- Direction = Inward means this test set is the target of "tests" link
     parent_issues AS (
         SELECT
-            il.issue_id                             AS test_set_issue_id,
-            MIN_BY(i.key,   il.link_id)             AS Parent_Issue_Code,
-            MIN_BY(i.fields_summary, il.link_id)    AS Parent_Issue_Name,
-            MIN_BY(c.Issue_Category, il.link_id)    AS Parent_Issue_Category
+            il.issue_id                 AS test_set_issue_id,
+            MIN_BY(i.key, il.link_id)   AS Parent_Issue_Code
         FROM Silver.jira.issue_links il
         JOIN Silver.jira.issues i
           ON i.id = il.linked_issue_id
-        LEFT JOIN {GOLD_SCHEMA}.dim_issue_type c
-          ON c.IssueType_Id = i.fields_issuetype_id
         WHERE il.link_type IN ('Test', 'Tests', 'is tested by', 'tested by')
         GROUP BY il.issue_id
     )
@@ -171,6 +164,9 @@ df = spark.sql(f"""
         m.Test_Set_Code,
         m.Test_Id,
         m.Test_Code,
+        p.Parent_Issue_Code,
+
+        COALESCE(lr.Latest_Status, 'NOT RUN')       AS Latest_Status,
         lr.Latest_Run_Date,
         u.displayName                               AS Latest_Executor,
         lr.Execution_Code,
@@ -179,14 +175,14 @@ df = spark.sql(f"""
         COALESCE(rc.Fail_Count, 0)                  AS Fail_Count,
 
         -- Measures
-        1                                           AS Test_Count,
-        COALESCE(lr.Latest_Status, 'NOT RUN') = 'PASSED'  AS Is_Pass,
-        COALESCE(lr.Latest_Status, 'NOT RUN') = 'FAILED'  AS Is_Fail,
-        COALESCE(lr.Latest_Status, 'NOT RUN') = 'BLOCKED' AS Is_Blocked,
+        1                                                  AS Test_Count,
+        COALESCE(lr.Latest_Status, 'NOT RUN') = 'PASSED'   AS Is_Pass,
+        COALESCE(lr.Latest_Status, 'NOT RUN') = 'FAILED'   AS Is_Fail,
+        COALESCE(lr.Latest_Status, 'NOT RUN') = 'BLOCKED'  AS Is_Blocked,
         lr.Latest_Status IS NULL                           AS Is_Not_Run,
         lr.Latest_Status IS NOT NULL                       AS Is_Executed,
 
-        -- FK natural keys for lookup_missing_from
+        -- FK natural keys, resolved to surrogate keys below
         m.Test_Set_Id                               AS Test_Set_Id_fk,
         COALESCE(lr.Latest_Status, 'NOT RUN')       AS Test_Status_Name,
         lr.executed_by_id                           AS Resource_Account_Id
@@ -215,11 +211,7 @@ df = (
           on="Test_Status_Name", how="left")
     .join(spark.sql(f"SELECT Resource_Account_Id, Resource_Key AS Executor_Key FROM {GOLD_SCHEMA}.dim_resource"),
           on="Resource_Account_Id", how="left")
-    .join(spark.sql(f"SELECT Project_Id, Project_Key FROM {GOLD_SCHEMA}.dim_project"),
-          on="Project_Id", how="left")
-    .join(spark.sql(f"SELECT Team_Name, Team_Key FROM {GOLD_SCHEMA}.dim_team"),
-          on="Team_Name", how="left")
-    .drop("Test_Set_Id_fk", "Resource_Account_Id", "Project_Id", "Team_Name")
+    .drop("Test_Set_Id_fk", "Resource_Account_Id")
 )
 
 # CELL ********************

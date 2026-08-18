@@ -18,6 +18,11 @@
 # If a requirement has NO covering test set, it still appears here as one
 # row with Is_Covered = False. This is how "uncovered requirements" reports
 # work without complex DAX: just filter Is_Covered = False.
+#
+# Merge key is Requirement_Code / Test_Set_Code (issue key strings) --
+# stable, human-readable, and what the report and drill-through use. Joins
+# below still walk through the numeric ids internally (that's what Silver
+# and Fact_Test key on) and only surface Code at the end.
 
 # CELL ********************
 import fabric_medallion_toolkit as fmt
@@ -30,14 +35,12 @@ schema = fmt.TableSchema(
     table_type="fact",
     key_column="Coverage_Key",
     columns={
-        "Requirement_Id":       {"type": "string", "merge_field": True},
-        "Test_Set_Id":          {"type": "string", "merge_field": True},
-        "Requirement_Code":     {"type": "string", "default": "Unknown"},
+        "Requirement_Code":     {"type": "string", "merge_field": True},
+        "Test_Set_Code":        {"type": "string", "merge_field": True},
         "Requirement_Name":     {"type": "string", "default": "Unknown"},
         "Requirement_Category": {"type": "string", "default": "Unknown"},
         "Workstream":           {"type": "string", "default": "Unknown"},
         "Release":              {"type": "string", "default": "Unknown"},
-        "Test_Set_Code":        {"type": "string"},
         "Test_Set_Name":        {"type": "string"},
         "Is_Covered":           {"type": "boolean", "default": False},
         "Tests_In_Set":         {"type": "int", "default": 0},
@@ -63,31 +66,13 @@ schema = fmt.TableSchema(
                 "unknown_value": "Unknown",
             },
         },
-        "Project_Key": {
-            "type": "string",
-            "lookup_missing_from": {
-                "table": f"{GOLD_SCHEMA}.dim_project",
-                "natural_key_column": "Project_Id",
-                "key_column": "Project_Key",
-                "unknown_value": "Unknown",
-            },
-        },
-        "Team_Key": {
-            "type": "string",
-            "lookup_missing_from": {
-                "table": f"{GOLD_SCHEMA}.dim_team",
-                "natural_key_column": "Team_Name",
-                "key_column": "Team_Key",
-                "unknown_value": "Unknown",
-            },
-        },
     },
 )
 
 # CELL ********************
 df = spark.sql(f"""
     WITH
-    -- All requirements (issue key string)
+    -- All requirements from Jira
     requirements AS (
         SELECT
             i.id                        AS Requirement_Id,
@@ -99,11 +84,12 @@ df = spark.sql(f"""
         FROM Silver.jira.issues i
         JOIN {GOLD_SCHEMA}.dim_issue_type c
           ON c.IssueType_Id = i.fields_issuetype_id
+        JOIN {GOLD_SCHEMA}.dim_issue di
+          ON di.Issue_Id = i.id
         WHERE c.Issue_Category = 'Requirement'
     ),
 
-    -- Test sets covering each requirement.
-    -- Two directions from Silver, using issue key strings throughout.
+    -- Test sets that cover each requirement via issue links
     covering_sets AS (
         SELECT
             il.linked_issue_id          AS Requirement_Id,
@@ -113,28 +99,26 @@ df = spark.sql(f"""
         WHERE il.link_type IN ('Test', 'Tests', 'is tested by', 'tested by')
     ),
 
-    -- Test counts per set (from Fact_Test already built)
+    -- Test counts per set, via Dim_Test_Status flags already on Fact_Test
     set_stats AS (
         SELECT
-            Test_Set_Id,
-            COUNT(*)                                            AS Tests_In_Set,
-            SUM(CASE WHEN Is_Pass    THEN 1 ELSE 0 END)        AS Tests_Passed,
-            SUM(CASE WHEN Is_Fail    THEN 1 ELSE 0 END)        AS Tests_Failed,
-            SUM(CASE WHEN Is_Not_Run THEN 1 ELSE 0 END)        AS Tests_Not_Run
-        FROM {GOLD_SCHEMA}.fact_test
-        GROUP BY Test_Set_Id
+            ft.Test_Set_Id,
+            COUNT(*)                                     AS Tests_In_Set,
+            SUM(CASE WHEN ft.Is_Pass    THEN 1 ELSE 0 END) AS Tests_Passed,
+            SUM(CASE WHEN ft.Is_Fail    THEN 1 ELSE 0 END) AS Tests_Failed,
+            SUM(CASE WHEN ft.Is_Not_Run THEN 1 ELSE 0 END) AS Tests_Not_Run
+        FROM {GOLD_SCHEMA}.fact_test ft
+        GROUP BY ft.Test_Set_Id
     )
 
     -- Covered requirements
     SELECT
-        r.Requirement_Id,
-        cs.Test_Set_Id,
         r.Requirement_Code,
+        cs.Test_Set_Code,
         r.Requirement_Name,
         r.Requirement_Category,
         r.Workstream,
         r.Release,
-        cs.Test_Set_Code,
         dts.Test_Set_Name,
         TRUE                    AS Is_Covered,
         COALESCE(ss.Tests_In_Set,  0) AS Tests_In_Set,
@@ -142,58 +126,36 @@ df = spark.sql(f"""
         COALESCE(ss.Tests_Failed,  0) AS Tests_Failed,
         COALESCE(ss.Tests_Not_Run, 0) AS Tests_Not_Run,
         1                       AS Coverage_Count,
-        r.Requirement_Id        AS Requirement_Id_fk,
-        cs.Test_Set_Id          AS Test_Set_Id_fk
+        di.Issue_Key            AS Requirement_Key,
+        dts.Test_Set_Key        AS Test_Set_Key
     FROM requirements r
-    JOIN covering_sets cs
-      ON cs.Requirement_Code = r.Requirement_Code
-    LEFT JOIN {GOLD_SCHEMA}.dim_issue req_dim
-      ON req_dim.Issue_Code = r.Requirement_Code
-    LEFT JOIN {GOLD_SCHEMA}.dim_test_set dts
-      ON dts.Test_Set_Code = cs.Test_Set_Code
-    LEFT JOIN set_stats ss
-      ON ss.Test_Set_Code = cs.Test_Set_Code
+    JOIN covering_sets cs ON cs.Requirement_Id = r.Requirement_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_issue di     ON di.Issue_Id = r.Requirement_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_test_set dts ON dts.Test_Set_Id = cs.Test_Set_Id
+    LEFT JOIN set_stats ss                   ON ss.Test_Set_Id = cs.Test_Set_Id
 
     UNION ALL
 
-    -- Uncovered requirements
+    -- Uncovered requirements (no test set link at all)
     SELECT
-        r.Requirement_Id,
-        'NONE'              AS Test_Set_Id,
         r.Requirement_Code,
+        'NONE'              AS Test_Set_Code,
         r.Requirement_Name,
         r.Requirement_Category,
         r.Workstream,
         r.Release,
-        NULL                AS Test_Set_Code,
         NULL                AS Test_Set_Name,
         FALSE               AS Is_Covered,
         0, 0, 0, 0,
         1                   AS Coverage_Count,
-        r.Requirement_Id    AS Requirement_Id_fk,
-        'NONE'              AS Test_Set_Id_fk
+        di.Issue_Key        AS Requirement_Key,
+        CAST(NULL AS STRING) AS Test_Set_Key
     FROM requirements r
-    LEFT JOIN {GOLD_SCHEMA}.dim_issue req_dim2
-      ON req_dim2.Issue_Code = r.Requirement_Code
+    LEFT JOIN {GOLD_SCHEMA}.dim_issue di ON di.Issue_Id = r.Requirement_Id
     WHERE NOT EXISTS (
-        SELECT 1 FROM covering_sets cs
-        WHERE cs.Requirement_Code = r.Requirement_Code
+        SELECT 1 FROM covering_sets cs WHERE cs.Requirement_Id = r.Requirement_Id
     )
 """)
-
-# MARKDOWN ********************
-
-# ## Resolve Project_Key / Team_Key
-
-# CELL ********************
-df = (
-    df
-    .join(spark.sql(f"SELECT Project_Id, Project_Key FROM {GOLD_SCHEMA}.dim_project"),
-          on="Project_Id", how="left")
-    .join(spark.sql(f"SELECT Team_Name, Team_Key FROM {GOLD_SCHEMA}.dim_team"),
-          on="Team_Name", how="left")
-    .drop("Project_Id", "Team_Name")
-)
 
 # CELL ********************
 fmt.merge(spark, df, schema)
