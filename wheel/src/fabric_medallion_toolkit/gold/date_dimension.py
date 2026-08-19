@@ -39,6 +39,20 @@ def build_date_dimension(spark, config: DateDimensionConfig) -> None:
         .withColumn("week_of_year", F.weekofyear("date"))
         .withColumn("is_weekend", F.dayofweek("date").isin(1, 7))
         .withColumn("year_month", F.date_format("date", "yyyy-MM"))
+        # Monday-start week bucket, for a resource-timeline grid like a Jira
+        # Team Timeline view (weekly columns, not daily). date_trunc('week', ..)
+        # is Spark's own Monday-of-the-week truncation -- matches the ISO
+        # week convention the client's Jira view already uses.
+        .withColumn("week_start_date", F.date_trunc("week", "date").cast("date"))
+        .withColumn("week_end_date", F.date_add(F.date_trunc("week", "date").cast("date"), 6))
+        .withColumn(
+            "week_label",
+            F.concat(
+                F.date_format(F.date_trunc("week", "date"), "MMM yyyy"), F.lit(" "),
+                F.dayofmonth(F.date_trunc("week", "date")), F.lit("-"),
+                F.dayofmonth(F.date_add(F.date_trunc("week", "date").cast("date"), 6)),
+            ),
+        )
         .withColumn(
             "fiscal_year",
             F.when(

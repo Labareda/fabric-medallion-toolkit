@@ -1,0 +1,90 @@
+table 'Fact_Resource_Day_Allocation'
+	lineageTag: fact_resource_day_allocation
+
+	column 'Resource_Day_Allocation_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Resource_Day_Allocation_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Resource_Account_Id'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Resource_Account_Id
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue_Id'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Issue_Id
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Date'
+		dataType: dateTime
+		formatString: Short Date
+		summarizeBy: none
+		sourceColumn: Date
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Allocated_Hours'
+		dataType: double
+		summarizeBy: none
+		sourceColumn: Allocated_Hours
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Resource_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Resource_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Issue_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	measure 'Allocated Hours' = SUM('Fact_Resource_Day_Allocation'[Allocated_Hours])
+		formatString: #,##0.0
+
+	measure 'Conflicting Resource-Days' = ```
+
+			        VAR ResourceDayTable =
+			            SUMMARIZE(
+			                'Fact_Resource_Day_Allocation',
+			                'Fact_Resource_Day_Allocation'[Resource_Key],
+			                'Fact_Resource_Day_Allocation'[Date]
+			            )
+			        VAR WithHoursAndCapacity =
+			            ADDCOLUMNS(
+			                ResourceDayTable,
+			                "@AllocHours", CALCULATE(SUM('Fact_Resource_Day_Allocation'[Allocated_Hours])),
+			                "@Capacity", CALCULATE(MAX('Dim_Resource'[Daily_Capacity_Hours]))
+			            )
+			        RETURN
+			            COUNTROWS(FILTER(WithHoursAndCapacity, [@AllocHours] > [@Capacity]))
+			```
+		formatString: #,##0
+
+	partition 'Fact_Resource_Day_Allocation' = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("<YOUR_GOLD_SQL_ENDPOINT>", "Gold"),
+				    Data = Source{[Schema="gold",Item="fact_resource_day_allocation"]}[Data]
+				in
+				    Data
+
+	annotation PBI_ResultType = Table

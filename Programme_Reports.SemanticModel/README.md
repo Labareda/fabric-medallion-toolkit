@@ -1,6 +1,6 @@
 # Programme_Reports semantic model
 
-Import-mode TMDL definition for the Gold star schema in `sources/Gold`. 13 dimensions generated directly from each notebook's `TableSchema` (so the column list matches what actually gets written to `Gold.gold.*`) plus one hand-added role-playing dimension (`Dim_Due_Date`, see below), 6 facts, 40 relationships.
+Import-mode TMDL definition for the Gold star schema in `sources/Gold`. 13 dimensions generated directly from each notebook's `TableSchema` (so the column list matches what actually gets written to `Gold.gold.*`) plus one hand-added role-playing dimension (`Dim_Due_Date`, see below), 7 facts, 43 relationships.
 
 `Fact_Test_Run` (run-by-run trend history) was deliberately left out -- the test report only needs the current-status matrix (`Fact_Test`) and requirement coverage (`Fact_Test_Coverage`), not a trend/first-time-pass-rate view. The notebook still exists in git history if that's needed later.
 
@@ -43,14 +43,25 @@ CALCULATE(
 
 `Rollup_Start_Date`/`Rollup_End_Date` were chosen as Fact_Issue's active pair because the Gantt/timeline report is the primary consumer and the notebook's own comment says to point visuals at the rollup columns, not the raw ones.
 
+## Fact_Resource_Day_Allocation -- capacity / conflict detection
+
+New fact, grain: one row per resource per issue per WORKING DAY the issue is planned to run through. Exists to answer "is this person double-booked" -- something `Fact_Resource_Allocation` (issue-level, no day breakdown) can't. Jira has no "hours per day" field anywhere, so this table MANUFACTURES one on explicit assumptions -- read the notebook's own header comment (`Gold - Fact_Resource_Day_Allocation.py`) before trusting its numbers for anything beyond "spot a likely conflict":
+
+1. Only **Lead** allocations count (matches `Fact_Resource_Allocation`'s own effort-weighting).
+2. An issue's `Original_Estimate_Hours` is spread **evenly** across its own working days (`Planned_Start_Date`..`Planned_End_Date`, not the rolled-up range -- that would double-count a parent's hours on top of its children's).
+3. Issues missing a planned range or an estimate are **excluded**, not guessed at.
+4. Weekends are excluded; public holidays are **not** -- no holiday calendar in this model.
+
+Reads two other facts (`Fact_Resource_Allocation`, `Fact_Issue`) -- the second exception to "facts don't read facts" alongside `Fact_Test_Coverage`. `[Conflicting Resource-Days]` on the table is a starter measure (SUMMARIZE to the resource-day grain, compare against `Dim_Resource[Daily_Capacity_Hours]`) -- needs testing against real data, this pattern is easy to get subtly wrong.
+
+## Week buckets on Dim_Date / Dim_Due_Date
+
+`week_start_date` (Monday), `week_end_date` (Sunday), and `week_label` (e.g. "Aug 2026 10-16") were added to `build_date_dimension` in the wheel (0.3.69) -- for a Resource report grid with weekly columns like a Jira Team Timeline view, instead of one column per day.
+
 ## Known model gaps (not fixed here -- flagging for a decision)
 
 - **Dim_Link_Type has no relationships** -- nothing consumes it since `Bridge_Issue_Link` was deleted. It's in this model as a placeholder; delete the table here (and the notebook) if issue-link traceability reporting isn't coming back.
 - **`Fact_Test[Parent_Issue_Code]`** is a plain text column, not a relationship -- there's no `Test_Issue_Key`-style FK from Fact_Test to the parent issue in Dim_Issue. Add one (join on `Issue_Code`) if the test report needs to slice by the parent requirement's own attributes beyond the code string.
-- **No week-start column on Dim_Date** -- if the Resource report needs weekly buckets (like a Jira Team Timeline view), the date dimension needs a `week_start_date` column added to `build_date_dimension`.
-- **Resource-day-level capacity/conflict detection isn't modelled yet.** `Dim_Resource[Daily_Capacity_Hours]` exists, but there's no fact at the (resource, day) grain to compare allocated hours against it -- needed for an over-allocation/"conflicts" measure like the Jira Team Timeline view.
-
-Resolved since the last update: **Fact_Test and Fact_Test_Coverage now have Project_Key/Team_Key**, resolved via the Requirement (Fact_Test goes through its Parent_Issue_Code first, since a test set's own project/team isn't necessarily the delivery project; Fact_Test_Coverage resolves directly since Requirement is its own anchor issue).
 
 ## Measures included
 

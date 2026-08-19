@@ -164,3 +164,15 @@ relationship r36
 	fromColumn: Fact_Worklog.Started_Date
 	toColumn: Dim_Date.date
 
+relationship r41
+	fromColumn: Fact_Resource_Day_Allocation.Resource_Key
+	toColumn: Dim_Resource.Resource_Key
+
+relationship r42
+	fromColumn: Fact_Resource_Day_Allocation.Issue_Key
+	toColumn: Dim_Issue.Issue_Key
+
+relationship r43
+	fromColumn: Fact_Resource_Day_Allocation.Date
+	toColumn: Dim_Date.date
+

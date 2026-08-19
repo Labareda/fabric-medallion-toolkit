@@ -37,6 +37,10 @@
 #     (and the run-level Dim_Test_Status/Dim_Resource lookups it alone
 #     needed) was dropped. Re-add it if a trend/first-time-pass-rate view
 #     comes into scope later -- the notebook history has a working version.
+#   + Fact_Resource_Day_Allocation -- resource/day capacity for conflict
+#     detection on the Resource report. Reads Fact_Resource_Allocation AND
+#     Fact_Issue (declared as a dependency below), the second exception to
+#     "facts don't read facts" alongside Fact Test Coverage.
 
 # CELL ********************
 from notebookutils import mssparkutils
@@ -89,10 +93,12 @@ FACT_NOTEBOOKS = {
     "Gold - Fact_Resource_Allocation": [],
     "Gold - Fact_Worklog": [],
     "Gold - Fact Test": [],
-    # Reads Gold.gold.fact_test (set_stats CTE) -- the one fact that reads
-    # another fact in this model, so it's the one exception to "facts only
-    # depend on other facts here, never implicitly."
+    # Reads Gold.gold.fact_test (set_stats CTE) -- one of two exceptions to
+    # "facts only depend on other facts here, never implicitly."
     "Gold - Fact Test Coverage": ["Gold - Fact Test"],
+    # Reads Gold.gold.fact_resource_allocation AND fact_issue -- the other
+    # exception. Must run after both.
+    "Gold - Fact_Resource_Day_Allocation": ["Gold - Fact_Resource_Allocation", "Gold - Fact_Issue"],
 }
 
 # --- Steps allowed to fail without killing the run -------------------------

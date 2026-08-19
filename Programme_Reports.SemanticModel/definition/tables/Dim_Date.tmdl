@@ -106,6 +106,29 @@ table 'Dim_Date'
 
 		annotation SummarizationSetBy = Automatic
 
+	column 'week_start_date'
+		dataType: dateTime
+		formatString: Short Date
+		summarizeBy: none
+		sourceColumn: week_start_date
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'week_end_date'
+		dataType: dateTime
+		formatString: Short Date
+		summarizeBy: none
+		sourceColumn: week_end_date
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'week_label'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: week_label
+
+		annotation SummarizationSetBy = Automatic
+
 	partition 'Dim_Date' = m
 		mode: import
 		source =
