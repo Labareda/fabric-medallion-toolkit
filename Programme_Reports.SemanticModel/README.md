@@ -1,6 +1,6 @@
 # Programme_Reports semantic model
 
-Import-mode TMDL definition for the Gold star schema in `sources/Gold`. 13 dimensions generated directly from each notebook's `TableSchema` (so the column list matches what actually gets written to `Gold.gold.*`) plus one hand-added role-playing dimension (`Dim_Due_Date`, see below), 7 facts, 43 relationships.
+Import-mode TMDL definition for the Gold star schema in `sources/Gold`. 13 dimensions generated directly from each notebook's `TableSchema` (so the column list matches what actually gets written to `Gold.gold.*`) plus one hand-added role-playing dimension (`Dim_Due_Date`, see below), 8 facts, 47 relationships.
 
 `Fact_Test_Run` (run-by-run trend history) was deliberately left out -- the test report only needs the current-status matrix (`Fact_Test`) and requirement coverage (`Fact_Test_Coverage`), not a trend/first-time-pass-rate view. The notebook still exists in git history if that's needed later.
 
@@ -58,10 +58,23 @@ Reads two other facts (`Fact_Resource_Allocation`, `Fact_Issue`) -- the second e
 
 `week_start_date` (Monday), `week_end_date` (Sunday), and `week_label` (e.g. "Aug 2026 10-16") were added to `build_date_dimension` in the wheel (0.3.69) -- for a Resource report grid with weekly columns like a Jira Team Timeline view, instead of one column per day.
 
+## Bridge_Issue_Blocks -- Blocked Tests report
+
+New bridge table, grain: one row per (blocked issue, blocking issue) pair, sourced from `link_type = 'Blocks'` links (`Blocking_Issue_Code` "blocks"/is blocked by" `Blocked_Issue_Code`). Built for the client's Blocked Tests requirement: list tests currently Blocked, and for each, the work item(s) blocking it. `Dim_Issue.Predecessor_Issue_Code` already carried this same information but as one comma-joined string per issue -- not something a report table can list row-by-row, which is what this table is for instead.
+
+`Fact_Test` now has two real relationships to `Dim_Issue` (previously only text columns, `Test_Code`/`Parent_Issue_Code`):
+- `Test_Issue_Key` -- **active**. The test issue itself.
+- `Parent_Issue_Key` -- **inactive** (same target table as Test_Issue_Key, only one relationship between the same two tables can be active). The Requirement/Story the test set covers.
+
+`Bridge_Issue_Blocks` relates to `Dim_Issue` twice too:
+- `Blocked_Issue_Key` -- **active**. Lets `Fact_Test` (blocked tests, via `Test_Issue_Key`) -> `Dim_Issue` -> `Bridge_Issue_Blocks` work as a plain relationship chain, no DAX needed, for "what blocks this TEST".
+- `Blocking_Issue_Key` -- **inactive**. The reverse direction (what does this issue block), less commonly needed.
+
+**Open question, needs a decision before building the report page**: does "the Linked Work Items that are linked with Is Blocked By" mean work items blocking the **Test issue itself**, or work items blocking the test's **parent Requirement/Story**? Both paths exist in the model now (`Test_Issue_Key`, active, wired straight through; `Parent_Issue_Key`, inactive, needs a `USERELATIONSHIP` measure) -- picking one just needs the client's actual intent.
+
 ## Known model gaps (not fixed here -- flagging for a decision)
 
 - **Dim_Link_Type has no relationships** -- nothing consumes it since `Bridge_Issue_Link` was deleted. It's in this model as a placeholder; delete the table here (and the notebook) if issue-link traceability reporting isn't coming back.
-- **`Fact_Test[Parent_Issue_Code]`** is a plain text column, not a relationship -- there's no `Test_Issue_Key`-style FK from Fact_Test to the parent issue in Dim_Issue. Add one (join on `Issue_Code`) if the test report needs to slice by the parent requirement's own attributes beyond the code string.
 
 ## Measures included
 

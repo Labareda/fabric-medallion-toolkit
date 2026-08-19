@@ -39,12 +39,19 @@
 #
 # PARENT ISSUE CONTEXT
 # Each test set is linked to one or more parent issues (Stories/Requirements)
-# via Jira's "is tested by" link. We carry the FIRST linked parent issue
-# directly onto this fact so the client sees:
+# via Jira's "Test" link. We carry the FIRST linked parent issue directly
+# onto this fact so the client sees:
 #   Parent Issue -> Test Set -> Test
-# without needing to traverse Bridge_Issue_Link in their report.
-# Where a test set has multiple parent issues, all are surfaced in
-# Fact_Test_Coverage (separate notebook) for the coverage report.
+# without needing a bridge table in their report. Where a test set has
+# multiple parent issues, all are surfaced in Fact_Test_Coverage (separate
+# notebook) for the coverage report.
+#
+# TEST_ISSUE_KEY / PARENT_ISSUE_KEY -- proper relationships to Dim_Issue,
+# not just the display-text Test_Code/Parent_Issue_Code. Added so a report
+# can relate a blocked test (or its parent) through to Bridge_Issue_Blocks
+# for "what work item is this blocked by" -- Predecessor_Issue_Code on
+# Dim_Issue is a comma-joined string, not something a report table can
+# list row-by-row.
 
 # CELL ********************
 import fabric_medallion_toolkit as fmt
@@ -132,6 +139,32 @@ schema = fmt.TableSchema(
                 "table": f"{GOLD_SCHEMA}.dim_team",
                 "natural_key_column": "Team_Name",
                 "key_column": "Team_Key",
+                "unknown_value": "Unknown",
+            },
+        },
+        # Proper relationships to Dim_Issue, for BOTH the test issue itself
+        # and the parent it covers -- Parent_Issue_Code/Test_Code alone are
+        # display text, not something a report can relate through to reach
+        # e.g. Bridge_Issue_Blocks for "what's blocking this test / its
+        # parent". Test_Issue_Key is the active path; Parent_Issue_Key
+        # points at the SAME Dim_Issue table too, so mark it inactive in
+        # the semantic model and use USERELATIONSHIP if both are ever
+        # needed in one visual.
+        "Test_Issue_Key": {
+            "type": "string",
+            "lookup_missing_from": {
+                "table": f"{GOLD_SCHEMA}.dim_issue",
+                "natural_key_column": "Issue_Id",
+                "key_column": "Issue_Key",
+                "unknown_value": "Unknown",
+            },
+        },
+        "Parent_Issue_Key": {
+            "type": "string",
+            "lookup_missing_from": {
+                "table": f"{GOLD_SCHEMA}.dim_issue",
+                "natural_key_column": "Issue_Code",
+                "key_column": "Issue_Key",
                 "unknown_value": "Unknown",
             },
         },
@@ -228,7 +261,9 @@ df = spark.sql(f"""
         dtstat.Test_Status_Key,
         res.Resource_Key AS Executor_Key,
         proj.Project_Key,
-        team.Team_Key
+        team.Team_Key,
+        test_di.Issue_Key   AS Test_Issue_Key,
+        parent_di.Issue_Key AS Parent_Issue_Key
 
     FROM memberships m
     LEFT JOIN latest_runs lr
@@ -251,6 +286,10 @@ df = spark.sql(f"""
            ON proj.Project_Id = parent_issue.fields_project_id
     LEFT JOIN {GOLD_SCHEMA}.dim_team team
            ON team.Team_Name = parent_issue.fields_team_name
+    LEFT JOIN {GOLD_SCHEMA}.dim_issue test_di
+           ON test_di.Issue_Id = m.Test_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_issue parent_di
+           ON parent_di.Issue_Code = p.Parent_Issue_Code
 """)
 
 # CELL ********************

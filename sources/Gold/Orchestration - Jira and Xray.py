@@ -41,6 +41,10 @@
 #     detection on the Resource report. Reads Fact_Resource_Allocation AND
 #     Fact_Issue (declared as a dependency below), the second exception to
 #     "facts don't read facts" alongside Fact Test Coverage.
+#   + Bridge_Issue_Blocks -- normalised one-row-per-relationship "is blocked
+#     by" table, for the Blocked Tests report (client wants a list of
+#     blocked tests plus the work items blocking them; Dim_Issue.
+#     Predecessor_Issue_Code is a comma-joined string, not report-friendly).
 
 # CELL ********************
 from notebookutils import mssparkutils
@@ -92,6 +96,7 @@ FACT_NOTEBOOKS = {
     "Gold - Fact_Issue_History": [],
     "Gold - Fact_Resource_Allocation": [],
     "Gold - Fact_Worklog": [],
+    "Gold - Bridge_Issue_Blocks": [],
     "Gold - Fact Test": [],
     # Reads Gold.gold.fact_test (set_stats CTE) -- one of two exceptions to
     # "facts only depend on other facts here, never implicitly."
