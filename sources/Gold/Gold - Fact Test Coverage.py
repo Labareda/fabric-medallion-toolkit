@@ -97,12 +97,22 @@ df = spark.sql(f"""
     -- A link is captured from whichever side Jira recorded it on, so both
     -- directions have to be normalised to the same (Test_Set_Code,
     -- Requirement_Code) shape here.
+    --
+    -- UNION (not UNION ALL): the Jira REST API attaches each link to BOTH
+    -- linked issues' own issuelinks field, so a per-issue Silver ingestion
+    -- captures the SAME link twice under two different link_ids -- once
+    -- anchored on the Test Set (outward_issue_key populated), once
+    -- anchored on the Requirement (inward_issue_key populated). Both rows
+    -- produce the identical (Test_Set_Code, Requirement_Code) pair, which
+    -- is a real duplicate for this fact's merge key, not new information
+    -- -- confirmed by the "duplicate merge field combinations" error this
+    -- raised with UNION ALL. Plain UNION dedups the combined result.
     covering_sets AS (
         SELECT issue_key AS Test_Set_Code, outward_issue_key AS Requirement_Code
         FROM Silver.jira.issue_links
         WHERE link_type = 'Test' AND outward_issue_key IS NOT NULL
 
-        UNION ALL
+        UNION
 
         SELECT inward_issue_key AS Test_Set_Code, issue_key AS Requirement_Code
         FROM Silver.jira.issue_links
