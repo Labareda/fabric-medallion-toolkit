@@ -238,23 +238,23 @@ df = spark.sql(f"""
 # ## Roll dates up the hierarchy so summary rows get bars
 
 # CELL ********************
-issue_parents = spark.sql(f"SELECT Issue_Id, Parent_Issue_Id FROM {GOLD_SCHEMA}.dim_issue")
-df = fmt.rollup_hierarchy_dates(
-    df.join(issue_parents, on="Issue_Id", how="left"),
-    id_column="Issue_Id", parent_id_column="Parent_Issue_Id",
+# Sort_Path-based rollup (single range join) instead of the parent/child
+# iterative walk -- the walk forced up to 2 Spark actions PER LEVEL of
+# hierarchy depth (materialize + early-stop check), which on data this
+# size was job-scheduling overhead dominating wall-clock time, not real
+# compute. Dim_Issue already builds Sort_Path (needed for the Gantt sort
+# order anyway), so this rollup can reuse it for a single-pass join
+# instead of walking the tree one generation at a time. See
+# rollup_hierarchy_dates_by_sort_path's docstring for how the range
+# check works.
+issue_paths = spark.sql(f"SELECT Issue_Id, Sort_Path FROM {GOLD_SCHEMA}.dim_issue")
+df = fmt.rollup_hierarchy_dates_by_sort_path(
+    df.join(issue_paths, on="Issue_Id", how="left"),
+    id_column="Issue_Id", sort_path_column="Sort_Path",
     start_column="Planned_Start_Date", end_column="Planned_End_Date",
-    # The wheel's bounded upward walk runs up to max_depth passes, and each
-    # pass forces two Spark actions (materialize + an early-stop "did
-    # anything change" check) -- on data this size that's job-scheduling
-    # overhead, not real compute, and it's most of why this cell was slow.
-    # The issue hierarchy is only 7 tiers deep (Programme..Sub-task, see
-    # Dim_Issue's RANK_TO_LEVEL), so it can never need more than 7 passes
-    # to converge -- capping here instead of the wheel's default of 10
-    # trims the guaranteed-wasted passes without changing the result.
-    max_depth=7,
     # Has_Own_Dates (the wheel's default out_flag) is dropped -- redundant
     # with Planned_Start_Date IS NOT NULL, simplified out of the model.
-).drop("Parent_Issue_Id", "Has_Own_Dates")
+).drop("Sort_Path", "Has_Own_Dates")
 
 # CELL ********************
 fmt.merge(spark, df, schema)

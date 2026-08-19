@@ -330,3 +330,95 @@ def rollup_hierarchy_dates(df: DataFrame, id_column: str, parent_id_column: str,
     final = df.join(result, on=id_column, how="left")
     result.unpersist()
     return final
+
+
+def rollup_hierarchy_dates_by_sort_path(df: DataFrame, id_column: str, sort_path_column: str,
+                                         start_column: str, end_column: str,
+                                         out_start: str = "Rollup_Start_Date",
+                                         out_end: str = "Rollup_End_Date",
+                                         out_flag: str = "Has_Own_Dates") -> DataFrame:
+    """
+    Same contract and precedence as rollup_hierarchy_dates (own dates win;
+    else min(start)/max(end) across every descendant at any depth; else
+    NULL) -- but computed as ONE range join instead of an iterative
+    bounded walk. Requires Sort_Path already built (e.g. by
+    enrich_issue_hierarchy / build_sort_path), because the whole trick
+    depends on its prefix property: a parent's Sort_Path is a literal
+    prefix of every one of its descendants' paths, at ANY depth, not just
+    one generation down.
+
+    "Is B a descendant of A" becomes a plain string RANGE check instead of
+    a parent-child walk that has to climb one generation per pass:
+
+        A.Sort_Path + SEP  <=  B.Sort_Path  <  A.Sort_Path + UPPER_BOUND
+
+    UPPER_BOUND is the character immediately after PATH_SEPARATOR ("!").
+    Since PATH_SEPARATOR is defined to sort below every character a rank
+    value can start with, nothing build_sort_path ever produces can fall
+    in [SEP, UPPER_BOUND) except "SEP itself, followed by more of B's own
+    path" -- so this range catches exactly "B's path starts with A's path
+    + separator" (every proper descendant of A, at every depth) and
+    NOTHING else, in a single comparison Spark evaluates once, not one
+    join per level of depth.
+
+    Only rows that actually HAVE a date can affect anyone's MIN/MAX, so
+    the join's "descendant" side is pre-filtered to those before the
+    broadcast -- on this model's own data, roughly 9 in 10 issues have no
+    dates of their own (see Fact_Issue's notes), so this alone cuts the
+    join's other side by an order of magnitude before it ever runs.
+
+    ONE Spark action for the whole rollup (materializing `result` below),
+    versus rollup_hierarchy_dates' up to 2 * max_depth. Prefer this
+    whenever Sort_Path is already available; fall back to
+    rollup_hierarchy_dates for a hierarchy that doesn't have one built.
+    """
+    spark = df.sparkSession
+    upper_bound_char = chr(ord(PATH_SEPARATOR) + 1)
+
+    base = df.select(
+        F.col(id_column).alias("_id"),
+        F.col(sort_path_column).alias("_path"),
+        F.col(start_column).alias("_own_start"),
+        F.col(end_column).alias("_own_end"),
+    ).cache()
+    row_count = base.count()  # force full materialization now, not lazily later (see module docstring)
+
+    with _small_data_shuffle_partitions(spark, row_count):
+        # Only dated rows can contribute to any ancestor's MIN/MAX -- shrink
+        # the broadcast side to just those before the range join runs.
+        dated = base.filter(F.col("_own_start").isNotNull() | F.col("_own_end").isNotNull())
+
+        lower = F.concat(F.col("p._path"), F.lit(PATH_SEPARATOR))
+        upper = F.concat(F.col("p._path"), F.lit(upper_bound_char))
+
+        rollup = (
+            base.alias("p")
+            .join(
+                F.broadcast(dated.alias("d")),
+                (F.col("d._path") >= lower) & (F.col("d._path") < upper),
+                "left",
+            )
+            .groupBy(F.col("p._id").alias("_id"))
+            .agg(
+                F.min(F.col("d._own_start")).alias("_desc_min_start"),
+                F.max(F.col("d._own_end")).alias("_desc_max_end"),
+            )
+        )
+
+        result = (
+            base.alias("b")
+            .join(rollup.alias("r"), F.col("b._id") == F.col("r._id"), "left")
+            .select(
+                F.col("b._id").alias(id_column),
+                F.coalesce(F.col("b._own_start"), F.col("r._desc_min_start")).alias(out_start),
+                F.coalesce(F.col("b._own_end"), F.col("r._desc_max_end")).alias(out_end),
+                (F.col("b._own_start").isNotNull() | F.col("b._own_end").isNotNull()).alias(out_flag),
+            )
+        ).cache()
+        result.count()  # materialize before we unpersist its inputs below
+
+    base.unpersist()
+
+    final = df.join(result, on=id_column, how="left")
+    result.unpersist()
+    return final

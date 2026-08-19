@@ -52,7 +52,7 @@ from fabric_medallion_toolkit.silver import (
 # --- gold: merge, keys, lookups, date dimension ---
 from fabric_medallion_toolkit.gold import (
     merge, build_gold_table, run_gold_model,
-    build_date_dimension, add_date_dimension_sentinel, merge_scd2, add_guid_key, lookup_key, lookup_keys, add_unknown_member, build_hierarchy_levels, build_typed_hierarchy_levels, build_sort_path, rollup_hierarchy_dates, enrich_issue_hierarchy, assert_unique,
+    build_date_dimension, add_date_dimension_sentinel, merge_scd2, add_guid_key, lookup_key, lookup_keys, add_unknown_member, build_hierarchy_levels, build_typed_hierarchy_levels, build_sort_path, rollup_hierarchy_dates, rollup_hierarchy_dates_by_sort_path, enrich_issue_hierarchy, assert_unique,
 )
 
 # --- utils, for the rarer case you need them directly ---
