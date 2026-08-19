@@ -142,6 +142,10 @@ relationship r34
 	toColumn: Dim_Resource.Resource_Key
 
 relationship r35
+	fromColumn: Fact_Worklog.Role_Key
+	toColumn: Dim_Role.Role_Key
+
+relationship r36
 	fromColumn: Fact_Worklog.Started_Date
 	toColumn: Dim_Date.date
 

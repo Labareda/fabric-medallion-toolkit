@@ -1,10 +1,10 @@
 table 'Fact_Worklog'
 	lineageTag: fact_worklog
 
-	column 'Worklog_Key'
+	column 'Worklog_Fact_Key'
 		dataType: string
 		summarizeBy: none
-		sourceColumn: Worklog_Key
+		sourceColumn: Worklog_Fact_Key
 		isHidden
 
 		annotation SummarizationSetBy = Automatic
@@ -60,6 +60,14 @@ table 'Fact_Worklog'
 		dataType: string
 		summarizeBy: none
 		sourceColumn: Author_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Role_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Role_Key
 		isHidden
 
 		annotation SummarizationSetBy = Automatic

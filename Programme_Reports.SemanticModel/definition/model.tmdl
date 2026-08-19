@@ -1,9 +1,15 @@
 model Model
-	culture: en-US
+	culture: en-GB
 	defaultPowerBIDataSourceVersion: powerBI_V3
-	sourceQueryCulture: en-US
-	discourageImplicitMeasures
+	sourceQueryCulture: en-JE
+	valueFilterBehavior: independent
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
 
 annotation __PBI_TimeIntelligenceEnabled = 1
-annotation PBI_QueryOrder = ["Dim_Date", "Dim_Project", "Dim_Issue", "Dim_IssueType", "Dim_Priority", "Dim_Resolution", "Dim_Status", "Dim_Resource", "Dim_Role", "Dim_Team", "Dim_Test_Set", "Dim_Test_Status", "Dim_Link_Type", "Fact_Issue", "Fact_Issue_History", "Fact_Resource_Allocation", "Fact_Test", "Fact_Test_Coverage", "Fact_Worklog"]
+
+annotation PBI_ProTooling = ["DevMode"]
+
+ref cultureInfo en-GB
 

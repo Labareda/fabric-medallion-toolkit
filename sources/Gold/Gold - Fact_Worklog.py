@@ -14,6 +14,17 @@
 # Note also: this gives hours SPENT. Utilisation is spent / available, and
 # Jira holds no availability at all. Fact_Capacity (external feed) is
 # required before any utilisation % can be computed.
+#
+# ROLE_KEY -- who logged the time, relative to the ISSUE they logged it
+# against. Role isn't a property of the worklog row itself (Jira doesn't
+# record one); it's derived the same way Fact_Resource_Allocation derives
+# it: the author is 'Lead' if they're that issue's assignee, 'Involved' if
+# they're on that issue's People Involved list, otherwise they logged time
+# without a formal role on the issue at all (falls to Dim_Role's Unknown
+# member) -- which is itself a real, worth-seeing number, not an error.
+# A person can be Lead on one issue and Involved (or nothing) on another,
+# so this has to be computed per worklog row, not looked up from a
+# person-level attribute.
 
 # CELL ********************
 import fabric_medallion_toolkit as fmt
@@ -43,11 +54,22 @@ schema = fmt.TableSchema(
                                      "natural_key_column": "Resource_Account_Id", "key_column": "Resource_Key",
                                      "unknown_value": "Unknown"},
         },
+        "Role_Key": {
+            "type": "string",
+            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_role",
+                                     "natural_key_column": "Role_Name", "key_column": "Role_Key",
+                                     "unknown_value": "Unknown"},
+        },
     },
 )
 
 # CELL ********************
 df = spark.sql(f"""
+    WITH involved_pairs AS (
+        SELECT DISTINCT issue_id, person_account_id
+        FROM Silver.jira.issue_people_involved
+        WHERE person_account_id IS NOT NULL
+    )
     SELECT
         w.worklog_id AS Worklog_Id,
         w.issue_key  AS Issue_Code,
@@ -55,10 +77,18 @@ df = spark.sql(f"""
         CAST(w.started AS date) AS Started_Date,
         w.time_spent_seconds / 3600.0 AS Time_Spent_Hours,
         dim_issue.Issue_Key,
-        res.Resource_Key AS Author_Key
+        res.Resource_Key AS Author_Key,
+        role.Role_Key
     FROM Silver.jira.worklogs w
-    LEFT JOIN {GOLD_SCHEMA}.dim_issue dim_issue ON w.issue_id = dim_issue.Issue_Id
-    LEFT JOIN {GOLD_SCHEMA}.dim_resource res    ON w.author_account_id = res.Resource_Account_Id
+    LEFT JOIN Silver.jira.issues i               ON w.issue_id = i.id
+    LEFT JOIN involved_pairs ip                  ON w.issue_id = ip.issue_id
+                                                 AND w.author_account_id = ip.person_account_id
+    LEFT JOIN {GOLD_SCHEMA}.dim_issue dim_issue  ON w.issue_id = dim_issue.Issue_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_resource res     ON w.author_account_id = res.Resource_Account_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_role role        ON role.Role_Name = COALESCE(
+        CASE WHEN w.author_account_id = i.fields_assignee_accountId THEN 'Lead' END,
+        CASE WHEN ip.person_account_id IS NOT NULL THEN 'Involved' END
+    )
 """)
 
 # CELL ********************
