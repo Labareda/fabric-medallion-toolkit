@@ -185,10 +185,9 @@ df = spark.sql(f"""
         lr.Latest_Status IS NULL                           AS Is_Not_Run,
         lr.Latest_Status IS NOT NULL                       AS Is_Executed,
 
-        -- FK natural keys, resolved to surrogate keys below
-        m.Test_Set_Id                               AS Test_Set_Id_fk,
-        COALESCE(lr.Latest_Status, 'NOT RUN')       AS Test_Status_Name,
-        lr.executed_by_id                           AS Resource_Account_Id
+        dts.Test_Set_Key,
+        dtstat.Test_Status_Key,
+        res.Resource_Key AS Executor_Key
 
     FROM memberships m
     LEFT JOIN latest_runs lr
@@ -199,23 +198,13 @@ df = spark.sql(f"""
            ON u.accountId = lr.executed_by_id
     LEFT JOIN parent_issues p
            ON p.test_set_issue_id = m.Test_Set_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_test_set dts
+           ON dts.Test_Set_Id = m.Test_Set_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_test_status dtstat
+           ON dtstat.Test_Status_Name = COALESCE(lr.Latest_Status, 'NOT RUN')
+    LEFT JOIN {GOLD_SCHEMA}.dim_resource res
+           ON res.Resource_Account_Id = lr.executed_by_id
 """)
-
-# MARKDOWN ********************
-
-# ## Resolve the FK surrogate keys the schema declares
-
-# CELL ********************
-df = (
-    df
-    .join(spark.sql(f"SELECT Test_Set_Id, Test_Set_Key FROM {GOLD_SCHEMA}.dim_test_set"),
-          on="Test_Set_Id", how="left")
-    .join(spark.sql(f"SELECT Test_Status_Name, Test_Status_Key FROM {GOLD_SCHEMA}.dim_test_status"),
-          on="Test_Status_Name", how="left")
-    .join(spark.sql(f"SELECT Resource_Account_Id, Resource_Key AS Executor_Key FROM {GOLD_SCHEMA}.dim_resource"),
-          on="Resource_Account_Id", how="left")
-    .drop("Test_Set_Id_fk", "Resource_Account_Id")
-)
 
 # CELL ********************
 fmt.merge(spark, df, schema)
