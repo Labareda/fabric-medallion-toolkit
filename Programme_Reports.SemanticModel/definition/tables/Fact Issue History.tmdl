@@ -12,9 +12,12 @@ table 'Fact Issue History'
 
 	column 'Issue Id'
 		dataType: string
+		isHidden
 		lineageTag: 887181c2-4522-415c-8f7b-12d0bd61c6d2
 		summarizeBy: none
 		sourceColumn: Issue Id
+
+		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
 

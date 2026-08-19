@@ -55,17 +55,23 @@ table 'Fact Resource Allocation'
 
 	column 'Issue Id'
 		dataType: string
+		isHidden
 		lineageTag: 40eb7890-5089-40d3-b750-23237ce24690
 		summarizeBy: none
 		sourceColumn: Issue Id
+
+		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
 
 	column 'Role Name'
 		dataType: string
+		isHidden
 		lineageTag: d70de0f2-07fc-4e93-99f5-743654c30c3e
 		summarizeBy: none
 		sourceColumn: Role Name
+
+		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
 

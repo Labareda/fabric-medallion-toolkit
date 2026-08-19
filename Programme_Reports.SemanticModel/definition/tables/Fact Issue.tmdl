@@ -2,19 +2,6 @@
 table 'Fact Issue'
 	lineageTag: 0a82a02f-4e70-449c-9b64-53e532045d7d
 
-	measure Progress = ```
-			
-			IF(
-			    SELECTEDVALUE('Dim Status'[Status Category]) = "Done",
-			    1,
-			    DIVIDE(SUM('Fact Issue'[Time Spent Hours]), SUM('Fact Issue'[Original Estimate Hours]), 0)
-			)
-			 
-			```
-		lineageTag: 24f50b75-91cd-48cc-b67a-e50daf492552
-
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
-
 	measure 'Story Points Committed' = SUM ( 'Fact Issue'[Story Points] )
 		lineageTag: 19b85fc4-da44-4e79-a4a4-70de72ebea35
 
@@ -27,11 +14,6 @@ table 'Fact Issue'
 			    'Dim Status'[Status Category] = "Done"
 			)
 		lineageTag: 48604c40-5e0e-4a29-8487-1a4a61047eec
-
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
-
-	measure 'Avg Cycle Time (Days)' = AVERAGE('Fact Issue'[Cycle Time Days])
-		lineageTag: 8d243e9f-0bd7-4f3a-8ba7-5e862f1b1932
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
@@ -303,30 +285,12 @@ table 'Fact Issue'
 
 		annotation UnderlyingDateTimeDataType = Date
 
-	column 'Age Days'
-		dataType: int64
-		formatString: 0
-		lineageTag: df8707be-b09e-494f-bea9-510c7aff48ab
-		summarizeBy: sum
-		sourceColumn: Age Days
-
-		annotation SummarizationSetBy = Automatic
-
 	column 'Lead Time Days'
 		dataType: int64
 		formatString: 0
 		lineageTag: 03c8f08f-07f3-4782-ba26-b68611852094
 		summarizeBy: sum
 		sourceColumn: Lead Time Days
-
-		annotation SummarizationSetBy = Automatic
-
-	column 'Cycle Time Days'
-		dataType: int64
-		formatString: 0
-		lineageTag: 7cb26929-e039-466a-970b-43054dbc23cd
-		summarizeBy: sum
-		sourceColumn: Cycle Time Days
 
 		annotation SummarizationSetBy = Automatic
 
@@ -358,14 +322,6 @@ table 'Fact Issue'
 		annotation SummarizationSetBy = Automatic
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
-
-	column 'Likelihood Score'
-		dataType: string
-		lineageTag: 6486aafd-7a04-4549-b18c-609b7ea6839e
-		summarizeBy: none
-		sourceColumn: Likelihood Score
-
-		annotation SummarizationSetBy = Automatic
 
 	column 'Severity Score'
 		dataType: string

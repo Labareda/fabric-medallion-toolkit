@@ -99,7 +99,7 @@
           "Column": {
             "Expression": {
               "SourceRef": {
-                "Entity": "Fact Test"
+                "Entity": "Dim Test Status"
               }
             },
             "Property": "Is Blocked"
@@ -110,8 +110,8 @@
           "Version": 2,
           "From": [
             {
-              "Name": "f",
-              "Entity": "Fact Test",
+              "Name": "d",
+              "Entity": "Dim Test Status",
               "Type": 0
             }
           ],
@@ -124,7 +124,7 @@
                       "Column": {
                         "Expression": {
                           "SourceRef": {
-                            "Source": "f"
+                            "Source": "d"
                           }
                         },
                         "Property": "Is Blocked"

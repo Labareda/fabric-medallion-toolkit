@@ -3,9 +3,12 @@ table 'Dim test Set'
 
 	column 'Test Set Id'
 		dataType: string
+		isHidden
 		lineageTag: 58099582-7449-4f10-bcd6-03c487be6224
 		summarizeBy: none
 		sourceColumn: Test Set Id
+
+		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
 

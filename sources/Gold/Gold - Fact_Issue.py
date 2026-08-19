@@ -72,7 +72,6 @@ schema = fmt.TableSchema(
         # Board actually acts on. Risk_Previous_Score gives direction of travel.
         "Risk_Total_Score":         {"type": "double"},
         "Risk_Previous_Score":      {"type": "double"},
-        "Likelihood_Score":         {"type": "double"},
         "Severity_Score":           {"type": "double"},
         # Xray's own rollup, kept for reconciliation against Fact_Test.
         "Total_Tests":              {"type": "int"},
@@ -91,9 +90,7 @@ schema = fmt.TableSchema(
         # tool (Power BI, Tableau, a SQL query) gets the same answer.
         "Duration_Days":      {"type": "int"},
         "Slip_Days":          {"type": "int"},
-        "Age_Days":           {"type": "int"},
         "Lead_Time_Days":     {"type": "int"},
-        "Cycle_Time_Days":    {"type": "int"},
         "Is_Overdue":         {"type": "boolean", "default": False},
         "Is_Done":            {"type": "boolean", "default": False},
 
@@ -189,14 +186,9 @@ df = spark.sql(f"""
                  CAST(i.fields_resolutiondate AS date))  AS Actual_End_Date,
         CAST(i.fields_created AS date)         AS Created_Date,
 
-        DATEDIFF(CAST(i.fields_duedate AS date), CAST(i.fields_start_date AS date)) AS Duration_Days,
         DATEDIFF(CAST(i.fields_resolutiondate AS date), CAST(i.fields_duedate AS date)) AS Slip_Days,
-        DATEDIFF(COALESCE(CAST(i.fields_resolutiondate AS date), CURRENT_DATE()),
-                 CAST(i.fields_created AS date)) AS Age_Days,
         DATEDIFF(CAST(i.fields_resolutiondate AS date),
                  CAST(i.fields_created AS date)) AS Lead_Time_Days,
-        DATEDIFF(CAST(i.fields_resolutiondate AS date),
-                 COALESCE(CAST(i.fields_actual_start AS date), a.Changelog_Actual_Start)) AS Cycle_Time_Days,
         (i.fields_duedate IS NOT NULL
          AND i.fields_resolutiondate IS NULL
          AND CAST(i.fields_duedate AS date) < CURRENT_DATE()) AS Is_Overdue,
@@ -211,7 +203,6 @@ df = spark.sql(f"""
         i.fields_timespent / 3600.0             AS Time_Spent_Hours,
         i.fields_risk_total_score               AS Risk_Total_Score,
         i.fields_risk_previous_score            AS Risk_Previous_Score,
-        i.fields_likelihood_score_value         AS Likelihood_Score,
         i.fields_severity_score_value           AS Severity_Score,
         i.fields_total_tests                    AS Total_Tests,
         i.fields_passed_tests                   AS Passed_Tests
@@ -247,6 +238,24 @@ df = fmt.rollup_hierarchy_dates_by_sort_path(
     # Has_Own_Dates (the wheel's default out_flag) is dropped -- redundant
     # with Planned_Start_Date IS NOT NULL, simplified out of the model.
 ).drop("Sort_Path", "Has_Own_Dates")
+
+# MARKDOWN ********************
+
+# ## Duration, from the ROLLED-UP dates
+# Duration_Days used to come from the issue's own Planned_Start/End_Date --
+# but roughly 10,500 of ~12,000 issues have no dates of their own (see the
+# NO SENTINEL DATES note above), so most rows got a NULL duration even
+# though the Gantt itself draws a bar for them via the rollup. Computed
+# here, AFTER rollup, from Rollup_Start_Date/Rollup_End_Date instead: same
+# "own dates win, else span the children" fallback the Gantt bar already
+# uses, so a row that shows a bar now also gets a duration number.
+
+# CELL ********************
+from pyspark.sql import functions as F
+df = df.withColumn(
+    "Duration_Days",
+    F.datediff(F.col("Rollup_End_Date"), F.col("Rollup_Start_Date")),
+)
 
 # CELL ********************
 fmt.merge(spark, df, schema)

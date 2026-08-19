@@ -36,9 +36,12 @@ table 'Fact Resource Day Allocation'
 
 	column 'Issue Id'
 		dataType: string
+		isHidden
 		lineageTag: 33f10564-f9b5-47de-b0da-47db2a424f92
 		summarizeBy: none
 		sourceColumn: Issue Id
+
+		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
 

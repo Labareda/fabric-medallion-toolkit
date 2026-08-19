@@ -84,12 +84,14 @@ schema = fmt.TableSchema(
         "Fail_Count":      {"type": "int", "default": 0},
 
         # Measures
+        # Pass/Fail/Blocked/Not-Run/Executed are NOT columns here -- they'd
+        # just be Latest_Status compared against a literal a second time.
+        # Dim_Test_Status already carries these same five booleans PER
+        # STATUS (see Gold - Dim Test Status.py), and Fact_Test already
+        # relates to it via Test_Status_Key, so the semantic model's
+        # measures CALCULATE through that relationship instead of a
+        # duplicated flag stored on every row here.
         "Test_Count":  {"type": "int", "default": 1},
-        "Is_Pass":     {"type": "boolean", "default": False},
-        "Is_Fail":     {"type": "boolean", "default": False},
-        "Is_Blocked":  {"type": "boolean", "default": False},
-        "Is_Not_Run":  {"type": "boolean", "default": True},
-        "Is_Executed": {"type": "boolean", "default": False},
 
         # Surrogate FKs
         "Test_Set_Key": {
@@ -251,11 +253,6 @@ df = spark.sql(f"""
 
         -- Measures
         1                                                  AS Test_Count,
-        COALESCE(lr.Latest_Status, 'NOT RUN') = 'PASSED'   AS Is_Pass,
-        COALESCE(lr.Latest_Status, 'NOT RUN') = 'FAILED'   AS Is_Fail,
-        COALESCE(lr.Latest_Status, 'NOT RUN') = 'BLOCKED'  AS Is_Blocked,
-        lr.Latest_Status IS NULL                           AS Is_Not_Run,
-        lr.Latest_Status IS NOT NULL                       AS Is_Executed,
 
         dts.Test_Set_Key,
         dtstat.Test_Status_Key,

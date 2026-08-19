@@ -7,7 +7,7 @@ table 'Fact Test'
 			        FILTER(
 			            ADDCOLUMNS(
 			                SUMMARIZE('Fact Test', 'Fact Test'[Test Fact Key]),
-			                "@IsBlocked", CALCULATE(SELECTEDVALUE('Fact Test'[Is Blocked])),
+			                "@IsBlocked", CALCULATE(SELECTEDVALUE('Dim Test Status'[Is Blocked])),
 			                "@HasLink", CALCULATE([Has Blocking Link])
 			            ),
 			            [@IsBlocked] = TRUE && [@HasLink] = FALSE
@@ -52,13 +52,13 @@ table 'Fact Test'
 		formatString: 0.0%
 		lineageTag: aef3d7c4-4653-47a5-9dbc-52ffe5407faf
 
-	measure 'Tests Failed' = CALCULATE([Total Tests], 'Fact Test'[Is Fail] = TRUE)
+	measure 'Tests Failed' = CALCULATE([Total Tests], 'Dim Test Status'[Is Fail] = TRUE)
 		lineageTag: 348317e6-c2ae-4a49-840c-5429db8068fb
 
-	measure 'Tests Not Run' = CALCULATE([Total Tests], 'Fact Test'[Is Not Run] = TRUE)
+	measure 'Tests Not Run' = CALCULATE([Total Tests], 'Dim Test Status'[Is Not Run] = TRUE)
 		lineageTag: 7a2a3bb5-92b0-4eb4-97f8-2ba58814a342
 
-	measure 'Tests Passed' = CALCULATE([Total Tests], 'Fact Test'[Is Pass] = TRUE)
+	measure 'Tests Passed' = CALCULATE([Total Tests], 'Dim Test Status'[Is Pass] = TRUE)
 		lineageTag: f9fb9e9f-1317-4083-9ecd-02190c56b00b
 
 	measure 'Total Tests' = SUM('Fact Test'[Test Count])
@@ -67,9 +67,12 @@ table 'Fact Test'
 
 	column 'Test Set Id'
 		dataType: string
+		isHidden
 		lineageTag: 804930b5-8083-41bf-a4d0-1fd13fe44b2a
 		summarizeBy: none
 		sourceColumn: Test Set Id
+
+		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
 
@@ -83,9 +86,12 @@ table 'Fact Test'
 
 	column 'Test Id'
 		dataType: string
+		isHidden
 		lineageTag: 4101b85f-2dac-4b30-ba04-b8e7c70a5d73
 		summarizeBy: none
 		sourceColumn: Test Id
+
+		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
 
@@ -141,51 +147,6 @@ table 'Fact Test'
 		lineageTag: 2e041af6-4985-4b2b-85de-f7e5f93eadcb
 		summarizeBy: sum
 		sourceColumn: Test Count
-
-		annotation SummarizationSetBy = Automatic
-
-	column 'Is Pass'
-		dataType: boolean
-		formatString: """TRUE"";""TRUE"";""FALSE"""
-		lineageTag: 1fe4c4dd-415a-46b2-9f9f-141bb3055c98
-		summarizeBy: none
-		sourceColumn: Is Pass
-
-		annotation SummarizationSetBy = Automatic
-
-	column 'Is Fail'
-		dataType: boolean
-		formatString: """TRUE"";""TRUE"";""FALSE"""
-		lineageTag: c9ea15cf-ad28-4556-bdf0-14f94ef955e1
-		summarizeBy: none
-		sourceColumn: Is Fail
-
-		annotation SummarizationSetBy = Automatic
-
-	column 'Is Blocked'
-		dataType: boolean
-		formatString: """TRUE"";""TRUE"";""FALSE"""
-		lineageTag: 75a1e61b-2fed-4f6c-8d06-be152bd11125
-		summarizeBy: none
-		sourceColumn: Is Blocked
-
-		annotation SummarizationSetBy = Automatic
-
-	column 'Is Not Run'
-		dataType: boolean
-		formatString: """TRUE"";""TRUE"";""FALSE"""
-		lineageTag: 8826e1c5-de7e-4b43-9899-517c70d45517
-		summarizeBy: none
-		sourceColumn: Is Not Run
-
-		annotation SummarizationSetBy = Automatic
-
-	column 'Is Executed'
-		dataType: boolean
-		formatString: """TRUE"";""TRUE"";""FALSE"""
-		lineageTag: 93379688-cf51-487b-bd2a-315a7b37bcd4
-		summarizeBy: none
-		sourceColumn: Is Executed
 
 		annotation SummarizationSetBy = Automatic
 
