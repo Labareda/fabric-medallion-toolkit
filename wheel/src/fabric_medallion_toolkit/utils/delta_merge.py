@@ -7,6 +7,42 @@ the merge being a black-box Python call.
 
 from typing import List, Optional
 
+from fabric_medallion_toolkit.utils.logging_utils import get_logger
+
+logger = get_logger("utils.delta_merge")
+
+
+def _widen_target_schema(spark, df, target_table: str) -> None:
+    """
+    MERGE INTO does NOT auto-add columns to an existing target -- if a
+    notebook's SELECT gains a new column after the target table already
+    exists on disk (from an earlier run, before that column existed), the
+    generated UPDATE SET references target.<new_col> and Spark fails with
+    DELTA_MERGE_UNRESOLVED_EXPRESSION rather than silently ignoring it or
+    adding it. That failure mode is correct to have SOME answer to, but a
+    hard stop on every table that's ever had a column added since its
+    first run is not the answer.
+
+    Explicitly ALTER TABLE ADD COLUMNS for whatever's missing, rather than
+    setting the session-wide spark.databricks.delta.schema.autoMerge.enabled
+    flag -- that flag would apply, silently, to every other MERGE running
+    in the same session (including ones where an unexpected new column
+    showing up SHOULD be investigated, not auto-added). Widening only the
+    one target this call actually cares about, only with the columns this
+    call's own source df actually has, keeps the effect local and logged.
+
+    Does not handle a column being renamed/retyped/removed -- those need a
+    real decision (rename in the target too? backfill? drop?), not
+    something to paper over automatically. Only ADDs.
+    """
+    existing_cols = {f.name for f in spark.table(target_table).schema.fields}
+    new_fields = [f for f in df.schema.fields if f.name not in existing_cols]
+    if not new_fields:
+        return
+    add_clause = ", ".join(f"`{f.name}` {f.dataType.simpleString()}" for f in new_fields)
+    spark.sql(f"ALTER TABLE {target_table} ADD COLUMNS ({add_clause})")
+    logger.info(f"{target_table}: widened schema, added column(s) {[f.name for f in new_fields]}")
+
 
 def build_merge_sql(target_table: str, source_view: str, key_cols: List[str],
                      all_cols: List[str]) -> str:
@@ -80,6 +116,8 @@ def upsert_delta(spark, df, target_table: str, key_cols: List[str],
             writer = writer.option("overwriteSchema", "true")
         writer.saveAsTable(target_table)
         return None
+
+    _widen_target_schema(spark, df, target_table)
 
     source_view = f"_src_{target_table.replace('.', '_')}"
     df.createOrReplaceTempView(source_view)
