@@ -151,16 +151,32 @@ df = spark.sql(f"""
         GROUP BY test_issue_id
     ),
 
-    -- First parent issue linked to each test set via "is tested by"
+    -- First parent issue linked to each test set via a 'Test' link.
+    -- Silver.jira.issue_links has NO linked_issue_id column -- only
+    -- inward_issue_key / outward_issue_key (strings), and link_type is
+    -- just 'Test' (NOT 'Tests'/'is tested by'/'tested by' -- those are
+    -- the inward/outward LABELS on that link_type, not values it takes).
+    -- Confirmed directly from the Silver data:
+    --   outward_issue_key populated -> issue_key "tests" outward_issue_key
+    --     => issue_key is the TEST SET, outward_issue_key is the REQUIREMENT
+    --   inward_issue_key populated  -> issue_key "is tested by" inward_issue_key
+    --     => issue_key is the REQUIREMENT, inward_issue_key is the TEST SET
+    -- Both directions normalised to the same (Test_Set_Code, Parent_Issue_Code)
+    -- shape before picking the first one per set.
     parent_issues AS (
-        SELECT
-            il.issue_id                 AS test_set_issue_id,
-            MIN_BY(i.key, il.link_id)   AS Parent_Issue_Code
-        FROM Silver.jira.issue_links il
-        JOIN Silver.jira.issues i
-          ON i.id = il.linked_issue_id
-        WHERE il.link_type IN ('Test', 'Tests', 'is tested by', 'tested by')
-        GROUP BY il.issue_id
+        SELECT Test_Set_Code, MIN_BY(Parent_Issue_Code, link_id) AS Parent_Issue_Code
+        FROM (
+            SELECT issue_key AS Test_Set_Code, outward_issue_key AS Parent_Issue_Code, link_id
+            FROM Silver.jira.issue_links
+            WHERE link_type = 'Test' AND outward_issue_key IS NOT NULL
+
+            UNION ALL
+
+            SELECT inward_issue_key AS Test_Set_Code, issue_key AS Parent_Issue_Code, link_id
+            FROM Silver.jira.issue_links
+            WHERE link_type = 'Test' AND inward_issue_key IS NOT NULL
+        ) x
+        GROUP BY Test_Set_Code
     )
     SELECT
         m.Test_Set_Id,
@@ -197,7 +213,7 @@ df = spark.sql(f"""
     LEFT JOIN Silver.jira.users u
            ON u.accountId = lr.executed_by_id
     LEFT JOIN parent_issues p
-           ON p.test_set_issue_id = m.Test_Set_Id
+           ON p.Test_Set_Code = m.Test_Set_Code
     LEFT JOIN {GOLD_SCHEMA}.dim_test_set dts
            ON dts.Test_Set_Id = m.Test_Set_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_test_status dtstat
