@@ -124,6 +124,14 @@ relationship r30
 	fromColumn: Fact_Test.Latest_Run_Date
 	toColumn: Dim_Date.date
 
+relationship r37
+	fromColumn: Fact_Test.Project_Key
+	toColumn: Dim_Project.Project_Key
+
+relationship r38
+	fromColumn: Fact_Test.Team_Key
+	toColumn: Dim_Team.Team_Key
+
 relationship r31
 	fromColumn: Fact_Test_Coverage.Requirement_Key
 	toColumn: Dim_Issue.Issue_Key
@@ -131,6 +139,14 @@ relationship r31
 relationship r32
 	fromColumn: Fact_Test_Coverage.Test_Set_Key
 	toColumn: Dim_Test_Set.Test_Set_Key
+
+relationship r39
+	fromColumn: Fact_Test_Coverage.Project_Key
+	toColumn: Dim_Project.Project_Key
+
+relationship r40
+	fromColumn: Fact_Test_Coverage.Team_Key
+	toColumn: Dim_Team.Team_Key
 
 relationship r33
 	fromColumn: Fact_Worklog.Issue_Key

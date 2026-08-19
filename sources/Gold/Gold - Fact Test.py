@@ -112,6 +112,29 @@ schema = fmt.TableSchema(
                 "unknown_value": "Unknown",
             },
         },
+        # Resolved via the test set's Parent_Issue_Code (the Requirement it
+        # covers) -- the Test issue's OWN project/team isn't necessarily the
+        # delivery project a report wants to slice by (Xray tests often sit
+        # in their own QA project). Null for a test set with no parent link
+        # at all; falls to each dimension's Unknown member.
+        "Project_Key": {
+            "type": "string",
+            "lookup_missing_from": {
+                "table": f"{GOLD_SCHEMA}.dim_project",
+                "natural_key_column": "Project_Id",
+                "key_column": "Project_Key",
+                "unknown_value": "Unknown",
+            },
+        },
+        "Team_Key": {
+            "type": "string",
+            "lookup_missing_from": {
+                "table": f"{GOLD_SCHEMA}.dim_team",
+                "natural_key_column": "Team_Name",
+                "key_column": "Team_Key",
+                "unknown_value": "Unknown",
+            },
+        },
     },
 )
 
@@ -203,7 +226,9 @@ df = spark.sql(f"""
 
         dts.Test_Set_Key,
         dtstat.Test_Status_Key,
-        res.Resource_Key AS Executor_Key
+        res.Resource_Key AS Executor_Key,
+        proj.Project_Key,
+        team.Team_Key
 
     FROM memberships m
     LEFT JOIN latest_runs lr
@@ -214,12 +239,18 @@ df = spark.sql(f"""
            ON u.accountId = lr.executed_by_id
     LEFT JOIN parent_issues p
            ON p.Test_Set_Code = m.Test_Set_Code
+    LEFT JOIN Silver.jira.issues parent_issue
+           ON parent_issue.key = p.Parent_Issue_Code
     LEFT JOIN {GOLD_SCHEMA}.dim_test_set dts
            ON dts.Test_Set_Id = m.Test_Set_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_test_status dtstat
            ON dtstat.Test_Status_Name = COALESCE(lr.Latest_Status, 'NOT RUN')
     LEFT JOIN {GOLD_SCHEMA}.dim_resource res
            ON res.Resource_Account_Id = lr.executed_by_id
+    LEFT JOIN {GOLD_SCHEMA}.dim_project proj
+           ON proj.Project_Id = parent_issue.fields_project_id
+    LEFT JOIN {GOLD_SCHEMA}.dim_team team
+           ON team.Team_Name = parent_issue.fields_team_name
 """)
 
 # CELL ********************

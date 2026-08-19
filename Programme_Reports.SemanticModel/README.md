@@ -1,6 +1,6 @@
 # Programme_Reports semantic model
 
-Import-mode TMDL definition for the Gold star schema in `sources/Gold`. 13 dimensions generated directly from each notebook's `TableSchema` (so the column list matches what actually gets written to `Gold.gold.*`) plus one hand-added role-playing dimension (`Dim_Due_Date`, see below), 6 facts, 36 relationships.
+Import-mode TMDL definition for the Gold star schema in `sources/Gold`. 13 dimensions generated directly from each notebook's `TableSchema` (so the column list matches what actually gets written to `Gold.gold.*`) plus one hand-added role-playing dimension (`Dim_Due_Date`, see below), 6 facts, 40 relationships.
 
 `Fact_Test_Run` (run-by-run trend history) was deliberately left out -- the test report only needs the current-status matrix (`Fact_Test`) and requirement coverage (`Fact_Test_Coverage`), not a trend/first-time-pass-rate view. The notebook still exists in git history if that's needed later.
 
@@ -45,9 +45,12 @@ CALCULATE(
 
 ## Known model gaps (not fixed here -- flagging for a decision)
 
-- **Fact_Test and Fact_Test_Coverage have no Project_Key/Team_Key.** They were removed while fixing broken SQL that referenced columns which no longer existed after a design revert. Slicing the test report by project or team currently requires going through `Parent_Issue_Code`/`Requirement_Key` to `Dim_Issue`, then a second hop to `Fact_Issue` for `Project_Key` -- which doesn't work as a Power BI relationship (facts don't relate to facts here). If you want project/team slicing on the test report, that needs `Project_Id`/`Team_Name` re-added to those two notebooks' source queries.
 - **Dim_Link_Type has no relationships** -- nothing consumes it since `Bridge_Issue_Link` was deleted. It's in this model as a placeholder; delete the table here (and the notebook) if issue-link traceability reporting isn't coming back.
 - **`Fact_Test[Parent_Issue_Code]`** is a plain text column, not a relationship -- there's no `Test_Issue_Key`-style FK from Fact_Test to the parent issue in Dim_Issue. Add one (join on `Issue_Code`) if the test report needs to slice by the parent requirement's own attributes beyond the code string.
+- **No week-start column on Dim_Date** -- if the Resource report needs weekly buckets (like a Jira Team Timeline view), the date dimension needs a `week_start_date` column added to `build_date_dimension`.
+- **Resource-day-level capacity/conflict detection isn't modelled yet.** `Dim_Resource[Daily_Capacity_Hours]` exists, but there's no fact at the (resource, day) grain to compare allocated hours against it -- needed for an over-allocation/"conflicts" measure like the Jira Team Timeline view.
+
+Resolved since the last update: **Fact_Test and Fact_Test_Coverage now have Project_Key/Team_Key**, resolved via the Requirement (Fact_Test goes through its Parent_Issue_Code first, since a test set's own project/team isn't necessarily the delivery project; Fact_Test_Coverage resolves directly since Requirement is its own anchor issue).
 
 ## Measures included
 

@@ -162,6 +162,22 @@ table 'Fact_Test'
 
 		annotation SummarizationSetBy = Automatic
 
+	column 'Project_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Project_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Team_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Team_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
 	measure 'Total Tests' = SUM('Fact_Test'[Test_Count])
 		formatString: #,##0
 

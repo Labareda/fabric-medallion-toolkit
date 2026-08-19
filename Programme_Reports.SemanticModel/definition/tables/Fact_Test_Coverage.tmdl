@@ -102,6 +102,22 @@ table 'Fact_Test_Coverage'
 
 		annotation SummarizationSetBy = Automatic
 
+	column 'Project_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Project_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Team_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Team_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
 	measure 'Requirements Covered' = CALCULATE(DISTINCTCOUNT('Fact_Test_Coverage'[Requirement_Code]), 'Fact_Test_Coverage'[Is_Covered] = TRUE)
 
 	measure 'Requirements Total' = DISTINCTCOUNT('Fact_Test_Coverage'[Requirement_Code])

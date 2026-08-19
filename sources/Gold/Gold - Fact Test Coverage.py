@@ -66,6 +66,26 @@ schema = fmt.TableSchema(
                 "unknown_value": "Unknown",
             },
         },
+        # Resolved via the Requirement itself (this fact's own anchor
+        # issue), unlike Fact_Test which has to go via a parent link.
+        "Project_Key": {
+            "type": "string",
+            "lookup_missing_from": {
+                "table": f"{GOLD_SCHEMA}.dim_project",
+                "natural_key_column": "Project_Id",
+                "key_column": "Project_Key",
+                "unknown_value": "Unknown",
+            },
+        },
+        "Team_Key": {
+            "type": "string",
+            "lookup_missing_from": {
+                "table": f"{GOLD_SCHEMA}.dim_team",
+                "natural_key_column": "Team_Name",
+                "key_column": "Team_Key",
+                "unknown_value": "Unknown",
+            },
+        },
     },
 )
 
@@ -77,7 +97,9 @@ df = spark.sql(f"""
         SELECT
             i.key                       AS Requirement_Code,
             i.fields_summary            AS Requirement_Name,
-            c.Issue_Category            AS Requirement_Category
+            c.Issue_Category            AS Requirement_Category,
+            i.fields_project_id         AS Project_Id,
+            i.fields_team_name          AS Team_Name
         FROM Silver.jira.issues i
         JOIN {GOLD_SCHEMA}.dim_issue_type c
           ON c.IssueType_Id = i.fields_issuetype_id
@@ -145,12 +167,16 @@ df = spark.sql(f"""
         COALESCE(ss.Tests_Not_Run, 0) AS Tests_Not_Run,
         1                       AS Coverage_Count,
         di.Issue_Key            AS Requirement_Key,
-        dts.Test_Set_Key        AS Test_Set_Key
+        dts.Test_Set_Key        AS Test_Set_Key,
+        proj.Project_Key,
+        team.Team_Key
     FROM requirements r
     JOIN covering_sets cs ON cs.Requirement_Code = r.Requirement_Code
     LEFT JOIN {GOLD_SCHEMA}.dim_issue di     ON di.Issue_Code = r.Requirement_Code
     LEFT JOIN {GOLD_SCHEMA}.dim_test_set dts ON dts.Test_Set_Code = cs.Test_Set_Code
     LEFT JOIN set_stats ss                   ON ss.Test_Set_Code = cs.Test_Set_Code
+    LEFT JOIN {GOLD_SCHEMA}.dim_project proj ON proj.Project_Id = r.Project_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_team team    ON team.Team_Name = r.Team_Name
 
     UNION ALL
 
@@ -165,9 +191,13 @@ df = spark.sql(f"""
         0, 0, 0, 0,
         1                   AS Coverage_Count,
         di.Issue_Key        AS Requirement_Key,
-        CAST(NULL AS STRING) AS Test_Set_Key
+        CAST(NULL AS STRING) AS Test_Set_Key,
+        proj.Project_Key,
+        team.Team_Key
     FROM requirements r
-    LEFT JOIN {GOLD_SCHEMA}.dim_issue di ON di.Issue_Code = r.Requirement_Code
+    LEFT JOIN {GOLD_SCHEMA}.dim_issue di     ON di.Issue_Code = r.Requirement_Code
+    LEFT JOIN {GOLD_SCHEMA}.dim_project proj ON proj.Project_Id = r.Project_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_team team    ON team.Team_Name = r.Team_Name
     WHERE NOT EXISTS (
         SELECT 1 FROM covering_sets cs WHERE cs.Requirement_Code = r.Requirement_Code
     )
