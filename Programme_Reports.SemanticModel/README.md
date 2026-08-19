@@ -1,6 +1,6 @@
 # Programme_Reports semantic model
 
-Import-mode TMDL definition for the Gold star schema in `sources/Gold`. 13 dimensions generated directly from each notebook's `TableSchema` (so the column list matches what actually gets written to `Gold.gold.*`) plus one hand-added role-playing dimension (`Dim_Due_Date`, see below), 9 facts, 50 relationships.
+Import-mode TMDL definition for the Gold star schema in `sources/Gold`. 13 dimensions generated directly from each notebook's `TableSchema` (so the column list matches what actually gets written to `Gold.gold.*`) plus one hand-added role-playing dimension (`Dim_Due_Date`, see below), 8 facts, 48 relationships.
 
 `Fact_Test_Run` (run-by-run trend history) was deliberately left out -- the test report only needs the current-status matrix (`Fact_Test`) and requirement coverage (`Fact_Test_Coverage`), not a trend/first-time-pass-rate view. The notebook still exists in git history if that's needed later.
 
@@ -58,37 +58,31 @@ Reads two other facts (`Fact_Resource_Allocation`, `Fact_Issue`) -- the second e
 
 `week_start_date` (Monday), `week_end_date` (Sunday), and `week_label` (e.g. "Aug 2026 10-16") were added to `build_date_dimension` in the wheel (0.3.69) -- for a Resource report grid with weekly columns like a Jira Team Timeline view, instead of one column per day.
 
-## Bridge_Issue_Blocks -- Blocked Tests report
+## Bridge_Issue_Link -- linked work items, any type, and the Blocked Tests report
 
-New bridge table, grain: one row per (blocked issue, blocking issue) pair, sourced from `link_type = 'Blocks'` links (`Blocking_Issue_Code` "blocks"/is blocked by" `Blocked_Issue_Code`). Built for the client's Blocked Tests requirement: list tests currently Blocked, and for each, the work item(s) blocking it. `Dim_Issue.Predecessor_Issue_Code` already carried this same information but as one comma-joined string per issue -- not something a report table can list row-by-row, which is what this table is for instead.
+Bridge table, grain: one row per issue per link record, from that issue's OWN perspective -- mirrors Jira's "Linked work items" panel exactly (created, is blocked by, tests, relates to, implements, ... whatever's in your data). Both sides of every link get their own row deliberately: issue A "is blocked by" B gets a row on A, and B "blocks" A gets its own separate row on B. Both are correct; that's what lets a report start from either issue and filter to whichever relation and direction it wants (`Link_Type_Name`, `Direction`, `Link_Label`).
 
-`Fact_Test` now has two real relationships to `Dim_Issue` (previously only text columns, `Test_Code`/`Parent_Issue_Code`):
-- `Test_Issue_Key` -- **active**. The test issue itself.
-- `Parent_Issue_Key` -- **inactive** (same target table as Test_Issue_Key, only one relationship between the same two tables can be active). The Requirement/Story the test set covers.
-
-`Bridge_Issue_Blocks` relates to `Dim_Issue` twice too:
-- `Blocked_Issue_Key` -- **active**. Lets `Fact_Test` (blocked tests, via `Test_Issue_Key`) -> `Dim_Issue` -> `Bridge_Issue_Blocks` work as a plain relationship chain, no DAX needed, for "what blocks this TEST".
-- `Blocking_Issue_Key` -- **inactive**. The reverse direction (what does this issue block), less commonly needed.
-
-**Resolved**: confirmed by the client's own screenshot -- the `is blocked by` link sits on the TEST issue itself (it has its own Test Runs tab showing the BLOCKED status), not on a parent Requirement. `Test_Issue_Key` (active) is the right path; `Parent_Issue_Key` stays available (inactive) in case a future report needs the parent's own blockers instead.
-
-Three measures added to `Fact_Test` for the actual worklist the client described (a lot of tests are Blocked; only some have the `is blocked by` link recorded yet -- they need to go through and add the missing ones IN JIRA, which Power BI can't do; this model's job is to surface which ones still need it):
-- `[Blocking Issue Codes]` -- comma-joined list of blocking issue codes for the current filter context (via `Bridge_Issue_Blocks`).
-- `[Has Blocking Link]` -- boolean, whether any blocking issue is recorded at all.
-- `[Blocked Tests Missing a Blocking Link]` -- count of Blocked tests with NO `is blocked by` link yet. This is the number that matters for the worklist.
-
-## Bridge_Issue_Link -- every link type, not just Blocks
-
-New general-purpose bridge, grain: one row per issue per link record, from that issue's OWN perspective -- mirrors Jira's "Linked work items" panel exactly (created, is blocked by, tests, relates to, implements, ... whatever's in your data), rather than one bridge per link type. Where `Bridge_Issue_Blocks` normalises "Blocks" specifically down to one semantic (blocked, blocking) pair, this table keeps BOTH sides of every link as their own row deliberately -- issue A "is blocked by" B gets a row on A, and B "blocks" A gets its own separate row on B. Both are correct; that's what lets a report start from either issue and filter to whichever relation and direction it wants (`Link_Type_Name`, `Direction`, `Link_Label`).
+An earlier version of this model had a SECOND table, `Bridge_Issue_Blocks`, hardcoded to just the "Blocks" link type for the Blocked Tests report specifically -- removed again within the same session once it became clear it was pure duplication: everything it could show is exactly `Bridge_Issue_Link` filtered to `Link_Type_Name = 'Blocks' AND Direction = 'Inward'`. One general table, filtered per report, beats one table per relationship type.
 
 Gives `Dim_Link_Type` its first real relationship since the original `Bridge_Issue_Link` was deleted a few commits back (previously flagged here as an orphaned placeholder table -- resolved).
 
-Relationships, same pattern as `Bridge_Issue_Blocks`:
+Relationships:
 - `Issue_Key` -- **active**. The anchor issue (whichever issue that row's own perspective belongs to).
-- `Linked_Issue_Key` -- **inactive** (same target table as Issue_Key). The other side of the link.
+- `Linked_Issue_Key` -- **inactive** (same target table as Issue_Key, only one relationship between the same two tables can be active). The other side of the link.
 - `Link_Type_Key` -- active, to `Dim_Link_Type`.
 
-`Bridge_Issue_Blocks` is kept alongside this, not replaced by it -- it still gives the Blocked Tests report a cleaner, pre-normalised shape (one row per actual blocking relationship, correct key roles already resolved) than filtering this general table down to `Link_Type_Name = 'Blocks' AND Direction = 'Inward'` would.
+`Fact_Test` also has two real relationships to `Dim_Issue` now (previously only text columns, `Test_Code`/`Parent_Issue_Code`):
+- `Test_Issue_Key` -- **active**. The test issue itself. Chains straight through to `Bridge_Issue_Link` (both hops active), no DAX needed for "what's linked to this test".
+- `Parent_Issue_Key` -- **inactive**. The Requirement/Story the test set covers, in case a future report needs the parent's own links instead of the test's.
+
+Confirmed by the client's own screenshot that the Blocked Tests requirement anchors on the TEST issue (it has its own Test Runs tab showing the BLOCKED status), not a parent Requirement -- `Test_Issue_Key` is the right active path.
+
+Three measures on `Fact_Test` for the actual worklist the client described (a lot of tests are Blocked; only some have the `is blocked by` link recorded yet -- they need to go through and add the missing ones IN JIRA, which Power BI can't do; this model's job is to surface which ones still need it):
+- `[Blocking Issue Codes]` -- comma-joined list of blocking issue codes, `Bridge_Issue_Link` filtered to `Link_Type_Name = 'Blocks' AND Direction = 'Inward'`.
+- `[Has Blocking Link]` -- boolean, whether any blocking issue is recorded at all.
+- `[Blocked Tests Missing a Blocking Link]` -- count of Blocked tests with NO `is blocked by` link yet. This is the number that matters for the worklist.
+
+**Watch for double-counting**: because both sides of every link are separate rows, a naive `COUNTROWS('Bridge_Issue_Link')` over an unfiltered context counts every relationship twice. Always filter to a specific `Link_Type_Name` + `Direction` (or a single issue) before counting.
 
 ## Measures included
 

@@ -133,15 +133,6 @@ relationship r45
 	toColumn: Dim_Issue.Issue_Key
 	isActive: false
 
-relationship r46
-	fromColumn: Bridge_Issue_Blocks.Blocked_Issue_Key
-	toColumn: Dim_Issue.Issue_Key
-
-relationship r47
-	fromColumn: Bridge_Issue_Blocks.Blocking_Issue_Key
-	toColumn: Dim_Issue.Issue_Key
-	isActive: false
-
 relationship r48
 	fromColumn: Bridge_Issue_Link.Issue_Key
 	toColumn: Dim_Issue.Issue_Key

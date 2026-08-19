@@ -48,7 +48,7 @@
 #
 # TEST_ISSUE_KEY / PARENT_ISSUE_KEY -- proper relationships to Dim_Issue,
 # not just the display-text Test_Code/Parent_Issue_Code. Added so a report
-# can relate a blocked test (or its parent) through to Bridge_Issue_Blocks
+# can relate a blocked test (or its parent) through to Bridge_Issue_Link
 # for "what work item is this blocked by" -- Predecessor_Issue_Code on
 # Dim_Issue is a comma-joined string, not something a report table can
 # list row-by-row.
@@ -145,7 +145,7 @@ schema = fmt.TableSchema(
         # Proper relationships to Dim_Issue, for BOTH the test issue itself
         # and the parent it covers -- Parent_Issue_Code/Test_Code alone are
         # display text, not something a report can relate through to reach
-        # e.g. Bridge_Issue_Blocks for "what's blocking this test / its
+        # e.g. Bridge_Issue_Link for "what's blocking this test / its
         # parent". Test_Issue_Key is the active path; Parent_Issue_Key
         # points at the SAME Dim_Issue table too, so mark it inactive in
         # the semantic model and use USERELATIONSHIP if both are ever

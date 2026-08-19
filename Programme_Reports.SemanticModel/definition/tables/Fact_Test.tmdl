@@ -206,9 +206,23 @@ table 'Fact_Test'
 	measure 'Pass Rate %' = DIVIDE([Tests Passed], [Total Tests])
 		formatString: 0.0%
 
-	measure 'Blocking Issue Codes' = CONCATENATEX('Bridge_Issue_Blocks', 'Bridge_Issue_Blocks'[Blocking_Issue_Code], ", ")
+	measure 'Blocking Issue Codes' = ```
 
-	measure 'Has Blocking Link' = COUNTROWS('Bridge_Issue_Blocks') > 0
+			        CALCULATE(
+			            CONCATENATEX('Bridge_Issue_Link', 'Bridge_Issue_Link'[Linked_Issue_Code], ", "),
+			            'Bridge_Issue_Link'[Link_Type_Name] = "Blocks",
+			            'Bridge_Issue_Link'[Direction] = "Inward"
+			        )
+			```
+
+	measure 'Has Blocking Link' = ```
+
+			        CALCULATE(
+			            COUNTROWS('Bridge_Issue_Link'),
+			            'Bridge_Issue_Link'[Link_Type_Name] = "Blocks",
+			            'Bridge_Issue_Link'[Direction] = "Inward"
+			        ) > 0
+			```
 
 	measure 'Blocked Tests Missing a Blocking Link' = ```
 

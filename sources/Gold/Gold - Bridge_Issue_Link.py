@@ -7,16 +7,18 @@
 # perspective -- i.e. this mirrors Jira's own "Linked work items" panel
 # (see the client's screenshots): for issue A "is blocked by" B, A gets a
 # row here saying so, AND B gets its own separate row saying it "blocks" A.
-# Both rows are correct and wanted, not duplicates to collapse -- unlike
-# Bridge_Issue_Blocks (which normalises "Blocks" specifically down to one
-# semantic pair per relationship), this table is general-purpose: every
-# link type, both directions, so a report can filter to whichever relation
-# the client actually wants (Blocked by, Tests, Relates to, Implements,
-# Duplicates, ...) instead of having a bridge per link type.
+# Both rows are correct and wanted, not duplicates to collapse -- this
+# table is general-purpose: every link type, both directions, so a report
+# can filter to whichever relation the client actually wants (Blocked by,
+# Tests, Relates to, Implements, Duplicates, ...) rather than needing a
+# bridge per link type. (An earlier version of this model had a Blocks-
+# only Bridge_Issue_Blocks alongside this one -- removed again immediately,
+# it was pure duplication: filter this table to Link_Type_Name = 'Blocks'
+# AND Direction = 'Inward' for the exact same rows.)
 #
 # Silver.jira.issue_links has no linked_issue_id column -- only
-# inward_issue_key/outward_issue_key (strings) -- see Bridge_Issue_Blocks
-# and Fact Test.py for the same finding. Each row already has EITHER
+# inward_issue_key/outward_issue_key (strings) -- see Fact Test.py for the
+# same finding. Each row already has EITHER
 # outward_issue_key OR inward_issue_key populated (never both), so this
 # is a straight COALESCE, not the UNION-of-two-directions pattern those
 # other notebooks needed -- there's no separate "requirement side" vs
