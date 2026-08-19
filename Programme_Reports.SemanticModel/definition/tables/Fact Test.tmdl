@@ -2,12 +2,12 @@ table 'Fact Test'
 	lineageTag: 46e00e0e-8007-4424-87bf-b1a1eab6c5fb
 
 	measure 'Blocked Test Missing a Blocking Link' = ```
-			
+
 			    COUNTROWS(
 			        FILTER(
 			            ADDCOLUMNS(
 			                SUMMARIZE('Fact Test', 'Fact Test'[Test Fact Key]),
-			                "@IsBlocked", CALCULATE(MAX('Fact Test'[Is Blocked])),
+			                "@IsBlocked", CALCULATE(SELECTEDVALUE('Fact Test'[Is Blocked])),
 			                "@HasLink", CALCULATE([Has Blocking Link])
 			            ),
 			            [@IsBlocked] = TRUE && [@HasLink] = FALSE
@@ -49,6 +49,7 @@ table 'Fact Test'
 		lineageTag: 3a7c5e91-2f4d-48b6-9e1a-6d8c0f2b5e73
 
 	measure 'Pass Rate %' = DIVIDE([Tests Passed], [Total Tests])
+		formatString: 0.0%
 		lineageTag: aef3d7c4-4653-47a5-9dbc-52ffe5407faf
 
 	measure 'Tests Failed' = CALCULATE([Total Tests], 'Fact Test'[Is Fail] = TRUE)
