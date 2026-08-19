@@ -1,0 +1,8 @@
+{
+  "source_name": "xray",
+  "auth": {
+    "kind": "client_credentials",
+    "client_id": "your-xray-client-id",
+    "secret": "your-xray-client-secret"
+  }
+}

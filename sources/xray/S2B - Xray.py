@@ -14,8 +14,8 @@
 # everything DOWNSTREAM (B2S, Gold) treats it like any other Bronze table.
 #
 # Attach Bronze and Config lakehouses, plus env_medallion_toolkit.
-# Config is used here only for the watermark control table (Config.xray.watermarks)
-# -- Xray has no config file of its own, unlike Jira.
+# Config is used both for the watermark control table (Config.xray.watermarks)
+# and for xray.json (client_id/secret), the same lakehouse jira.json lives in.
 
 # CELL ********************
 from datetime import datetime, timezone
@@ -23,7 +23,6 @@ import json
 import time
 import requests
 from notebookutils import mssparkutils
-import notebookutils
 import fabric_medallion_toolkit as fmt
 
 # CELL ********************
@@ -54,37 +53,26 @@ spark.sql(f"CREATE SCHEMA IF NOT EXISTS {WATERMARK_SCHEMA}")
 XRAY_AUTH_URL    = "https://xray.cloud.getxray.app/api/v2/authenticate"
 XRAY_GRAPHQL_URL = "https://xray.cloud.getxray.app/api/v2/graphql"
 
-# --- Secret resolution: a Fabric CONNECTION (Workspace -> Manage connections
-# -> New connection -> Web V2 -> Base Url = https://xray.cloud.getxray.app ->
-# Authentication method = Basic -> username = the Xray API key's Client ID,
-# password = the Client Secret -> tick "Allow Code-First Artifacts like
-# Notebooks..." -> then add this connection under the NOTEBOOK's own
-# Connections pane, not just the workspace). NOT Key Vault (not available to
-# this client) and NOT a Variable library (that store is plain, git-trackable
-# configuration, not an encrypted secret store).
+# --- Secret resolution: a config FILE in the Config lakehouse, same pattern
+# as jira.json, NOT a Fabric Connection (repeatedly failed with "Artifact
+# Connection does not exist" for this client and was abandoned) and NOT Key
+# Vault (not available to this client either). The client_id/client_secret
+# live in xray.json's plaintext, protected only by who has access to the
+# Config lakehouse -- so treat that lakehouse's permissions as the real
+# security boundary, and never grant Files access there casually.
 #
-# This DID work once credential resolution and the notebook-level attachment
-# were both correctly in place -- earlier "Artifact Connection does not
-# exist" failures were resolved by attaching the connection under this
-# notebook's own Connections pane and starting a fresh Spark session, not by
-# any code change.
-XRAY_CONNECTION_ID = "6d3f6ca5-1107-4a17-a76a-e3684376ceac"
+# sources/xray/xray.json in this repo is a TEMPLATE with placeholder values
+# only (safe to commit). The REAL file -- with the real client_id/secret --
+# lives ONLY in the Config lakehouse's Files area, uploaded there directly
+# (Config lakehouse -> Files -> upload xray.json), never through git.
+#
+# Get the ABFS path the same way as jira.json: Config lakehouse -> Files ->
+# right-click xray.json -> "Copy ABFS path", and paste it below.
+CONFIG_ABFS_PATH = "abfss://<workspace>@onelake.dfs.fabric.microsoft.com/Config.Lakehouse/Files/xray.json"
 
-def get_credential_field(connection_id: str, field_name: str) -> str:
-    raw = notebookutils.connections.getCredential(connection_id)
-    credential_data = json.loads(raw["credential"])["credentialData"]
-    # The exact field name Fabric uses for a Basic-auth connection's
-    # username/password isn't publicly documented, so this matches
-    # case-insensitively against common aliases rather than one exact string.
-    aliases = {"password", "secret", "key", "value"} if field_name == "password" else {"username", "user"}
-    for item in credential_data:
-        if item.get("name", "").lower() in aliases:
-            return item["value"]
-    available = [item.get("name") for item in credential_data]
-    raise KeyError(
-        f"Could not find a field matching '{field_name}' in connection {connection_id}. "
-        f"Fields actually present: {available}"
-    )
+def load_xray_config() -> dict:
+    config_json_text = mssparkutils.fs.head(CONFIG_ABFS_PATH, 10 * 1024 * 1024)  # 10MB is plenty
+    return json.loads(config_json_text)
 
 # The Xray API key is generated per Jira USER (Jira -> Xray Settings -> API
 # Keys). The extract sees ONLY what that user can see, so it must belong to a
@@ -105,8 +93,10 @@ RUNS_PAGE  = 100
 # CELL ********************
 def get_token() -> str:
     """Exchange client_id/client_secret for a bearer token (valid 24h)."""
-    client_id = get_credential_field(XRAY_CONNECTION_ID, "username")      # Client ID
-    client_secret = get_credential_field(XRAY_CONNECTION_ID, "password")  # Client Secret
+    config = load_xray_config()
+    auth = config["auth"]
+    client_id = auth["client_id"]
+    client_secret = auth["secret"]
     resp = requests.post(
         XRAY_AUTH_URL,
         headers={"Content-Type": "application/json", "Accept": "text/plain"},
@@ -333,6 +323,169 @@ statuses_entity = fmt.EntityConfig(
 count = fmt.land_records(spark, status_records, source_name=SOURCE_NAME,
                          entity=statuses_entity, bronze_schema=SCHEMA)
 print(f"[statuses] landed {count} records")
+
+# CELL ********************
+# --- Shared shape: Test Sets, Test Plans and Preconditions are all "a
+# container issue with a paginated connection of linked Test issues" in
+# Xray's GraphQL schema (getTestSets/getTestPlans/getPreconditions all
+# expose a `tests(limit, start)` connection the same way getTestExecutions
+# exposes `testRuns`). One helper covers all three instead of tripling the
+# same pagination/overflow logic.
+CONTAINER_PAGE = 100
+LINKED_TESTS_PAGE = 100
+
+def extract_container_with_tests(token: str, query_name: str, entity_label: str) -> list:
+    """Pulls every issue of a container type (test set / test plan /
+    precondition) together with the Test issues linked to it. Returns one
+    flat record per (container, linked test) pair."""
+    out = []
+    start = 0
+    while True:
+        q = f"""{{
+          {query_name}(limit: {CONTAINER_PAGE}, start: {start}) {{
+            total
+            results {{
+              issueId
+              jira(fields: ["key", "summary"])
+              tests(limit: {LINKED_TESTS_PAGE}) {{
+                total
+                results {{ issueId jira(fields: ["key"]) }}
+              }}
+            }}
+          }}
+        }}"""
+        data = run_graphql(token, q)
+        block = data[query_name]
+        containers = block.get("results", []) or []
+        if not containers:
+            break
+
+        for c in containers:
+            c_key = (c.get("jira") or {}).get("key")
+            c_summary = (c.get("jira") or {}).get("summary")
+            tests_block = c.get("tests") or {}
+            linked = tests_block.get("results") or []
+            if not linked:
+                # A container with zero linked tests still needs to exist in
+                # Silver (e.g. an empty Test Set), so it lands with null test
+                # columns rather than being dropped entirely.
+                out.append({
+                    "container_issue_id": c.get("issueId"), "container_issue_key": c_key,
+                    "container_summary": c_summary, "test_issue_id": None, "test_issue_key": None,
+                })
+            for t in linked:
+                out.append({
+                    "container_issue_id": c.get("issueId"), "container_issue_key": c_key,
+                    "container_summary": c_summary,
+                    "test_issue_id": t.get("issueId"),
+                    "test_issue_key": (t.get("jira") or {}).get("key"),
+                })
+            # Same >100-linked-tests gap as test_runs -- getTestSets/getTestPlans/
+            # getPreconditions' nested `tests` connection has no cursor of its
+            # own beyond the initial limit. Flagged, not silently truncated;
+            # revisit with a getTests(testSetId/testPlanId/preconditionId:)
+            # follow-up pass if this ever actually fires for this client.
+            total_linked = tests_block.get("total", 0)
+            if total_linked and total_linked > LINKED_TESTS_PAGE:
+                print(f"  WARNING: {entity_label} {c_key} has {total_linked} linked tests; "
+                      f"only the first {LINKED_TESTS_PAGE} landed (no follow-up pass yet)")
+
+        start += CONTAINER_PAGE
+        if start >= block.get("total", 0):
+            break
+
+    print(f"[{entity_label}] collected {len(out)} (container, test) pairs")
+    return out
+
+# CELL ********************
+# --- Test Sets: replaces whatever previously produced Silver.xray.test_sets
+# (no notebook in this repo did -- see Orchestration - Jira and Xray.py's
+# "ASSUMPTION TO CHECK" comment). This is a full pull, not watermarked: Xray's
+# getTestSets has no jql/updated filter documented for it, and test-set
+# membership is small enough to re-pull in full each run. ---
+test_set_records = extract_container_with_tests(token, "getTestSets", "test_sets")
+test_sets_entity = fmt.EntityConfig(
+    entity_name="test_sets", endpoint_path="", pagination_style="none",
+    records_json_path="", natural_key_field="_pk",
+)
+for r in test_set_records:
+    r["_pk"] = f"{r['container_issue_id']}::{r.get('test_issue_id') or ''}"
+count = fmt.land_records(spark, test_set_records, source_name=SOURCE_NAME,
+                         entity=test_sets_entity, bronze_schema=SCHEMA)
+print(f"[test_sets] landed {count} records")
+
+# CELL ********************
+# --- Test Plans: same shape as Test Sets, same full-pull reasoning. ---
+test_plan_records = extract_container_with_tests(token, "getTestPlans", "test_plans")
+test_plans_entity = fmt.EntityConfig(
+    entity_name="test_plans", endpoint_path="", pagination_style="none",
+    records_json_path="", natural_key_field="_pk",
+)
+for r in test_plan_records:
+    r["_pk"] = f"{r['container_issue_id']}::{r.get('test_issue_id') or ''}"
+count = fmt.land_records(spark, test_plan_records, source_name=SOURCE_NAME,
+                         entity=test_plans_entity, bronze_schema=SCHEMA)
+print(f"[test_plans] landed {count} records")
+
+# CELL ********************
+# --- Preconditions: same shape again. ---
+precondition_records = extract_container_with_tests(token, "getPreconditions", "preconditions")
+preconditions_entity = fmt.EntityConfig(
+    entity_name="preconditions", endpoint_path="", pagination_style="none",
+    records_json_path="", natural_key_field="_pk",
+)
+for r in precondition_records:
+    r["_pk"] = f"{r['container_issue_id']}::{r.get('test_issue_id') or ''}"
+count = fmt.land_records(spark, precondition_records, source_name=SOURCE_NAME,
+                         entity=preconditions_entity, bronze_schema=SCHEMA)
+print(f"[preconditions] landed {count} records")
+
+# CELL ********************
+# --- Test details: the Test issues themselves -- type and steps -- not their
+# links to other containers (those are covered above). getTests has no jql
+# updated-filter documented either (unlike getTestExecutions), so this is
+# also a full pull. Steps are returned as a nested list; landed as a JSON
+# string (steps_json) rather than exploded, since B2S can parse/explode them
+# without a schema change here if the step count grows. ---
+test_records = []
+t_start = 0
+while True:
+    q = f"""{{
+      getTests(limit: {CONTAINER_PAGE}, start: {t_start}) {{
+        total
+        results {{
+          issueId
+          jira(fields: ["key", "summary"])
+          testType {{ name }}
+          steps {{ id action data result }}
+        }}
+      }}
+    }}"""
+    data = run_graphql(token, q)
+    block = data["getTests"]
+    results = block.get("results", []) or []
+    if not results:
+        break
+    for t in results:
+        test_records.append({
+            "test_issue_id": t.get("issueId"),
+            "test_issue_key": (t.get("jira") or {}).get("key"),
+            "test_summary": (t.get("jira") or {}).get("summary"),
+            "test_type": (t.get("testType") or {}).get("name"),
+            "steps_json": json.dumps(t.get("steps") or []),
+        })
+    t_start += CONTAINER_PAGE
+    if t_start >= block.get("total", 0):
+        break
+
+print(f"[tests] collected {len(test_records)} test detail records")
+tests_entity = fmt.EntityConfig(
+    entity_name="tests", endpoint_path="", pagination_style="none",
+    records_json_path="", natural_key_field="test_issue_id",
+)
+count = fmt.land_records(spark, test_records, source_name=SOURCE_NAME,
+                         entity=tests_entity, bronze_schema=SCHEMA)
+print(f"[tests] landed {count} records")
 
 # CELL ********************
 print("S2B - Xray complete.")

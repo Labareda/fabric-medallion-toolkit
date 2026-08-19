@@ -64,9 +64,11 @@ import fabric_medallion_toolkit as fmt
 # build_medallion_run_order makes every silver step depend on ALL bronze
 # steps, so this ordering is a real barrier, not a coincidence of the list.
 #
-# ASSUMPTION TO CHECK: the Xray notebook names below are a guess -- Silver
-# already has xray.test_runs / test_sets / statuses, so something is
-# producing them. Rename these two to match whatever it actually is.
+# RESOLVED: xray.test_sets was previously orphaned -- no notebook in this
+# repo produced it, even though it existed in Silver with real data (built by
+# something since deleted/never committed). S2B/B2S - Xray now produce it
+# (plus test_plans, preconditions, tests) directly, so this is no longer a
+# guess.
 SOURCE_TO_BRONZE_STEPS = ["S2B - Jira", "S2B - Xray"]
 BRONZE_TO_SILVER_STEPS = ["B2S - Jira", "B2S - Xray"]
 
