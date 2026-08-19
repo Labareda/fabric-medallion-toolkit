@@ -20,14 +20,14 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Dim Issue"
+                      "Entity": "Dim Test Status"
                     }
                   },
-                  "Property": "Hierarchy Level Name"
+                  "Property": "Test Status Name"
                 }
               },
-              "queryRef": "Dim Issue.Hierarchy Level Name",
-              "nativeQueryRef": "Hierarchy Level Name",
+              "queryRef": "Dim Test Status.Test Status Name",
+              "nativeQueryRef": "Test Status Name",
               "active": true
             }
           ]
@@ -163,10 +163,10 @@
           "Column": {
             "Expression": {
               "SourceRef": {
-                "Entity": "Dim Issue"
+                "Entity": "Dim Test Status"
               }
             },
-            "Property": "Hierarchy Level Name"
+            "Property": "Test Status Name"
           }
         },
         "type": "Categorical",
@@ -175,7 +175,7 @@
           "From": [
             {
               "Name": "d",
-              "Entity": "Dim Issue",
+              "Entity": "Dim Test Status",
               "Type": 0
             }
           ],
@@ -193,7 +193,7 @@
                                 "Source": "d"
                               }
                             },
-                            "Property": "Hierarchy Level Name"
+                            "Property": "Test Status Name"
                           }
                         }
                       ],

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.11.0/schema.json",
+  "name": "3f8a17c9d5b246e0a2c6",
+  "position": {
+    "x": 1031.1111111111111,
+    "y": 95,
+    "z": 16003,
+    "height": 70,
+    "width": 220,
+    "tabOrder": 16003
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Fact Test"
+                    }
+                  },
+                  "Property": "Blocked Test Missing a Blocking Link"
+                }
+              },
+              "queryRef": "Fact Test.Blocked Test Missing a Blocking Link",
+              "nativeQueryRef": "Blocked Test Missing a Blocking Link"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

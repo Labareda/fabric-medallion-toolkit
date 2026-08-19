@@ -3,9 +3,9 @@
   "name": "4ab645a0592a8d95999a",
   "position": {
     "x": 284.44444444444446,
-    "y": 120,
+    "y": 175,
     "z": 15000,
-    "height": 150,
+    "height": 195,
     "width": 966.66666666666663,
     "tabOrder": 14000
   },
@@ -28,68 +28,81 @@
               },
               "queryRef": "Dim test Set.Test Set Code",
               "nativeQueryRef": "Test Set Code"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Issue Code"
+                }
+              },
+              "queryRef": "Dim Issue.Issue Code",
+              "nativeQueryRef": "Test Code"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Issue Summary"
+                }
+              },
+              "queryRef": "Dim Issue.Issue Summary",
+              "nativeQueryRef": "Test Summary"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Test Status"
+                    }
+                  },
+                  "Property": "Test Status Name"
+                }
+              },
+              "queryRef": "Dim Test Status.Test Status Name",
+              "nativeQueryRef": "Test Status Name"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Fact Test"
+                    }
+                  },
+                  "Property": "Latest Run Date"
+                }
+              },
+              "queryRef": "Fact Test.Latest Run Date",
+              "nativeQueryRef": "Latest Run Date"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Fact Test"
+                    }
+                  },
+                  "Property": "Latest Executor"
+                }
+              },
+              "queryRef": "Fact Test.Latest Executor",
+              "nativeQueryRef": "Latest Executor"
             }
           ]
         }
       }
     },
     "drillFilterOtherVisuals": true
-  },
-  "filterConfig": {
-    "filters": [
-      {
-        "name": "523a280fd94d2ee45c0c",
-        "field": {
-          "Column": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "Dim test Set"
-              }
-            },
-            "Property": "Test Set Code"
-          }
-        },
-        "type": "Categorical",
-        "filter": {
-          "Version": 2,
-          "From": [
-            {
-              "Name": "d",
-              "Entity": "Dim test Set",
-              "Type": 0
-            }
-          ],
-          "Where": [
-            {
-              "Condition": {
-                "In": {
-                  "Expressions": [
-                    {
-                      "Column": {
-                        "Expression": {
-                          "SourceRef": {
-                            "Source": "d"
-                          }
-                        },
-                        "Property": "Test Set Code"
-                      }
-                    }
-                  ],
-                  "Values": [
-                    [
-                      {
-                        "Literal": {
-                          "Value": "'TRAN-267'"
-                        }
-                      }
-                    ]
-                  ]
-                }
-              }
-            }
-          ]
-        }
-      }
-    ]
   }
 }

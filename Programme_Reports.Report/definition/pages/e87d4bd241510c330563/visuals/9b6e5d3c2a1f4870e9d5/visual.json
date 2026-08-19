@@ -1,0 +1,38 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.11.0/schema.json",
+  "name": "9b6e5d3c2a1f4870e9d5",
+  "position": {
+    "x": 782.22222222222217,
+    "y": 95,
+    "z": 16002,
+    "height": 70,
+    "width": 220,
+    "tabOrder": 16002
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Fact Test"
+                    }
+                  },
+                  "Property": "Tests Failed"
+                }
+              },
+              "queryRef": "Fact Test.Tests Failed",
+              "nativeQueryRef": "Tests Failed"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true
+  }
+}
