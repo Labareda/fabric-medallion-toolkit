@@ -33,11 +33,24 @@ def build_merge_sql(target_table: str, source_view: str, key_cols: List[str],
     )
 
 
-def upsert_delta(spark, df, target_table: str, key_cols: List[str]) -> Optional[str]:
+def upsert_delta(spark, df, target_table: str, key_cols: List[str],
+                  write_mode: str = "merge") -> Optional[str]:
     """
     Upserts `df` into `target_table` (schema.table, e.g. "bronze.jira_issues").
     Creates the table on first write. Returns the MERGE SQL that was run
-    (None on a first-time create, since there's nothing to merge yet).
+    (None on a first-time create, or whenever write_mode="overwrite" -- an
+    overwrite has no MERGE statement to return).
+
+    write_mode="merge" (default): incremental upsert. Creates the table on
+    first write; MERGE INTO on every write after that.
+    write_mode="overwrite": full REPLACE every call, whether or not the
+    table already exists -- for a table that's completely rebuilt from
+    source each run, where there's nothing to preserve and MERGE's
+    row-by-row match-vs-insert comparison is pure overhead.
+    "overwriteSchema" is set so a column added/removed/retyped upstream
+    doesn't fail the write -- appropriate ONLY because overwrite mode
+    always replaces the whole table anyway, so there's no partial-schema
+    state to protect against.
 
     Every table created here gets 'delta.autoOptimize.optimizeWrite' and
     'delta.autoOptimize.autoCompact' set as TABLE PROPERTIES at creation --
@@ -54,11 +67,18 @@ def upsert_delta(spark, df, target_table: str, key_cols: List[str]) -> Optional[
     indefinitely with no periodic maintenance step required anywhere else in
     the pipeline.
     """
-    if not spark.catalog.tableExists(target_table):
-        df.write.format("delta").mode("overwrite") \
-            .option("delta.autoOptimize.optimizeWrite", "true") \
-            .option("delta.autoOptimize.autoCompact", "true") \
-            .saveAsTable(target_table)
+    if write_mode not in ("merge", "overwrite"):
+        raise ValueError(f"{target_table}: write_mode must be 'merge' or 'overwrite', got '{write_mode}'")
+
+    if write_mode == "overwrite" or not spark.catalog.tableExists(target_table):
+        writer = (
+            df.write.format("delta").mode("overwrite")
+            .option("delta.autoOptimize.optimizeWrite", "true")
+            .option("delta.autoOptimize.autoCompact", "true")
+        )
+        if write_mode == "overwrite":
+            writer = writer.option("overwriteSchema", "true")
+        writer.saveAsTable(target_table)
         return None
 
     source_view = f"_src_{target_table.replace('.', '_')}"
