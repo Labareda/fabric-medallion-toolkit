@@ -1,6 +1,6 @@
 # Programme_Reports semantic model
 
-Import-mode TMDL definition for the Gold star schema in `sources/Gold`. 13 dimensions, 6 facts, 35 relationships -- generated directly from each notebook's `TableSchema` so the column list matches what actually gets written to `Gold.gold.*`.
+Import-mode TMDL definition for the Gold star schema in `sources/Gold`. 13 dimensions generated directly from each notebook's `TableSchema` (so the column list matches what actually gets written to `Gold.gold.*`) plus one hand-added role-playing dimension (`Dim_Due_Date`, see below), 6 facts, 36 relationships.
 
 `Fact_Test_Run` (run-by-run trend history) was deliberately left out -- the test report only needs the current-status matrix (`Fact_Test`) and requirement coverage (`Fact_Test_Coverage`), not a trend/first-time-pass-rate view. The notebook still exists in git history if that's needed later.
 
@@ -15,19 +15,21 @@ Every table's M partition points at a placeholder connection string. Find-and-re
 
 ## After opening, two manual steps (deliberately not hand-authored into the TMDL -- see below)
 
-1. **Mark `Dim_Date` as a date table** on the `date` column: Model view -> right-click `Dim_Date` -> Mark as date table -> `date`. This flips internal metadata that isn't safe to hand-write from outside Desktop.
+1. **Mark `Dim_Date` as a date table** on the `date` column (Model view -> right-click `Dim_Date` -> Mark as date table -> `date`), and do the same for **`Dim_Due_Date`**. This flips internal metadata that isn't safe to hand-write from outside Desktop. Only `Dim_Date` needs to be the model's single official "Date Table" for time-intelligence functions (YTD etc.) -- `Dim_Due_Date` just needs the same date-table treatment so slicers/relative-date filters work correctly against it too.
 2. **Refresh** once connections are set, to confirm every partition resolves.
 
-## Date relationships (role-playing)
+## Two date tables, not one -- Dim_Date and Dim_Due_Date
 
-`Dim_Date` has 9 relationships into it across the model (every date column on every fact). Only one per fact is **active** by default -- the rest need `USERELATIONSHIP()` in any measure that wants that particular date role:
+Fact_Issue's Rollup_Start_Date relates to `Dim_Date`, and Rollup_End_Date relates to a SEPARATE table, `Dim_Due_Date` -- both ACTIVE. This is deliberate, not an oversight: a single shared date table can only have one active relationship per fact, so with everything pointed at one `Dim_Date`, a start/end pair can never both be simultaneously filterable the way a Gantt/timeline needs (e.g. "show items overlapping this date range" needs Start and End both live at once). `Dim_Due_Date` is a second IMPORT of the exact same `Gold.gold.dim_date` table under a different model name -- the standard "role-playing dimension via duplicate import" pattern, not a second physical Gold table.
 
-| Fact | Active relationship | Inactive (use USERELATIONSHIP) |
+Every OTHER date role (Planned_Start/End, Actual_Start/End, Created_Date, Valid_To_Date) stays as a single INACTIVE relationship against `Dim_Date` -- those aren't used as a simultaneous pair for a visual, just for the odd measure, so `USERELATIONSHIP()` is enough and doesn't need a third/fourth physical date table:
+
+| Fact | Active | Inactive (use USERELATIONSHIP against Dim_Date) |
 |---|---|---|
-| Fact_Issue | Rollup_Start_Date | Rollup_End_Date, Planned_Start_Date, Planned_End_Date, Actual_Start_Date, Actual_End_Date, Created_Date |
-| Fact_Issue_History | Valid_From_Date | Valid_To_Date |
-| Fact_Test | Latest_Run_Date | -- |
-| Fact_Worklog | Started_Date | -- |
+| Fact_Issue | Rollup_Start_Date -> Dim_Date, Rollup_End_Date -> Dim_Due_Date | Planned_Start_Date, Planned_End_Date, Actual_Start_Date, Actual_End_Date, Created_Date |
+| Fact_Issue_History | Valid_From_Date -> Dim_Date | Valid_To_Date |
+| Fact_Test | Latest_Run_Date -> Dim_Date | -- |
+| Fact_Worklog | Started_Date -> Dim_Date | -- |
 
 Example for a measure that needs Created_Date instead of the active Rollup_Start_Date:
 
@@ -39,7 +41,7 @@ CALCULATE(
 )
 ```
 
-`Rollup_Start_Date` was chosen as Fact_Issue's active relationship because the Gantt/timeline report is the primary consumer and the notebook's own comment says to point visuals at the rollup columns, not the raw ones.
+`Rollup_Start_Date`/`Rollup_End_Date` were chosen as Fact_Issue's active pair because the Gantt/timeline report is the primary consumer and the notebook's own comment says to point visuals at the rollup columns, not the raw ones.
 
 ## Known model gaps (not fixed here -- flagging for a decision)
 

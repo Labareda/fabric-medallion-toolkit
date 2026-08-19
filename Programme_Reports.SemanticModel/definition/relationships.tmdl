@@ -32,8 +32,7 @@ relationship r08
 
 relationship r09
 	fromColumn: Fact_Issue.Rollup_End_Date
-	toColumn: Dim_Date.date
-	isActive: false
+	toColumn: Dim_Due_Date.date
 
 relationship r10
 	fromColumn: Fact_Issue.Planned_Start_Date
