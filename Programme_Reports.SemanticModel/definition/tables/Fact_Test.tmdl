@@ -206,6 +206,25 @@ table 'Fact_Test'
 	measure 'Pass Rate %' = DIVIDE([Tests Passed], [Total Tests])
 		formatString: 0.0%
 
+	measure 'Blocking Issue Codes' = CONCATENATEX('Bridge_Issue_Blocks', 'Bridge_Issue_Blocks'[Blocking_Issue_Code], ", ")
+
+	measure 'Has Blocking Link' = COUNTROWS('Bridge_Issue_Blocks') > 0
+
+	measure 'Blocked Tests Missing a Blocking Link' = ```
+
+			        COUNTROWS(
+			            FILTER(
+			                ADDCOLUMNS(
+			                    SUMMARIZE('Fact_Test', 'Fact_Test'[Test_Fact_Key]),
+			                    "@IsBlocked", CALCULATE(MAX('Fact_Test'[Is_Blocked])),
+			                    "@HasLink", CALCULATE([Has Blocking Link])
+			                ),
+			                [@IsBlocked] = TRUE && [@HasLink] = FALSE
+			            )
+			        )
+			```
+		formatString: #,##0
+
 	partition 'Fact_Test' = m
 		mode: import
 		source =

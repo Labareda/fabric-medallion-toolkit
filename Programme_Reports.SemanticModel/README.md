@@ -70,7 +70,12 @@ New bridge table, grain: one row per (blocked issue, blocking issue) pair, sourc
 - `Blocked_Issue_Key` -- **active**. Lets `Fact_Test` (blocked tests, via `Test_Issue_Key`) -> `Dim_Issue` -> `Bridge_Issue_Blocks` work as a plain relationship chain, no DAX needed, for "what blocks this TEST".
 - `Blocking_Issue_Key` -- **inactive**. The reverse direction (what does this issue block), less commonly needed.
 
-**Open question, needs a decision before building the report page**: does "the Linked Work Items that are linked with Is Blocked By" mean work items blocking the **Test issue itself**, or work items blocking the test's **parent Requirement/Story**? Both paths exist in the model now (`Test_Issue_Key`, active, wired straight through; `Parent_Issue_Key`, inactive, needs a `USERELATIONSHIP` measure) -- picking one just needs the client's actual intent.
+**Resolved**: confirmed by the client's own screenshot -- the `is blocked by` link sits on the TEST issue itself (it has its own Test Runs tab showing the BLOCKED status), not on a parent Requirement. `Test_Issue_Key` (active) is the right path; `Parent_Issue_Key` stays available (inactive) in case a future report needs the parent's own blockers instead.
+
+Three measures added to `Fact_Test` for the actual worklist the client described (a lot of tests are Blocked; only some have the `is blocked by` link recorded yet -- they need to go through and add the missing ones IN JIRA, which Power BI can't do; this model's job is to surface which ones still need it):
+- `[Blocking Issue Codes]` -- comma-joined list of blocking issue codes for the current filter context (via `Bridge_Issue_Blocks`).
+- `[Has Blocking Link]` -- boolean, whether any blocking issue is recorded at all.
+- `[Blocked Tests Missing a Blocking Link]` -- count of Blocked tests with NO `is blocked by` link yet. This is the number that matters for the worklist.
 
 ## Known model gaps (not fixed here -- flagging for a decision)
 
