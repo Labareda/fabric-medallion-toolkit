@@ -243,6 +243,15 @@ df = fmt.rollup_hierarchy_dates(
     df.join(issue_parents, on="Issue_Id", how="left"),
     id_column="Issue_Id", parent_id_column="Parent_Issue_Id",
     start_column="Planned_Start_Date", end_column="Planned_End_Date",
+    # The wheel's bounded upward walk runs up to max_depth passes, and each
+    # pass forces two Spark actions (materialize + an early-stop "did
+    # anything change" check) -- on data this size that's job-scheduling
+    # overhead, not real compute, and it's most of why this cell was slow.
+    # The issue hierarchy is only 7 tiers deep (Programme..Sub-task, see
+    # Dim_Issue's RANK_TO_LEVEL), so it can never need more than 7 passes
+    # to converge -- capping here instead of the wheel's default of 10
+    # trims the guaranteed-wasted passes without changing the result.
+    max_depth=7,
     # Has_Own_Dates (the wheel's default out_flag) is dropped -- redundant
     # with Planned_Start_Date IS NOT NULL, simplified out of the model.
 ).drop("Parent_Issue_Id", "Has_Own_Dates")
