@@ -1,0 +1,105 @@
+table 'Bridge Issue Link'
+	lineageTag: c9e118c1-4448-4d93-b16f-9a63f69d58a6
+
+	measure 'Linked Item Count' = COUNTROWS('Bridge Issue Link')
+		formatString: 0
+		lineageTag: 22019657-5b1c-437c-9e11-7f9715aa2a6a
+
+	column Direction
+		dataType: string
+		lineageTag: fe57d8d7-ca08-46f8-8ed5-9e31a7405d79
+		summarizeBy: none
+		sourceColumn: Direction
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue Code'
+		dataType: string
+		lineageTag: 328571d8-22ae-41fc-bfa5-8f76c7930bbb
+		summarizeBy: none
+		sourceColumn: Issue Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Linked Issue Code'
+		dataType: string
+		lineageTag: 78a6aa9e-94a5-46ac-9540-f00467e27f13
+		summarizeBy: none
+		sourceColumn: Linked Issue Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Link Type Name'
+		dataType: string
+		lineageTag: 8fb6d8e6-5b22-49ba-abc4-527f941a45fd
+		summarizeBy: none
+		sourceColumn: Link Type Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Link Label'
+		dataType: string
+		lineageTag: 892906ac-f9d6-42a2-98a1-6c8ac4665e1a
+		summarizeBy: none
+		sourceColumn: Link Label
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue Key'
+		dataType: string
+		isHidden
+		lineageTag: d3cfda82-a648-4357-8f57-c0db84a2b6f7
+		summarizeBy: none
+		sourceColumn: Issue Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Linked Issue Key'
+		dataType: string
+		isHidden
+		lineageTag: 7b1d9717-a78b-4705-bc87-40c494b6ec24
+		summarizeBy: none
+		sourceColumn: Linked Issue Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Link Type Key'
+		dataType: string
+		isHidden
+		lineageTag: 4f95b533-7a1f-4cec-ae36-ae0075527d23
+		summarizeBy: none
+		sourceColumn: Link Type Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue Link Key'
+		dataType: string
+		isHidden
+		lineageTag: 6f841ec6-00ed-4555-8584-3ad7927ad280
+		summarizeBy: none
+		sourceColumn: Issue Link Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Bridge Issue Link' = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("cekvmk67pvoetale6vvoo5wfji-brlvcnhvridetpgxmhh6wmlcw4.datawarehouse.fabric.microsoft.com", "gold"),
+				    gold_bridge_issue_link = Source{[Schema="gold",Item="bridge_issue_link"]}[Data],
+				  RenamedColumns = Table.TransformColumnNames( gold_bridge_issue_link, each Text.Replace(_, "_", " "))
+				in
+				    RenamedColumns
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

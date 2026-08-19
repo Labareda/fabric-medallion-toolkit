@@ -1,0 +1,94 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.11.0/schema.json",
+  "name": "d7d2ef91009aa1691807",
+  "position": {
+    "x": 285.05396425973618,
+    "y": 357.5253111054318,
+    "z": 14000,
+    "height": 150,
+    "width": 966.66666666666663,
+    "tabOrder": 15000
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Fact Test"
+                    }
+                  },
+                  "Property": "Test Set Code"
+                }
+              },
+              "queryRef": "Fact Test.Test Set Code",
+              "nativeQueryRef": "Test Set Code"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Issue Code"
+                }
+              },
+              "queryRef": "Dim Issue.Issue Code",
+              "nativeQueryRef": "Issue Code"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Test Status"
+                    }
+                  },
+                  "Property": "Test Status Name"
+                }
+              },
+              "queryRef": "Dim Test Status.Test Status Name",
+              "nativeQueryRef": "Test Status Name"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Summary"
+                }
+              },
+              "queryRef": "Dim Issue.Summary",
+              "nativeQueryRef": "Summary"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Date"
+                    }
+                  },
+                  "Property": "Date"
+                }
+              },
+              "queryRef": "Dim Date.Date",
+              "nativeQueryRef": "Date"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

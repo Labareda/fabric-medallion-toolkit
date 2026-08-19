@@ -1,0 +1,44 @@
+table 'Dim Team'
+	lineageTag: 0245282d-e7d4-44d8-bbd1-e1fabd52fc6f
+
+	column 'Team Name'
+		dataType: string
+		lineageTag: 74b00654-3c09-49db-94b0-7b4f4f641f9c
+		summarizeBy: none
+		sourceColumn: Team Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Team Id'
+		dataType: string
+		lineageTag: a962090c-1f29-44ef-bc8d-028403d95cb0
+		summarizeBy: none
+		sourceColumn: Team Id
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Team Key'
+		dataType: string
+		isHidden
+		lineageTag: e11744e1-3766-421d-9ae2-5f441c7fc76b
+		summarizeBy: none
+		sourceColumn: Team Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Dim Team' = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("cekvmk67pvoetale6vvoo5wfji-brlvcnhvridetpgxmhh6wmlcw4.datawarehouse.fabric.microsoft.com", "gold"),
+				    gold_dim_team = Source{[Schema="gold",Item="dim_team"]}[Data],
+				    RenamedColumns = Table.TransformColumnNames( gold_dim_team , each Text.Replace(_, "_", " "))
+				in
+				    RenamedColumns
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

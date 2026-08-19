@@ -1,0 +1,80 @@
+/// dim resource table
+table 'Dim Resource'
+	lineageTag: c6886920-9031-41bc-8ec0-397de1d49d1b
+
+	measure 'Total Daily Capacity (Active, Hrs)' = ```
+			
+			    CALCULATE(
+			        SUM('Dim Resource'[Daily Capacity Hours]),
+			        'Dim Resource'[Is Active] = TRUE())
+			```
+		formatString: 0
+		lineageTag: 1399095c-842e-4837-9431-01d3c5d6dec1
+
+	column 'Resource Id'
+		dataType: string
+		lineageTag: 02025524-35f2-4c89-be05-45f0cd9d8316
+		summarizeBy: none
+		sourceColumn: Resource Id
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Resource Name'
+		dataType: string
+		lineageTag: c08835cc-7448-4060-9d4e-c389ec4de093
+		summarizeBy: none
+		sourceColumn: Resource Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Resource Email'
+		dataType: string
+		lineageTag: 5db3545a-592c-43e6-94cf-23279c355d14
+		summarizeBy: none
+		sourceColumn: Resource Email
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Active'
+		dataType: string
+		lineageTag: 5111f507-5239-4ae5-96bd-687ff87280bb
+		summarizeBy: none
+		sourceColumn: Is Active
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Resource Key'
+		dataType: string
+		isHidden
+		lineageTag: e2a63519-9bec-46c3-9027-769c60dd374b
+		summarizeBy: none
+		sourceColumn: Resource Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Daily Capacity Hours'
+		dataType: double
+		lineageTag: 1735e816-f344-4c36-a45d-994dabbe33cf
+		summarizeBy: sum
+		sourceColumn: Daily Capacity Hours
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition 'Dim Resource' = m
+		mode: import
+		source =
+				let
+				  Source = Sql.Database("cekvmk67pvoetale6vvoo5wfji-brlvcnhvridetpgxmhh6wmlcw4.datawarehouse.fabric.microsoft.com", "gold"),
+				  #"Navigation 1" = Source{[Schema = "gold", Item = "dim_resource"]}[Data],
+				  RenamedColumns = Table.TransformColumnNames( #"Navigation 1", each Text.Replace(_, "_", " "))
+				in
+				    RenamedColumns
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

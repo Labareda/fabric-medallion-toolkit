@@ -2,10 +2,10 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/report/3.3.0/schema.json",
   "themeCollection": {
     "baseTheme": {
-      "name": "CY26SU07",
+      "name": "CY26SU05",
       "reportVersionAtImport": {
-        "visual": "2.11.0",
-        "report": "3.4.0",
+        "visual": "2.9.0",
+        "report": "3.3.0",
         "page": "2.3.1"
       },
       "type": "SharedResources"
@@ -24,17 +24,65 @@
           }
         }
       }
+    ],
+    "outspacePane": [
+      {
+        "properties": {
+          "expanded": {
+            "expr": {
+              "Literal": {
+                "Value": "true"
+              }
+            }
+          },
+          "visible": {
+            "expr": {
+              "Literal": {
+                "Value": "false"
+              }
+            }
+          }
+        }
+      }
     ]
   },
+  "publicCustomVisuals": [
+    "GanttChart4C3653EFFFEB4E7DA5A699CE198391E2",
+    "powerGANTTchart76BDD9F52FA14ADEB68823A07759D182",
+    "PromoGanttChart_VibeCodeStudio_2026",
+    "proroadmap2F71D2AA2F1740D1A9C2B4B39F7C1A11",
+    "p6GanttChartVisual23D4F5A6B7C8D9E0F1A2B3C4D5E6F7A8"
+  ],
   "resourcePackages": [
     {
       "name": "SharedResources",
       "type": "SharedResources",
       "items": [
         {
-          "name": "CY26SU07",
-          "path": "BaseThemes/CY26SU07.json",
+          "name": "CY26SU05",
+          "path": "BaseThemes/CY26SU05.json",
           "type": "BaseTheme"
+        }
+      ]
+    },
+    {
+      "name": "RegisteredResources",
+      "type": "RegisteredResources",
+      "items": [
+        {
+          "name": "filter_alt_24dp_FFFFFF_FILL0_w4046218107961226.png",
+          "path": "filter_alt_24dp_FFFFFF_FILL0_w4046218107961226.png",
+          "type": "Image"
+        },
+        {
+          "name": "menu_24dp_FFFFFF_FILL0_wght4001945189967282568.png",
+          "path": "menu_24dp_FFFFFF_FILL0_wght4001945189967282568.png",
+          "type": "Image"
+        },
+        {
+          "name": "Transform_(8)7931964752403259.png",
+          "path": "Transform_(8)7931964752403259.png",
+          "type": "Image"
         }
       ]
     }

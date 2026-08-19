@@ -1,0 +1,177 @@
+table 'Fact Test Coverage'
+	lineageTag: d28e8bf6-bc52-40e8-af34-0229ff52af61
+
+	measure 'Coverage %' = DIVIDE([Requirements Covered], [Requirements Total])
+		lineageTag: 8aa3454d-8457-4dfb-a52b-61e1c9b91c32
+
+	measure 'Requirements Covered' = CALCULATE(DISTINCTCOUNT('Fact Test Coverage'[Requirement Code]), 'Fact Test Coverage'[Is Covered] = TRUE)
+		formatString: 0
+		lineageTag: 33419bf3-cb8d-4ee1-904d-dfba89849d2c
+
+	measure 'Requirements Total' = DISTINCTCOUNT('Fact Test Coverage'[Requirement Code])
+		formatString: 0
+		lineageTag: 123c1c6b-35eb-455b-a8bc-bee907539209
+
+	column 'Requirement Code'
+		dataType: string
+		lineageTag: 59ee2a31-09f9-4fa3-b824-4f941c7432bb
+		summarizeBy: none
+		sourceColumn: Requirement Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Set Code'
+		dataType: string
+		lineageTag: 2c7d0d8c-befd-4dee-a696-bc846b6b7453
+		summarizeBy: none
+		sourceColumn: Test Set Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Covered'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 4444daa9-1d95-43ef-b06d-a25d90fa9bd6
+		summarizeBy: none
+		sourceColumn: Is Covered
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Tests In Set'
+		dataType: int64
+		formatString: 0
+		lineageTag: 4dc1b697-ac5b-4efd-8321-6c2ececf2e4c
+		summarizeBy: sum
+		sourceColumn: Tests In Set
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Tests Passed'
+		dataType: int64
+		formatString: 0
+		lineageTag: 0ea084c0-0e4b-44d0-af0d-b3df012116be
+		summarizeBy: sum
+		sourceColumn: Tests Passed
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Tests Failed'
+		dataType: int64
+		formatString: 0
+		lineageTag: ed2d3943-7f3c-40dc-afb5-b1f58afa8468
+		summarizeBy: sum
+		sourceColumn: Tests Failed
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Tests Not Run'
+		dataType: int64
+		formatString: 0
+		lineageTag: c18ea2c4-aa40-4e0b-958d-07fa6b6e525e
+		summarizeBy: sum
+		sourceColumn: Tests Not Run
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Coverage Count'
+		dataType: int64
+		formatString: 0
+		lineageTag: f27bd26a-3415-40cf-8776-0d00014baa84
+		summarizeBy: sum
+		sourceColumn: Coverage Count
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Set Key'
+		dataType: string
+		isHidden
+		lineageTag: d2b1395a-c2c4-4e93-bcc0-741ba9ae71df
+		summarizeBy: none
+		sourceColumn: Test Set Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Coverage Key'
+		dataType: string
+		isHidden
+		lineageTag: d94c5535-088e-4850-a01b-230ded7137a9
+		summarizeBy: none
+		sourceColumn: Coverage Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Requirement Name'
+		dataType: string
+		lineageTag: b2aafd26-badd-4937-b8d7-f16e9ff37302
+		summarizeBy: none
+		sourceColumn: Requirement Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Requirement Category'
+		dataType: string
+		lineageTag: 17a0cb0b-c8d5-48ec-a493-0d87df669db0
+		summarizeBy: none
+		sourceColumn: Requirement Category
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Set Name'
+		dataType: string
+		lineageTag: 4c406bae-e9ec-4c9c-8dee-631087625409
+		summarizeBy: none
+		sourceColumn: Test Set Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Requirement Key'
+		dataType: string
+		isHidden
+		lineageTag: 9c98075f-5f15-4db7-9965-f9f595b3bebb
+		summarizeBy: none
+		sourceColumn: Requirement Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Project Key'
+		dataType: string
+		isHidden
+		lineageTag: bad60627-1e67-492b-b99e-747655b2bb30
+		summarizeBy: none
+		sourceColumn: Project Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Team Key'
+		dataType: string
+		isHidden
+		lineageTag: 361ee2bd-c5d2-48cf-bc80-6245234d1d99
+		summarizeBy: none
+		sourceColumn: Team Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Fact Test Coverage' = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("cekvmk67pvoetale6vvoo5wfji-brlvcnhvridetpgxmhh6wmlcw4.datawarehouse.fabric.microsoft.com", "gold"),
+				    gold_fact_test_coverage = Source{[Schema="gold",Item="fact_test_coverage"]}[Data],
+				  RenamedColumns = Table.TransformColumnNames( gold_fact_test_coverage, each Text.Replace(_, "_", " "))
+				in
+				    RenamedColumns
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

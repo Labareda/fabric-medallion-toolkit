@@ -1,0 +1,112 @@
+table 'Fact Worklog'
+	lineageTag: ae56fa9d-f434-4583-9b8b-811996b9b0be
+
+	measure 'Total Logged Hours' = SUM('Fact Worklog'[Time Spent Hours])
+		lineageTag: 468b99ab-75b5-4751-9edc-17550208361c
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Worklog Id'
+		dataType: string
+		lineageTag: e5a0eb12-7d45-48be-807a-37c5ea131d5b
+		summarizeBy: none
+		sourceColumn: Worklog Id
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue Code'
+		dataType: string
+		lineageTag: 65952820-6fac-4bf8-8381-4fe8bd74a4b0
+		summarizeBy: none
+		sourceColumn: Issue Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Started At'
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 1fbbe79d-699d-493f-9f58-c944bd76166c
+		summarizeBy: none
+		sourceColumn: Started At
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Started Date'
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 96174fc2-93ef-4d40-a94d-e47c368f609d
+		summarizeBy: none
+		sourceColumn: Started Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Time Spent Hours'
+		dataType: double
+		lineageTag: 3ccc2e61-89b7-45d1-839f-5214565f01ba
+		summarizeBy: sum
+		sourceColumn: Time Spent Hours
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Issue Key'
+		dataType: string
+		isHidden
+		lineageTag: 35052cb4-0ea2-486c-a0c2-6f61bcf6f039
+		summarizeBy: none
+		sourceColumn: Issue Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Author Key'
+		dataType: string
+		isHidden
+		lineageTag: 97fbeca9-cc03-4607-b4ef-f990ea71c870
+		summarizeBy: none
+		sourceColumn: Author Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Worklog Fact Key'
+		dataType: string
+		isHidden
+		lineageTag: 0b1cebb6-8da1-4fab-ac44-ab95c3b0ca6a
+		summarizeBy: none
+		sourceColumn: Worklog Fact Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Resource Role Key'
+		dataType: string
+		isHidden
+		lineageTag: 14411ef4-a13a-4b34-87d4-f6a997505716
+		summarizeBy: none
+		sourceColumn: Resource Role Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Fact Worklog' = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("cekvmk67pvoetale6vvoo5wfji-brlvcnhvridetpgxmhh6wmlcw4.datawarehouse.fabric.microsoft.com", "gold"),
+				    gold_fact_worklog = Source{[Schema="gold",Item="fact_worklog"]}[Data],
+				     RenamedColumns = Table.TransformColumnNames(gold_fact_worklog, each Text.Replace(_, "_", " "))
+				in
+				    RenamedColumns
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

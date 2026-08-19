@@ -1,0 +1,313 @@
+table 'Fact Test'
+	lineageTag: 46e00e0e-8007-4424-87bf-b1a1eab6c5fb
+
+	measure 'Blocked Test Missing a Blocking Link' = ```
+			
+			    COUNTROWS(
+			        FILTER(
+			            ADDCOLUMNS(
+			                SUMMARIZE('Fact Test', 'Fact Test'[Test Fact Key]),
+			                "@IsBlocked", CALCULATE(MAX('Fact Test'[Is Blocked])),
+			                "@HasLink", CALCULATE([Has Blocking Link])
+			            ),
+			            [@IsBlocked] = TRUE && [@HasLink] = FALSE
+			        )
+			    )
+			```
+		lineageTag: e1a1b9ea-7690-4a92-86b5-93739040d5cb
+
+	measure 'Blocking Issue Codes' = ```
+			
+			    CALCULATE(
+			        CONCATENATEX('Bridge Issue Link', 'Bridge Issue Link'[Linked Issue Code], ","),
+			        'Bridge Issue Link'[Link Type Name] = "Blocks",
+			        'Bridge Issue Link'[Direction] = "Inward"
+			    )
+			```
+		lineageTag: b516ec56-4294-4ba6-96bb-9b0f5abdd5e5
+
+	measure 'Has Blocking Link' = ```
+			
+			    CALCULATE(
+			        COUNTROWS('Bridge Issue Link'),
+			        'Bridge Issue Link'[Link Type Name] = "Blocks",
+			        'Bridge Issue Link'[Direction] = "Inward"
+			    ) > 0
+			```
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 850d874f-324e-42c4-8f1e-2bb0c143e62c
+
+	measure 'Pass Rate %' = DIVIDE([Tests Passed], [Total Tests])
+		lineageTag: aef3d7c4-4653-47a5-9dbc-52ffe5407faf
+
+	measure 'Tests Failed' = CALCULATE([Total Tests], 'Fact Test'[Is Fail] = TRUE)
+		lineageTag: 348317e6-c2ae-4a49-840c-5429db8068fb
+
+	measure 'Tests Not Run' = CALCULATE([Total Tests], 'Fact Test'[Is Not Run] = TRUE)
+		lineageTag: 7a2a3bb5-92b0-4eb4-97f8-2ba58814a342
+
+	measure 'Tests Passed' = CALCULATE([Total Tests], 'Fact Test'[Is Pass] = TRUE)
+		lineageTag: f9fb9e9f-1317-4083-9ecd-02190c56b00b
+
+	measure 'Total Tests' = SUM('Fact Test'[Test Count])
+		formatString: 0
+		lineageTag: a478a5ff-bfca-4f99-976a-b3796c4d5a11
+
+	column 'Test Set Id'
+		dataType: string
+		lineageTag: 804930b5-8083-41bf-a4d0-1fd13fe44b2a
+		summarizeBy: none
+		sourceColumn: Test Set Id
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Set Code'
+		dataType: string
+		lineageTag: 46965252-86a3-4819-bc35-d45232317d27
+		summarizeBy: none
+		sourceColumn: Test Set Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Id'
+		dataType: string
+		lineageTag: 4101b85f-2dac-4b30-ba04-b8e7c70a5d73
+		summarizeBy: none
+		sourceColumn: Test Id
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Code'
+		dataType: string
+		lineageTag: ef62461c-8a93-42cd-9465-4586dad34d5a
+		summarizeBy: none
+		sourceColumn: Test Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Latest Run Date'
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: ecbcec11-d887-4e3a-a92c-03caafe8ff20
+		summarizeBy: none
+		sourceColumn: Latest Run Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Run Count'
+		dataType: int64
+		formatString: 0
+		lineageTag: d8f74b25-11ed-44da-8979-286574215b44
+		summarizeBy: sum
+		sourceColumn: Run Count
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Pass Count'
+		dataType: int64
+		formatString: 0
+		lineageTag: 0593cf1c-d05f-40b9-9421-e1e774f97105
+		summarizeBy: sum
+		sourceColumn: Pass Count
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Fail Count'
+		dataType: int64
+		formatString: 0
+		lineageTag: 6234d4b0-c571-4da3-8940-b03ffec9ba55
+		summarizeBy: sum
+		sourceColumn: Fail Count
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Count'
+		dataType: int64
+		formatString: 0
+		lineageTag: 2e041af6-4985-4b2b-85de-f7e5f93eadcb
+		summarizeBy: sum
+		sourceColumn: Test Count
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Pass'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 1fe4c4dd-415a-46b2-9f9f-141bb3055c98
+		summarizeBy: none
+		sourceColumn: Is Pass
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Fail'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: c9ea15cf-ad28-4556-bdf0-14f94ef955e1
+		summarizeBy: none
+		sourceColumn: Is Fail
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Blocked'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 75a1e61b-2fed-4f6c-8d06-be152bd11125
+		summarizeBy: none
+		sourceColumn: Is Blocked
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Not Run'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 8826e1c5-de7e-4b43-9899-517c70d45517
+		summarizeBy: none
+		sourceColumn: Is Not Run
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Executed'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 93379688-cf51-487b-bd2a-315a7b37bcd4
+		summarizeBy: none
+		sourceColumn: Is Executed
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Parent Issue Code'
+		dataType: string
+		lineageTag: 1b9619a9-d2c6-4026-93ff-0249a9044a1f
+		summarizeBy: none
+		sourceColumn: Parent Issue Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Set Key'
+		dataType: string
+		isHidden
+		lineageTag: e42f7449-a441-4d71-8328-d394b21e6135
+		summarizeBy: none
+		sourceColumn: Test Set Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Status Key'
+		dataType: string
+		isHidden
+		lineageTag: 5adfd9ec-3a4d-4c2a-8198-6749036a98aa
+		summarizeBy: none
+		sourceColumn: Test Status Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Resource Key'
+		dataType: string
+		isHidden
+		lineageTag: 70d0ef70-8f00-4269-89d0-545b37ac4cf4
+		summarizeBy: none
+		sourceColumn: Resource Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Issue Key'
+		dataType: string
+		isHidden
+		lineageTag: d5ba47b7-f541-4436-8580-53af1795de8b
+		summarizeBy: none
+		sourceColumn: Test Issue Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Fact Key'
+		dataType: string
+		isHidden
+		lineageTag: 364a8662-29b0-421c-b330-e35f44d17f64
+		summarizeBy: none
+		sourceColumn: Test Fact Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Latest Status'
+		dataType: string
+		lineageTag: acc0bf06-fcc2-4ee6-a608-15a245232547
+		summarizeBy: none
+		sourceColumn: Latest Status
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Latest Executor'
+		dataType: string
+		lineageTag: e9cc3346-6f93-49f2-8286-5405a2ffc87f
+		summarizeBy: none
+		sourceColumn: Latest Executor
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Execution Code'
+		dataType: string
+		lineageTag: 9ab2056d-7637-4ca2-965f-8e55014af451
+		summarizeBy: none
+		sourceColumn: Execution Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Project Key'
+		dataType: string
+		isHidden
+		lineageTag: 9f9388ef-1e46-4984-ac30-d2fe525fcb06
+		summarizeBy: none
+		sourceColumn: Project Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Team Key'
+		dataType: string
+		isHidden
+		lineageTag: 2d88a638-e366-47cf-8688-8ec7df6a7bc9
+		summarizeBy: none
+		sourceColumn: Team Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Parent Issue Key'
+		dataType: string
+		isHidden
+		lineageTag: 741f6a72-9251-4113-9a94-cad84b009007
+		summarizeBy: none
+		sourceColumn: Parent Issue Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Fact Test' = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("cekvmk67pvoetale6vvoo5wfji-brlvcnhvridetpgxmhh6wmlcw4.datawarehouse.fabric.microsoft.com", "gold"),
+				    gold_fact_test = Source{[Schema="gold",Item="fact_test"]}[Data],
+				  RenamedColumns = Table.TransformColumnNames( gold_fact_test, each Text.Replace(_, "_", " "))
+				in
+				    RenamedColumns
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

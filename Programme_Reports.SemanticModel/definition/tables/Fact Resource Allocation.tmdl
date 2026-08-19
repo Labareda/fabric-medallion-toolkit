@@ -1,0 +1,148 @@
+/// Fact Resource allocation table
+table 'Fact Resource Allocation'
+	lineageTag: 9a1b2128-e3cf-4760-866c-85eedebd7c86
+
+	measure 'Effort-Weighted Allocations' = SUM('Fact Resource Allocation'[Allocation Weight])
+		lineageTag: b1575d85-a13a-454b-a267-ba891a31a021
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Is Overallocated' = [Effort-Weighted Allocations] > SELECTEDVALUE ('Dim Resource'[Daily Capacity Hours] )
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 8ae4f98b-48ff-4b2c-82ae-497ea9d8f99e
+
+	measure Headcount = SUM('Fact Resource Allocation'[Allocation Count])
+		formatString: 0
+		lineageTag: 3f6b82fa-02f0-4edc-91f8-53e366d25b7a
+
+	column 'Issue Code'
+		dataType: string
+		lineageTag: 46c8a5d7-0071-4e9c-880a-8dfd8e8623bf
+		summarizeBy: none
+		sourceColumn: Issue Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue Key'
+		dataType: string
+		isHidden
+		lineageTag: d88e6a94-4af8-4c10-9636-f60bc25f3bf5
+		summarizeBy: none
+		sourceColumn: Issue Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Resource Key'
+		dataType: string
+		isHidden
+		lineageTag: 6da7692f-e0f6-4bfd-a5e2-f3229fb935fa
+		summarizeBy: none
+		sourceColumn: Resource Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Resource Id'
+		dataType: string
+		lineageTag: 9cf6dd48-7a2a-4c24-b9e3-cc3a8f1acb02
+		summarizeBy: none
+		sourceColumn: Resource Id
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue Id'
+		dataType: string
+		lineageTag: 40eb7890-5089-40d3-b750-23237ce24690
+		summarizeBy: none
+		sourceColumn: Issue Id
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Role Name'
+		dataType: string
+		lineageTag: d70de0f2-07fc-4e93-99f5-743654c30c3e
+		summarizeBy: none
+		sourceColumn: Role Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Allocation Weight'
+		dataType: double
+		lineageTag: 53e14df6-562e-4b54-8ad5-2c24032a3526
+		summarizeBy: sum
+		sourceColumn: Allocation Weight
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Allocation Count'
+		dataType: int64
+		formatString: 0
+		lineageTag: 055a494d-bf87-4dd1-bb98-b94332529a56
+		summarizeBy: sum
+		sourceColumn: Allocation Count
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Resource Allocation Key'
+		dataType: string
+		isHidden
+		lineageTag: 300acedc-2a2e-4555-9835-aec70e6aa0fb
+		summarizeBy: none
+		sourceColumn: Resource Allocation Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Resource Role Key'
+		dataType: string
+		isHidden
+		lineageTag: 416ef1a6-6660-44d7-a4bb-9b7e43334b20
+		summarizeBy: none
+		sourceColumn: Resource Role Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Project Key'
+		dataType: string
+		isHidden
+		lineageTag: 31b336b7-c42e-4402-b5ca-8fdebcd85943
+		summarizeBy: none
+		sourceColumn: Project Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Team Key'
+		dataType: string
+		isHidden
+		lineageTag: e7fe5223-797c-41bb-83a0-9e544eb8eabe
+		summarizeBy: none
+		sourceColumn: Team Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Fact Resource Allocation' = m
+		mode: import
+		source =
+				let
+				  Source = Sql.Database("cekvmk67pvoetale6vvoo5wfji-brlvcnhvridetpgxmhh6wmlcw4.datawarehouse.fabric.microsoft.com", "gold"),
+				  #"Navigation 1" = Source{[Schema = "gold", Item = "fact_resource_allocation"]}[Data],
+				  RenamedColumns = Table.TransformColumnNames( #"Navigation 1", each Text.Replace(_, "_", " "))
+				in
+				    RenamedColumns
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

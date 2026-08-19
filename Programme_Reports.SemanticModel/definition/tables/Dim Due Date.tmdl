@@ -1,0 +1,184 @@
+/// Dim Date table
+table 'Dim Due Date'
+	lineageTag: 443a4d9b-064d-4fde-8211-a40a0beed070
+
+	column Date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 50ce4447-4793-4bbe-a039-0c34761b9c12
+		summarizeBy: none
+		sourceColumn: Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Date Key'
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 08f9b49a-4711-405f-a60a-ef26e1b56108
+		summarizeBy: count
+		sourceColumn: Date Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column Year
+		dataType: int64
+		formatString: 0
+		lineageTag: 4f30a8b0-3358-4913-a012-ef39af782ac8
+		summarizeBy: sum
+		sourceColumn: Year
+
+		annotation SummarizationSetBy = Automatic
+
+	column Quarter
+		dataType: int64
+		formatString: 0
+		lineageTag: 290ca79f-2bb0-4b6b-8c23-b90e1062be5a
+		summarizeBy: sum
+		sourceColumn: Quarter
+
+		annotation SummarizationSetBy = Automatic
+
+	column Month
+		dataType: int64
+		formatString: 0
+		lineageTag: ea18056b-0872-4735-8867-310239b1b0d7
+		summarizeBy: sum
+		sourceColumn: Month
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Month Name'
+		dataType: string
+		lineageTag: 7de5a122-b0d2-4867-8b24-288a4566f3df
+		summarizeBy: none
+		sourceColumn: Month Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Month Short Name'
+		dataType: string
+		lineageTag: 831266b9-1991-4f06-9dec-b6881cc5f921
+		summarizeBy: none
+		sourceColumn: Month Short Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Day Of Month'
+		dataType: int64
+		formatString: 0
+		lineageTag: 34d7e570-0694-4f66-abc7-34418fe2b089
+		summarizeBy: sum
+		sourceColumn: Day Of Month
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Day Of Week'
+		dataType: int64
+		formatString: 0
+		lineageTag: 51a6ddee-44aa-4d2a-8289-fef76a1cd676
+		summarizeBy: sum
+		sourceColumn: Day Of Week
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Day Name'
+		dataType: string
+		lineageTag: 629139f1-5355-4f02-8608-e162cb7d6e28
+		summarizeBy: none
+		sourceColumn: Day Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Week Of Year'
+		dataType: int64
+		formatString: 0
+		lineageTag: 4676a2bb-51bd-4014-b93f-5ce454d06ffa
+		summarizeBy: sum
+		sourceColumn: Week Of Year
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Weekend'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: a9c582b2-f77c-4889-a44d-b7af063a4239
+		summarizeBy: none
+		sourceColumn: Is Weekend
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Year Month'
+		dataType: string
+		lineageTag: 45fe69c2-3ce7-4529-9792-2e940e9164cf
+		summarizeBy: none
+		sourceColumn: Year Month
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Fiscal Year'
+		dataType: int64
+		formatString: 0
+		lineageTag: e1ac269e-84c3-4359-9de1-26abe3fe9e98
+		summarizeBy: sum
+		sourceColumn: Fiscal Year
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Fiscal Quarter'
+		dataType: int64
+		formatString: 0
+		lineageTag: 3dfa9a8d-e98f-4892-a1a0-4ad6d1a3fc45
+		summarizeBy: sum
+		sourceColumn: Fiscal Quarter
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Week Start Date'
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 12b3082e-6dbc-4d72-b014-1fca0a1b6145
+		summarizeBy: none
+		sourceColumn: Week Start Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Week End Date'
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 9c1561bc-0805-4867-b3fe-9b076f983ddf
+		summarizeBy: none
+		sourceColumn: Week End Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Week Label'
+		dataType: string
+		lineageTag: 3e20869b-f2ba-4f36-bd8d-cbe11154f4bc
+		summarizeBy: none
+		sourceColumn: Week Label
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Dim Due Date' = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("cekvmk67pvoetale6vvoo5wfji-brlvcnhvridetpgxmhh6wmlcw4.datawarehouse.fabric.microsoft.com", "gold"),
+				    gold_dim_date = Source{[Schema="gold",Item="dim_date"]}[Data],
+				    RenamedColumns = Table.TransformColumnNames(gold_dim_date , each Text.Proper(Text.Replace(_, "_", " ")) )
+				in
+				    RenamedColumns
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

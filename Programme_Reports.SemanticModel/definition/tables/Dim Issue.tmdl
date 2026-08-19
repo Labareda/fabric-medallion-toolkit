@@ -1,0 +1,190 @@
+/// Dim Issue table
+table 'Dim Issue'
+	lineageTag: 6528fd07-43e1-4454-aa11-6acf084320b5
+
+	column 'Issue Id'
+		dataType: string
+		isHidden
+		lineageTag: 545c3f08-9077-41ef-831a-fc7366344462
+		summarizeBy: none
+		sourceColumn: Issue Id
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue Code'
+		dataType: string
+		lineageTag: 58bd33fe-ab29-4f22-af25-e7a07c16c390
+		summarizeBy: none
+		sourceColumn: Issue Code
+
+		changedProperty = SortByColumn
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Parent Issue Id'
+		dataType: string
+		lineageTag: 2ac98fae-3ff5-4231-b730-cbe6b4243f95
+		summarizeBy: none
+		sourceColumn: Parent Issue Id
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue Key'
+		dataType: string
+		isHidden
+		lineageTag: 6b30937b-a12f-47f1-9934-773f542978d4
+		summarizeBy: none
+		sourceColumn: Issue Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Level 1'
+		dataType: string
+		displayFolder: Gantt Chart Fields\Levels
+		lineageTag: c0fc7b68-31c6-4ed2-b404-782b13b0c659
+		summarizeBy: none
+		sourceColumn: Level 1
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Level 2'
+		dataType: string
+		displayFolder: Gantt Chart Fields\Levels
+		lineageTag: 91fc0582-a61c-4a70-a8f4-f97f438155fd
+		summarizeBy: none
+		sourceColumn: Level 2
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Level 3'
+		dataType: string
+		displayFolder: Gantt Chart Fields\Levels
+		lineageTag: b5a66700-f596-47dc-87b0-3ce1371890b0
+		summarizeBy: none
+		sourceColumn: Level 3
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Level 4'
+		dataType: string
+		displayFolder: Gantt Chart Fields\Levels
+		lineageTag: 448e67f1-5cff-416b-9c42-3a633711e9f1
+		summarizeBy: none
+		sourceColumn: Level 4
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Level 5'
+		dataType: string
+		displayFolder: Gantt Chart Fields\Levels
+		lineageTag: 34023874-e41f-4edd-96de-d1c085524092
+		summarizeBy: none
+		sourceColumn: Level 5
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Level 6'
+		dataType: string
+		displayFolder: Gantt Chart Fields\Levels
+		lineageTag: 640f2a23-becf-4b8b-9eb8-22715fec56fe
+		summarizeBy: none
+		sourceColumn: Level 6
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Level 7'
+		dataType: string
+		displayFolder: Gantt Chart Fields\Levels
+		lineageTag: 2d12e591-a5e6-4791-8a21-ce56c0a5b44a
+		summarizeBy: none
+		sourceColumn: Level 7
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Sort Path'
+		dataType: string
+		isHidden
+		lineageTag: a4aeca72-a3c0-4de3-be5d-d224ba2ca0cc
+		summarizeBy: none
+		sourceColumn: Sort Path
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Lead Name'
+		dataType: string
+		lineageTag: 40f267cc-a932-43c1-af27-32bb0e462696
+		summarizeBy: none
+		sourceColumn: Lead Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Resource Names'
+		dataType: string
+		displayFolder: Gantt Chart Fields
+		lineageTag: c310b928-6a24-47fa-977c-6e3722225591
+		summarizeBy: none
+		sourceColumn: Resource Names
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Milestone'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: f89ab70c-264d-4339-b06b-18bada0a20cf
+		summarizeBy: none
+		sourceColumn: Is Milestone
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Predecessor Issue Code'
+		dataType: string
+		lineageTag: ae53c5e4-993e-4f65-9b0a-d2c5c62f5b02
+		summarizeBy: none
+		sourceColumn: Predecessor Issue Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue Summary'
+		dataType: string
+		lineageTag: 302e84c0-e284-4229-b143-daca0dd84353
+		summarizeBy: none
+		sourceColumn: Issue Summary
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue Display Label'
+		dataType: string
+		lineageTag: 5d2898d3-852e-4418-ad47-9629165db1bf
+		summarizeBy: none
+		sourceColumn: Issue Display Label
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Acceptance Criteria'
+		dataType: string
+		lineageTag: 14ec7534-b978-4d18-9341-9006c11a9cb4
+		summarizeBy: none
+		sourceColumn: Test Acceptance Criteria
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Dim Issue' = m
+		mode: import
+		source =
+				let
+				  Source = Sql.Database("cekvmk67pvoetale6vvoo5wfji-brlvcnhvridetpgxmhh6wmlcw4.datawarehouse.fabric.microsoft.com", "gold"),
+				    gold_dim_issue = Source{[Schema="gold",Item="dim_issue"]}[Data],
+				    RenamedColumns = Table.TransformColumnNames( gold_dim_issue, each Text.Replace(_, "_", " "))
+				in
+				    RenamedColumns
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

@@ -1,0 +1,112 @@
+table 'Fact Resource Day Allocation'
+	lineageTag: c8cbb311-b920-45cf-8664-1f315e192967
+
+	measure 'Allocated Hours (Total)' = SUM('Fact Resource Day Allocation'[Allocated Hours])
+		lineageTag: 60cb320c-08b0-4470-9583-31b023c58e01
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Conflict Resource Days' = ```
+			
+			    VAR ResourceDayTable =  
+			        SUMMARIZE(
+			            'Fact Resource Day Allocation',
+			            'Fact Resource Day Allocation'[Resource Key],
+			            'Fact Resource Day Allocation'[Date]
+			        )
+			    VAR Withhoursandcapacity = 
+			        ADDCOLUMNS(
+			            ResourceDayTable,
+			            "@AllocHours", CALCULATE(SUM('Fact Resource Day Allocation'[Allocated Hours])),
+			            "@Capacity", CALCULATE(MAX('Dim Resource'[Daily Capacity Hours]))
+			        )
+			    RETURN
+			        COUNTROWS(FILTER(Withhoursandcapacity, [@AllocHours] > [@Capacity]))
+			```
+		formatString: 0
+		lineageTag: 18175793-43ea-446c-b968-f89f68d74f2a
+
+	column 'Resource Id'
+		dataType: string
+		lineageTag: bb81da17-07dd-4a11-bc6c-cd6e77552a94
+		summarizeBy: none
+		sourceColumn: Resource Id
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue Id'
+		dataType: string
+		lineageTag: 33f10564-f9b5-47de-b0da-47db2a424f92
+		summarizeBy: none
+		sourceColumn: Issue Id
+
+		annotation SummarizationSetBy = Automatic
+
+	column Date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: a9fecfd3-64cf-4ff3-bfce-43bfa683cd18
+		summarizeBy: none
+		sourceColumn: Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Allocated Hours'
+		dataType: double
+		lineageTag: 520c7984-2634-4772-a0d4-eeec109937f4
+		summarizeBy: sum
+		sourceColumn: Allocated Hours
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Resource Key'
+		dataType: string
+		isHidden
+		lineageTag: d10f502c-6d77-4997-bac5-ee52ab919630
+		summarizeBy: none
+		sourceColumn: Resource Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue Key'
+		dataType: string
+		isHidden
+		lineageTag: 68f7c4a5-d57a-4aca-8f9c-3819a8ee1ae4
+		summarizeBy: none
+		sourceColumn: Issue Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Resource Day Allocation Key'
+		dataType: string
+		isHidden
+		lineageTag: 7a846c55-04a1-42eb-b217-aa862c8e2121
+		summarizeBy: none
+		sourceColumn: Resource Day Allocation Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Fact Resource Day Allocation' = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("cekvmk67pvoetale6vvoo5wfji-brlvcnhvridetpgxmhh6wmlcw4.datawarehouse.fabric.microsoft.com", "gold"),
+				    gold_fact_resource_day_allocation = Source{[Schema="gold",Item="fact_resource_day_allocation"]}[Data],
+				  RenamedColumns = Table.TransformColumnNames( gold_fact_resource_day_allocation, each Text.Replace(_, "_", " "))
+				in
+				    RenamedColumns
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

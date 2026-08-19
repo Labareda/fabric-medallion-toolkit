@@ -1,0 +1,422 @@
+/// Fact Issue Table
+table 'Fact Issue'
+	lineageTag: 0a82a02f-4e70-449c-9b64-53e532045d7d
+
+	measure Progress = ```
+			
+			IF(
+			    SELECTEDVALUE('Dim Status'[Status Category]) = "Done",
+			    1,
+			    DIVIDE(SUM('Fact Issue'[Time Spent Hours]), SUM('Fact Issue'[Original Estimate Hours]), 0)
+			)
+			 
+			```
+		lineageTag: 24f50b75-91cd-48cc-b67a-e50daf492552
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Story Points Committed' = SUM ( 'Fact Issue'[Story Points] )
+		lineageTag: 19b85fc4-da44-4e79-a4a4-70de72ebea35
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Story Points Delivered' =
+			
+			CALCULATE (
+			    SUM ( 'Fact Issue'[Story Points] ),
+			    'Dim Status'[Status Category] = "Done"
+			)
+		lineageTag: 48604c40-5e0e-4a29-8487-1a4a61047eec
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Avg Cycle Time (Days)' = AVERAGE('Fact Issue'[Cycle Time Days])
+		lineageTag: 8d243e9f-0bd7-4f3a-8ba7-5e862f1b1932
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Open Issues' = ```
+			
+			CALCULATE(
+			    [Total Issues], 
+			    'Fact Issue History'[Is Done]= False)
+			```
+		lineageTag: 9e123aea-29a7-4d92-b3d5-75877097beb4
+
+	measure 'Overdue Issues' = CALCULATE([Total Issues], 'Fact Issue'[Is Overdue] = True)
+		lineageTag: 733ba7e4-5c4d-43c7-a225-c665f960ff84
+
+	measure 'Total Issues' = COUNTROWS('Fact Issue')
+		formatString: 0
+		lineageTag: 610252c6-4bd4-4582-bb13-1badf2adb0d6
+
+	measure 'Total Story Points' = SUM('Fact Issue'[Story Points])
+		lineageTag: ef1618d5-92b6-46af-a16b-bf8861f7b9cb
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Total Time Spent (Hrs)' = SUM('Fact Issue'[Time Spent Hours])
+		lineageTag: e97cf59e-af14-4a70-8d6b-00fb3a1c445e
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Issue Id'
+		dataType: string
+		isHidden
+		lineageTag: f545c322-d980-4d12-9f77-7d4baa88b4ef
+		summarizeBy: none
+		sourceColumn: Issue Id
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue Code'
+		dataType: string
+		lineageTag: ed7f61e6-eb30-429f-b95e-19ad312218e6
+		summarizeBy: none
+		sourceColumn: Issue Code
+		sortByColumn: 'IssueType Key'
+
+		changedProperty = SortByColumn
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Created Date'
+		dataType: dateTime
+		formatString: Short Date
+		lineageTag: 43f22214-d13d-4f73-8c61-a6b45e24cbd4
+		summarizeBy: none
+		sourceColumn: Created Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Story Points'
+		dataType: double
+		lineageTag: a6378f55-091b-4c00-979d-faf7d018ee4c
+		summarizeBy: sum
+		sourceColumn: Story Points
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Original Estimate Hours'
+		dataType: double
+		lineageTag: 34fedea0-4e52-4d5f-8665-1702e902cd4d
+		summarizeBy: sum
+		sourceColumn: Original Estimate Hours
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Remaining Estimate Hours'
+		dataType: double
+		lineageTag: b48b0c16-f882-4fcc-8102-085aa557318f
+		summarizeBy: sum
+		sourceColumn: Remaining Estimate Hours
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Time Spent Hours'
+		dataType: double
+		lineageTag: 266c8fb1-b30e-4fbe-b9a8-997ed899bb91
+		summarizeBy: sum
+		sourceColumn: Time Spent Hours
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Issue Key'
+		dataType: string
+		isHidden
+		lineageTag: f63e220d-9e5c-427b-9d9f-b06279bcb67c
+		summarizeBy: none
+		sourceColumn: Issue Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Project Key'
+		dataType: string
+		isHidden
+		lineageTag: 5885c709-d22e-4ea3-ae42-4ef76cf36ee2
+		summarizeBy: none
+		sourceColumn: Project Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Status Key'
+		dataType: string
+		isHidden
+		lineageTag: f8add839-2bd0-4328-b32f-b621bfe30923
+		summarizeBy: none
+		sourceColumn: Status Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Priority Key'
+		dataType: string
+		isHidden
+		lineageTag: 77c81ff0-6760-40a2-b260-baceb52a1aa1
+		summarizeBy: none
+		sourceColumn: Priority Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'IssueType Key'
+		dataType: string
+		isHidden
+		lineageTag: acabaa38-0243-4aba-aab6-f7f2e1207e38
+		summarizeBy: none
+		sourceColumn: IssueType Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue Fact Key'
+		dataType: string
+		isHidden
+		lineageTag: f03c7c25-e4ea-455e-aeb4-f262480ce613
+		summarizeBy: none
+		sourceColumn: Issue Fact Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Rollup Start Date'
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 9a9c6c06-2fea-48e2-8571-dde73b89b131
+		summarizeBy: none
+		sourceColumn: Rollup Start Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Rollup End Date'
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: f67ede55-f70c-482a-a24f-0d30465a7fdf
+		summarizeBy: none
+		sourceColumn: Rollup End Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Planned Start Date'
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 59064498-3f06-4264-9b2f-843483122e74
+		summarizeBy: none
+		sourceColumn: Planned Start Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Planned End Date'
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 7713256f-8675-4056-b7e9-f7ff55196b3e
+		summarizeBy: none
+		sourceColumn: Planned End Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Actual End Date'
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: f3c48255-d107-42dc-830b-e2a3b7d278f4
+		summarizeBy: none
+		sourceColumn: Actual End Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Duration Days'
+		dataType: int64
+		formatString: 0
+		lineageTag: de344e35-ae96-4d97-910e-d21c58207078
+		summarizeBy: none
+		sourceColumn: Duration Days
+
+		annotation SummarizationSetBy = User
+
+	column 'Slip Days'
+		dataType: int64
+		formatString: 0
+		lineageTag: fd2af64b-31e7-4a23-837a-eb24f3462aae
+		summarizeBy: sum
+		sourceColumn: Slip Days
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Overdue'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: d5041c07-6499-4faa-a20e-3b1113836e1e
+		summarizeBy: none
+		sourceColumn: Is Overdue
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Resolution Key'
+		dataType: string
+		isHidden
+		lineageTag: c8875a18-a745-47be-ad4f-34d4652c060f
+		summarizeBy: none
+		sourceColumn: Resolution Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Team Key'
+		dataType: string
+		isHidden
+		lineageTag: 96e8fa33-03de-46e7-ad2d-23a083a3ba99
+		summarizeBy: none
+		sourceColumn: Team Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Actual Start Date'
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: a0c89529-6d5d-4e64-b22f-b22f677be78e
+		summarizeBy: none
+		sourceColumn: Actual Start Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Age Days'
+		dataType: int64
+		formatString: 0
+		lineageTag: df8707be-b09e-494f-bea9-510c7aff48ab
+		summarizeBy: sum
+		sourceColumn: Age Days
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Lead Time Days'
+		dataType: int64
+		formatString: 0
+		lineageTag: 03c8f08f-07f3-4782-ba26-b68611852094
+		summarizeBy: sum
+		sourceColumn: Lead Time Days
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Cycle Time Days'
+		dataType: int64
+		formatString: 0
+		lineageTag: 7cb26929-e039-466a-970b-43054dbc23cd
+		summarizeBy: sum
+		sourceColumn: Cycle Time Days
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Done'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 7cc77104-bb1f-4270-a6dc-e098f429895b
+		summarizeBy: none
+		sourceColumn: Is Done
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Risk Total Score'
+		dataType: double
+		lineageTag: 1311e963-e80d-428e-96e2-a4e8d6c22e00
+		summarizeBy: sum
+		sourceColumn: Risk Total Score
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Risk Previous Score'
+		dataType: double
+		lineageTag: c7130f71-0366-483b-8d2b-c9c2019a90a2
+		summarizeBy: sum
+		sourceColumn: Risk Previous Score
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Likelihood Score'
+		dataType: string
+		lineageTag: 6486aafd-7a04-4549-b18c-609b7ea6839e
+		summarizeBy: none
+		sourceColumn: Likelihood Score
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Severity Score'
+		dataType: string
+		lineageTag: e9eba28b-5986-4bbe-8116-b18c520402a9
+		summarizeBy: none
+		sourceColumn: Severity Score
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Total Tests'
+		dataType: double
+		lineageTag: 2748e70d-b243-4e7b-8147-f137d0084282
+		summarizeBy: sum
+		sourceColumn: Total Tests
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Passed Tests'
+		dataType: double
+		lineageTag: ed0991f6-9f02-4863-9ef2-ed0af81a0954
+		summarizeBy: sum
+		sourceColumn: Passed Tests
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition 'Fact Issue' = m
+		mode: import
+		source =
+				let
+				  Source = Sql.Database("cekvmk67pvoetale6vvoo5wfji-brlvcnhvridetpgxmhh6wmlcw4.datawarehouse.fabric.microsoft.com", "gold"),
+				  #"Navigation 1" = Source{[Schema = "gold", Item = "fact_issue"]}[Data],
+				  RenamedColumns = Table.TransformColumnNames( #"Navigation 1", each Text.Replace(_, "_", " "))
+				in
+				    RenamedColumns
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

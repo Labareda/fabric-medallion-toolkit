@@ -1,0 +1,97 @@
+table 'Dim Test Status'
+	lineageTag: 51761e08-f0b0-4195-8d72-81d550588ede
+
+	column 'Test Status Name'
+		dataType: string
+		lineageTag: 27900a6e-e985-4497-8a82-d5f80127b330
+		summarizeBy: none
+		sourceColumn: Test Status Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Coverage Status'
+		dataType: string
+		lineageTag: 9dd173d6-d0df-4662-b84a-5e4b2d65da11
+		summarizeBy: none
+		sourceColumn: Coverage Status
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Status Key'
+		dataType: string
+		isHidden
+		lineageTag: 80e009b3-fc20-4ccd-8a6b-936dcc13438b
+		summarizeBy: none
+		sourceColumn: Test Status Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Status Description'
+		dataType: string
+		lineageTag: 21322b4c-d47c-4777-872e-f8e4980d85e4
+		summarizeBy: none
+		sourceColumn: Test Status Description
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Pass'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: b169180f-8fef-4ea1-a02e-96935c95b646
+		summarizeBy: none
+		sourceColumn: Is Pass
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Fail'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: b07a8054-22d3-4a65-a894-9df4dba4e558
+		summarizeBy: none
+		sourceColumn: Is Fail
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Blocked'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 41c6e3d6-bb7d-41a1-88eb-37913d58e30a
+		summarizeBy: none
+		sourceColumn: Is Blocked
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Not Run'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: f08c9878-d11e-4d0f-bab1-51de35ceebd0
+		summarizeBy: none
+		sourceColumn: Is Not Run
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Status Sort Order'
+		dataType: int64
+		formatString: 0
+		lineageTag: f295111a-0112-4819-bf34-231958e4e324
+		summarizeBy: none
+		sourceColumn: Test Status Sort Order
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Dim Test Status' = m
+		mode: import
+		source =
+				let
+				  Source = Sql.Database("cekvmk67pvoetale6vvoo5wfji-brlvcnhvridetpgxmhh6wmlcw4.datawarehouse.fabric.microsoft.com", "gold"),
+				    gold_dim_test_status = Source{[Schema="gold",Item="dim_test_status"]}[Data],
+				    RenamedColumns = Table.TransformColumnNames( gold_dim_test_status, each Text.Replace(_, "_", " "))
+				in
+				    RenamedColumns
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

@@ -1,0 +1,1247 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.11.0/schema.json",
+  "name": "a8dd09c3676770bebf7b",
+  "position": {
+    "x": 285.55555555555554,
+    "y": 85.555555555555557,
+    "z": 7000,
+    "height": 605,
+    "width": 965.55555555555554,
+    "tabOrder": 7000
+  },
+  "visual": {
+    "visualType": "GanttChart4C3653EFFFEB4E7DA5A699CE198391E2",
+    "query": {
+      "queryState": {
+        "Task": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Level 1"
+                }
+              },
+              "queryRef": "Dim Issue.Level 1",
+              "nativeQueryRef": "Level 1"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Level 2"
+                }
+              },
+              "queryRef": "Dim Issue.Level 2",
+              "nativeQueryRef": "Level 2"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Level 3"
+                }
+              },
+              "queryRef": "Dim Issue.Level 3",
+              "nativeQueryRef": "Level 3"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Level 4"
+                }
+              },
+              "queryRef": "Dim Issue.Level 4",
+              "nativeQueryRef": "Level 4"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Level 5"
+                }
+              },
+              "queryRef": "Dim Issue.Level 5",
+              "nativeQueryRef": "Level 5"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Level 6"
+                }
+              },
+              "queryRef": "Dim Issue.Level 6",
+              "nativeQueryRef": "Level 6"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Level 7"
+                }
+              },
+              "queryRef": "Dim Issue.Level 7",
+              "nativeQueryRef": "Level 7"
+            }
+          ]
+        },
+        "baselineStart": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Fact Issue"
+                    }
+                  },
+                  "Property": "Planned Start Date"
+                }
+              },
+              "queryRef": "Fact Issue.Planned Start Date",
+              "nativeQueryRef": "Planned Start Date"
+            }
+          ]
+        },
+        "baselineEnd": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Fact Issue"
+                    }
+                  },
+                  "Property": "Planned End Date"
+                }
+              },
+              "queryRef": "Fact Issue.Planned End Date",
+              "nativeQueryRef": "Planned End Date"
+            }
+          ]
+        },
+        "displayColumn": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Lead Name"
+                }
+              },
+              "queryRef": "Dim Issue.Lead Name",
+              "nativeQueryRef": "Lead Name"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Resource Names"
+                }
+              },
+              "queryRef": "Dim Issue.Resource Names",
+              "nativeQueryRef": "Resource Names"
+            }
+          ]
+        },
+        "primaryConnectTo": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Predecessor Issue Code"
+                }
+              },
+              "queryRef": "Dim Issue.Predecessor Issue Code",
+              "nativeQueryRef": "Predecessor Issue Code"
+            }
+          ]
+        },
+        "TaskID": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Issue Code"
+                }
+              },
+              "queryRef": "Dim Issue.Issue Code",
+              "nativeQueryRef": "Issue Code"
+            }
+          ]
+        },
+        "ascSort": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Sort Path"
+                }
+              },
+              "queryRef": "Dim Issue.Sort Path",
+              "nativeQueryRef": "Sort Path"
+            }
+          ]
+        },
+        "actualStart": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Date"
+                    }
+                  },
+                  "Property": "Date"
+                }
+              },
+              "queryRef": "Dim Date.Date",
+              "nativeQueryRef": "Date"
+            }
+          ]
+        },
+        "actualEnd": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Due Date"
+                    }
+                  },
+                  "Property": "Date"
+                }
+              },
+              "queryRef": "Dim Due Date.Date",
+              "nativeQueryRef": "Date1"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "editor": [
+        {
+          "properties": {
+            "zoomLevels": {
+              "expr": {
+                "Literal": {
+                  "Value": "'{\"zoomLevels\":[{\"name\":\"granularity001\",\"granularity1\":\"quarter\",\"granularity1Value\":1,\"granularity1Format\":\"\",\"granularity2\":\"month\",\"granularity2Value\":1,\"granularity2Format\":\"\",\"granularity3\":\"day\",\"granularity3Value\":11,\"granularity3Format\":\"\"},{\"name\":\"granularity0.9772483996000536\",\"granularity1\":\"month\",\"granularity1Value\":1,\"granularity1Format\":\"\",\"granularity2\":\"day\",\"granularity2Value\":2,\"granularity2Format\":\"\",\"granularity3\":\"hour\",\"granularity3Value\":12,\"granularity3Format\":\"\"},{\"name\":\"granularity0.5730343628200893\",\"granularity1\":\"day\",\"granularity1Value\":1,\"granularity1Format\":\"\",\"granularity2\":\"hour\",\"granularity2Value\":8,\"granularity2Format\":\"\",\"granularity3\":\"minute\",\"granularity3Value\":30,\"granularity3Format\":\"\"}],\"isEnabled\":false,\"timeline\":{\"startDateOptions\":\"default\",\"endDateOptions\":\"default\"}}'"
+                }
+              }
+            },
+            "milestones": {
+              "expr": {
+                "Literal": {
+                  "Value": "'{\"generalConfig\":{\"mileStoneFromData\":true,\"milestoneType\":\"marker\",\"enablePreview\":false,\"configurationFrom\":\"milestoneName\",\"configurationTypeMileStone\":\"all\",\"milestoneLegend\":false,\"isCustomImage\":false},\"milestoneFieldConfig\":{},\"milestoneNameFieldConfig\":{},\"singleConfig\":{\"milestoneBorderColor\":\"#383838\",\"milestoneFillColor\":\"#d9b300\",\"milestoneShape\":\"\",\"milestoneIconName\":\"diamond\",\"image\":\"\",\"imageName\":\"\",\"showError\":false,\"errorMessage\":\"\"},\"dataConfig\":{\"milestoneBorderColor\":\"#383838\",\"milestoneFillColor\":\"#7ed321\",\"milestoneShape\":\"\",\"milestoneIconName\":\"diamond\",\"image\":\"\",\"imageName\":\"\"},\"dataLabelConfig\":{\"isEnabled\":false,\"dataLabels\":{},\"configureBasedOn\":\"dataLabel\"}}'"
+                }
+              }
+            },
+            "enableCustomSummaryTable": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "markers": {
+              "expr": {
+                "Literal": {
+                  "Value": "'[{\"name\":\"Reference34221173\",\"enabled\":true,\"label\":\"Today\",\"dateType\":\"current\",\"date1Type\":\"current\",\"date2Type\":\"current\",\"date1Custom\":\"\",\"date2Custom\":\"\",\"color\":\"#000\",\"enableBackgroundColor\":false,\"backgroundColor\":\"#e3e8e8\",\"textFontWeight\":\"200\",\"displayOptions\":{\"line\":true,\"text\":false},\"lineType\":\"dotted\",\"lineStroke\":2,\"hAlign\":9,\"vAlign\":0,\"rotation\":90,\"enableMarkerText\":false,\"patternType\":\"none\",\"textColor\":\"#000\",\"bgRangeTextEnabled\":false,\"rangeMarkerTextColor\":\"#fff\",\"rangeColor\":\"rgba(255, 0, 255,0.5)\",\"utcSign\":\"+\",\"utcHour\":\"00\",\"utcMin\":\"00\"}]'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "chartOptions": [
+        {
+          "properties": {
+            "equalBarHeight": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "fontfamily": {
+              "expr": {
+                "Literal": {
+                  "Value": "'\"Segoe UI Light\", wf_segoe-ui_bold, helvetica, arial, sans-serif'"
+                }
+              }
+            },
+            "ganttBarType": {
+              "expr": {
+                "Literal": {
+                  "Value": "'bar'"
+                }
+              }
+            },
+            "ganttChartType": {
+              "expr": {
+                "Literal": {
+                  "Value": "'gantt'"
+                }
+              }
+            },
+            "weekStartDay": {
+              "expr": {
+                "Literal": {
+                  "Value": "1D"
+                }
+              }
+            },
+            "isoWeekNumber": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "fiscalYearStartMonth": {
+              "expr": {
+                "Literal": {
+                  "Value": "1D"
+                }
+              }
+            },
+            "fiscalYearType": {
+              "expr": {
+                "Literal": {
+                  "Value": "'default'"
+                }
+              }
+            },
+            "displayTotals": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "hideBlankGantt": {
+              "expr": {
+                "Literal": {
+                  "Value": "'hideDescendantNode'"
+                }
+              }
+            },
+            "hideParentOnCollapse": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "hideParentOnExpand": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "zoomOptions": {
+              "expr": {
+                "Literal": {
+                  "Value": "'mouseWheel'"
+                }
+              }
+            },
+            "displayindividualtask": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "ganttRowHeight": {
+              "expr": {
+                "Literal": {
+                  "Value": "17D"
+                }
+              }
+            },
+            "actualBarHeight": {
+              "expr": {
+                "Literal": {
+                  "Value": "80D"
+                }
+              }
+            },
+            "plannedBarHeight": {
+              "expr": {
+                "Literal": {
+                  "Value": "50D"
+                }
+              }
+            },
+            "headerHeight": {
+              "expr": {
+                "Literal": {
+                  "Value": "60D"
+                }
+              }
+            },
+            "showPlannedTaskInParent": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "chartBackgroundColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 0,
+                      "Percent": -0.1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "miscellaneous": [
+        {
+          "properties": {
+            "individualTooltip": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "tooltipType": {
+              "expr": {
+                "Literal": {
+                  "Value": "'customTooltip'"
+                }
+              }
+            },
+            "enableFooter": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "migration": [
+        {
+          "properties": {
+            "migrationSettings": {
+              "expr": {
+                "Literal": {
+                  "Value": "'{\"v3_1_0\":{\"editor\":{\"isResolved\":true}},\"v3_2_1_x\":{\"chartOptions\":{\"isResolved\":true},\"miscellaneous\":{\"isResolved\":true}},\"v3_3_0_x\":{\"editor\":{\"isResolved\":true}}}'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "utilityMenuAction": [
+        {
+          "properties": {
+            "isTooltipEnabled": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "dataGrid": [
+        {
+          "properties": {
+            "datagridFontStyle": {
+              "expr": {
+                "Literal": {
+                  "Value": "'default'"
+                }
+              }
+            },
+            "datagridFontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "10D"
+                }
+              }
+            },
+            "autoSplitPosition": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "nodeCustomizationChildRoot": {
+              "expr": {
+                "Literal": {
+                  "Value": "'child'"
+                }
+              }
+            },
+            "headerFontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "12D"
+                }
+              }
+            },
+            "rootNodeFontStyle": {
+              "expr": {
+                "Literal": {
+                  "Value": "'default'"
+                }
+              }
+            },
+            "parentNodeFontStyle": {
+              "expr": {
+                "Literal": {
+                  "Value": "'bold'"
+                }
+              }
+            },
+            "collapseAllNodes": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "gridColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 0,
+                      "Percent": -0.1
+                    }
+                  }
+                }
+              }
+            },
+            "gridWidth": {
+              "expr": {
+                "Literal": {
+                  "Value": "1D"
+                }
+              }
+            },
+            "headerFontColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 0,
+                      "Percent": 0
+                    }
+                  }
+                }
+              }
+            },
+            "headerBackgroungColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#B21C1A'"
+                    }
+                  }
+                }
+              }
+            },
+            "parentNodeFontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "12D"
+                }
+              }
+            },
+            "rootNodeFontSizeGantt": {
+              "expr": {
+                "Literal": {
+                  "Value": "11D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "timeline": [
+        {
+          "properties": {
+            "ganttHeaderFormat": {
+              "expr": {
+                "Literal": {
+                  "Value": "'normal'"
+                }
+              }
+            },
+            "ganttTopLevelHeaderHeight": {
+              "expr": {
+                "Literal": {
+                  "Value": "33D"
+                }
+              }
+            },
+            "ganttTopLevelBorderColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 9,
+                      "Percent": 0
+                    }
+                  }
+                }
+              }
+            },
+            "gantttoplevel": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "ganttmidlevel": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "ganttlowlevel": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "ganttMidLevelFillColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#B21C1A'"
+                    }
+                  }
+                }
+              }
+            },
+            "ganttMidLevelTextColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 0,
+                      "Percent": 0
+                    }
+                  }
+                }
+              }
+            },
+            "ganttMidLevelHeaderHeight": {
+              "expr": {
+                "Literal": {
+                  "Value": "40D"
+                }
+              }
+            },
+            "ganttMidLevelBorderColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 0,
+                      "Percent": 0
+                    }
+                  }
+                }
+              }
+            },
+            "ganttMidLevelBorderWidth": {
+              "expr": {
+                "Literal": {
+                  "Value": "0D"
+                }
+              }
+            },
+            "ganttLowLevelFillColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 0,
+                      "Percent": -0.1
+                    }
+                  }
+                }
+              }
+            },
+            "scrollBarColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 1,
+                      "Percent": 0
+                    }
+                  }
+                }
+              }
+            },
+            "ganttscrollenable": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "ganttzoomrangeenabled": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "timelinePaddingEnd": {
+              "expr": {
+                "Literal": {
+                  "Value": "5D"
+                }
+              }
+            },
+            "timelinePaddingStart": {
+              "expr": {
+                "Literal": {
+                  "Value": "2D"
+                }
+              }
+            },
+            "ganttLowLevelFontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "11D"
+                }
+              }
+            },
+            "ganttLowLevelBorderColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 0,
+                      "Percent": -0.1
+                    }
+                  }
+                }
+              }
+            },
+            "ganttLowLevelBorderWidth": {
+              "expr": {
+                "Literal": {
+                  "Value": "0D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "dataLabel": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "dlFontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "9D"
+                }
+              }
+            },
+            "datalabeltextcolor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 1,
+                      "Percent": 0
+                    }
+                  }
+                }
+              }
+            },
+            "dataLabelAlignment": {
+              "expr": {
+                "Literal": {
+                  "Value": "'right-center'"
+                }
+              }
+            },
+            "dataLabelBackgroundColorShow": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "transparency": {
+              "expr": {
+                "Literal": {
+                  "Value": "25D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "numberFormatting": [
+        {
+          "properties": {
+            "isEnableSemantingFormatting": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "interaction": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "summaryTable": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "summaryTableIconColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 0,
+                      "Percent": 0
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "dataColors": [
+        {
+          "properties": {
+            "interactionStateWithConnector": {
+              "expr": {
+                "Literal": {
+                  "Value": "'connector'"
+                }
+              }
+            },
+            "rowColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 0,
+                      "Percent": 0
+                    }
+                  }
+                }
+              }
+            },
+            "actualParentFillColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#B21C1A'"
+                    }
+                  }
+                }
+              }
+            },
+            "actualParentTrackColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 0,
+                      "Percent": -0.1
+                    }
+                  }
+                }
+              }
+            },
+            "actualChildFillColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 1,
+                      "Percent": 0.6
+                    }
+                  }
+                }
+              }
+            },
+            "actualChildTrackColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 8,
+                      "Percent": 0.4
+                    }
+                  }
+                }
+              }
+            },
+            "plannedFillColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 2,
+                      "Percent": 0.6
+                    }
+                  }
+                }
+              }
+            },
+            "actualParentBorderColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#B21C1A'"
+                    }
+                  }
+                }
+              }
+            },
+            "actualChildBorderColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 0,
+                      "Percent": -0.2
+                    }
+                  }
+                }
+              }
+            },
+            "plannedBorderColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 2,
+                      "Percent": 0.6
+                    }
+                  }
+                }
+              }
+            },
+            "enableSelectedColor": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "selectedFillColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 2,
+                      "Percent": 0
+                    }
+                  }
+                }
+              }
+            },
+            "connectorArrowColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 1,
+                      "Percent": 0.6
+                    }
+                  }
+                }
+              }
+            },
+            "configurationType": {
+              "expr": {
+                "Literal": {
+                  "Value": "'parent'"
+                }
+              }
+            },
+            "configurationFiledParent": {
+              "expr": {
+                "Literal": {
+                  "Value": "'actualParentTrackColor'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "customTooltip": [
+        {
+          "properties": {
+            "customTooltipFontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "9D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "displayColumn": [
+        {
+          "properties": {
+            "taskDurationType": {
+              "expr": {
+                "Literal": {
+                  "Value": "'none'"
+                }
+              }
+            },
+            "columnNameWidth": {
+              "expr": {
+                "Literal": {
+                  "Value": "300D"
+                }
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "columnWidth": {
+              "expr": {
+                "Literal": {
+                  "Value": "80D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Dim Issue.Lead Name"
+          }
+        },
+        {
+          "properties": {
+            "columnWidth": {
+              "expr": {
+                "Literal": {
+                  "Value": "80D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Dim Issue.Resource Names"
+          }
+        }
+      ],
+      "utilityMenu": [
+        {
+          "properties": {
+            "utilityMenuIconColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 0,
+                      "Percent": 0
+                    }
+                  }
+                }
+              }
+            },
+            "isLevels": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "background": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "visualHeader": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "padding": [
+        {
+          "properties": {
+            "left": {
+              "expr": {
+                "Literal": {
+                  "Value": "0D"
+                }
+              }
+            },
+            "top": {
+              "expr": {
+                "Literal": {
+                  "Value": "0D"
+                }
+              }
+            },
+            "right": {
+              "expr": {
+                "Literal": {
+                  "Value": "0D"
+                }
+              }
+            },
+            "bottom": {
+              "expr": {
+                "Literal": {
+                  "Value": "0D"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

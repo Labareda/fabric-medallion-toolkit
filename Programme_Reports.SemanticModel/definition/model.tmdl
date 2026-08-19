@@ -1,15 +1,39 @@
 model Model
 	culture: en-GB
 	defaultPowerBIDataSourceVersion: powerBI_V3
-	sourceQueryCulture: en-JE
-	valueFilterBehavior: independent
+	sourceQueryCulture: en-GB
 	dataAccessOptions
 		legacyRedirects
 		returnErrorValuesAsNull
 
-annotation __PBI_TimeIntelligenceEnabled = 1
+annotation __PBI_TimeIntelligenceEnabled = 0
+
+annotation PBI_QueryOrder = ["Dim Due Date","Dim Date","Dim Issue","Dim Issue Type","Dim Link Type","Dim Priority","Dim Project","Dim Resolution","Dim Resource","Dim Resource Role","Dim Status","Dim Team","Dim test Set","Dim Test Status","Bridge Issue Link","Fact Issue","Fact Issue History","Fact Resource Allocation","Fact Worklog","Fact Test","Fact Test Coverage","Fact Resource Day Allocation"]
 
 annotation PBI_ProTooling = ["DevMode"]
+
+ref table 'Dim Date'
+ref table 'Dim Issue'
+ref table 'Dim Issue Type'
+ref table 'Dim Priority'
+ref table 'Dim Project'
+ref table 'Dim Resource'
+ref table 'Dim Status'
+ref table 'Fact Issue'
+ref table 'Fact Resource Allocation'
+ref table 'Dim Resource Role'
+ref table 'Dim Test Status'
+ref table 'Dim Team'
+ref table 'Fact Issue History'
+ref table 'Fact Worklog'
+ref table 'Dim Due Date'
+ref table 'Dim test Set'
+ref table 'Fact Test'
+ref table 'Fact Test Coverage'
+ref table 'Dim Link Type'
+ref table 'Bridge Issue Link'
+ref table 'Fact Resource Day Allocation'
+ref table 'Dim Resolution'
 
 ref cultureInfo en-GB
 

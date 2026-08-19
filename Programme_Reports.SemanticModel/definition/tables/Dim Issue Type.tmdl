@@ -1,0 +1,79 @@
+/// Dim Issue Type
+table 'Dim Issue Type'
+	lineageTag: 17310d84-d50b-4048-95bd-ae9271edba4a
+
+	column 'Issue Type Id'
+		dataType: string
+		isHidden
+		lineageTag: 941a76dd-1c2d-40d3-a2f7-7d6d07ac455d
+		summarizeBy: none
+		sourceColumn: Issue Type Id
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue Type Name'
+		dataType: string
+		lineageTag: b6422870-9ddd-43ba-9333-35d03abb014d
+		summarizeBy: none
+		sourceColumn: Issue Type Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue Type Description'
+		dataType: string
+		lineageTag: 0542e154-008e-4da1-b66f-33cd54a1e610
+		summarizeBy: none
+		sourceColumn: Issue Type Description
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hierarchy Level'
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 7c580dc9-d7dd-4237-9b9a-b0dad5a23fbf
+		summarizeBy: none
+		sourceColumn: Hierarchy Level
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'IssueType Key'
+		dataType: string
+		isHidden
+		lineageTag: 4d168721-ee4d-4437-a875-e8877aa436b2
+		summarizeBy: none
+		sourceColumn: IssueType Key
+		sortByColumn: 'Hierarchy Level'
+
+		changedProperty = IsHidden
+
+		changedProperty = SortByColumn
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue Category'
+		dataType: string
+		lineageTag: 2fc2fb6b-0871-4796-b7cc-b11c45c13612
+		summarizeBy: none
+		sourceColumn: Issue Category
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Dim Issue Type' = m
+		mode: import
+		source =
+				let
+				  Source = Sql.Database("cekvmk67pvoetale6vvoo5wfji-brlvcnhvridetpgxmhh6wmlcw4.datawarehouse.fabric.microsoft.com", "gold"),
+				  #"Navigation 1" = Source{[Schema = "gold", Item = "dim_issue_type"]}[Data],
+				  RenamedColumns = Table.TransformColumnNames( #"Navigation 1", each Text.Replace(_, "_", " "))
+				in
+				    RenamedColumns
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

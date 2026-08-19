@@ -1,0 +1,75 @@
+/// dim project table
+table 'Dim Project'
+	lineageTag: f8e0e753-ed9b-43a8-b877-9d90d0943e6b
+
+	column 'Project Id'
+		dataType: string
+		isHidden
+		lineageTag: 4e928ada-00ab-442d-9e7d-3cc0553ed198
+		summarizeBy: none
+		sourceColumn: Project Id
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Project Code'
+		dataType: string
+		lineageTag: a51b2198-488d-431d-8ec5-6e307a4b6901
+		summarizeBy: none
+		sourceColumn: Project Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Project Name'
+		dataType: string
+		lineageTag: e118a18b-bb5b-40da-bb8c-612e0f157ed4
+		summarizeBy: none
+		sourceColumn: Project Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Project Type'
+		dataType: string
+		isHidden
+		lineageTag: 8655d68e-c494-4b20-aca8-b26bcf22692e
+		summarizeBy: none
+		sourceColumn: Project Type
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Project Key'
+		dataType: string
+		isHidden
+		lineageTag: fe42e444-ad01-417d-9cb7-2b0533ef53c8
+		summarizeBy: none
+		sourceColumn: Project Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Project Lead'
+		dataType: string
+		lineageTag: 9bd40a23-1ff2-4784-b730-cf8eff2da83e
+		summarizeBy: none
+		sourceColumn: Project Lead
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Dim Project' = m
+		mode: import
+		source =
+				let
+				  Source = Sql.Database("cekvmk67pvoetale6vvoo5wfji-brlvcnhvridetpgxmhh6wmlcw4.datawarehouse.fabric.microsoft.com", "gold"),
+				  #"Navigation 1" = Source{[Schema = "gold", Item = "dim_project"]}[Data],
+				  RenamedColumns = Table.TransformColumnNames( #"Navigation 1", each Text.Replace(_, "_", " "))
+				in
+				    RenamedColumns
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

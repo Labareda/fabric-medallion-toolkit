@@ -1,0 +1,107 @@
+/// Dim status table
+table 'Dim Status'
+	lineageTag: caaeb6f4-593b-4a38-860c-17637332c5b2
+
+	column 'Status Id'
+		dataType: string
+		isHidden
+		lineageTag: 1e56ccc0-66b4-4f35-84c9-e63fd336200d
+		summarizeBy: none
+		sourceColumn: Status Id
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Status Name'
+		dataType: string
+		lineageTag: fa5cffe4-af0c-404e-ab2f-9cdd458c686c
+		summarizeBy: none
+		sourceColumn: Status Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Status Description'
+		dataType: string
+		lineageTag: 7ce35eed-ed8f-4fe3-8e30-24fca5956326
+		summarizeBy: none
+		sourceColumn: Status Description
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Status Key'
+		dataType: string
+		isHidden
+		lineageTag: 6bc03f03-5759-4fe1-8203-cfbbbf99ceaa
+		summarizeBy: none
+		sourceColumn: Status Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Status Category'
+		dataType: string
+		lineageTag: 227c2683-7948-44a5-9efe-6a594039db6d
+		summarizeBy: none
+		sourceColumn: Status Category
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Status Group'
+		dataType: string
+		lineageTag: 6d447d94-9a20-43dc-8cde-ade52b898662
+		summarizeBy: none
+		sourceColumn: Status Group
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Flow State'
+		dataType: string
+		lineageTag: 32cd8a70-b76b-466d-b947-68987a246c8e
+		summarizeBy: none
+		sourceColumn: Flow State
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Done'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: d843afd0-73a2-4e67-bc0a-df10bbab9f95
+		summarizeBy: none
+		sourceColumn: Is Done
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Blocked'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 9a59cb2d-0429-4298-94f2-bc7986dc5391
+		summarizeBy: none
+		sourceColumn: Is Blocked
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Sort Order'
+		dataType: int64
+		formatString: 0
+		lineageTag: 60c9cdfd-1a53-4b91-86e1-6bb367f8bac9
+		summarizeBy: sum
+		sourceColumn: Sort Order
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Dim Status' = m
+		mode: import
+		source =
+				let
+				  Source = Sql.Database("cekvmk67pvoetale6vvoo5wfji-brlvcnhvridetpgxmhh6wmlcw4.datawarehouse.fabric.microsoft.com", "gold"),
+				  #"Navigation 1" = Source{[Schema = "gold", Item = "dim_status"]}[Data],
+				  RenamedColumns = Table.TransformColumnNames( #"Navigation 1", each Text.Replace(_, "_", " "))
+				in
+				    RenamedColumns
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

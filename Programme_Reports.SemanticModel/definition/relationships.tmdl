@@ -1,200 +1,175 @@
-relationship r01
-	fromColumn: Fact_Issue.Issue_Key
-	toColumn: Dim_Issue.Issue_Key
+relationship 1b9d8f50-c2fd-7174-81f9-c669cc4657ec
+	fromColumn: 'Fact Issue'.'Project Key'
+	toColumn: 'Dim Project'.'Project Key'
 
-relationship r02
-	fromColumn: Fact_Issue.Project_Key
-	toColumn: Dim_Project.Project_Key
+relationship 09f4f0ab-3ab3-66d0-022d-99e298119da9
+	fromColumn: 'Fact Issue'.'Status Key'
+	toColumn: 'Dim Status'.'Status Key'
 
-relationship r03
-	fromColumn: Fact_Issue.Status_Key
-	toColumn: Dim_Status.Status_Key
+relationship 174adab1-8568-80c0-dbbd-7cc7bc96d455
+	fromColumn: 'Fact Issue'.'Issue Key'
+	toColumn: 'Dim Issue'.'Issue Key'
 
-relationship r04
-	fromColumn: Fact_Issue.Priority_Key
-	toColumn: Dim_Priority.Priority_Key
+relationship 4cf3028b-f304-2032-1dfb-7c66aecacfa7
+	fromColumn: 'Fact Issue'.'Priority Key'
+	toColumn: 'Dim Priority'.'Priority Key'
 
-relationship r05
-	fromColumn: Fact_Issue.Resolution_Key
-	toColumn: Dim_Resolution.Resolution_Key
+relationship f473b7fe-9cd9-2502-1ef9-ff9f7aae5514
+	fromColumn: 'Fact Issue'.'IssueType Key'
+	toColumn: 'Dim Issue Type'.'IssueType Key'
 
-relationship r06
-	fromColumn: Fact_Issue.IssueType_Key
-	toColumn: Dim_IssueType.IssueType_Key
+relationship 4988896a-3ef8-c880-a0ca-ba7ec260a70f
+	crossFilteringBehavior: bothDirections
+	fromColumn: 'Fact Resource Allocation'.'Issue Key'
+	toColumn: 'Dim Issue'.'Issue Key'
 
-relationship r07
-	fromColumn: Fact_Issue.Team_Key
-	toColumn: Dim_Team.Team_Key
+relationship 179ad2ec-12ae-af8c-624e-eb5f47966f46
+	fromColumn: 'Fact Resource Allocation'.'Resource Key'
+	toColumn: 'Dim Resource'.'Resource Key'
 
-relationship r08
-	fromColumn: Fact_Issue.Rollup_Start_Date
-	toColumn: Dim_Date.date
+relationship AutoDetected_5ea34dd1-0989-404c-83a7-1359af784501
+	fromColumn: 'Fact Issue History'.'Status Key'
+	toColumn: 'Dim Status'.'Status Key'
 
-relationship r09
-	fromColumn: Fact_Issue.Rollup_End_Date
-	toColumn: Dim_Due_Date.date
+relationship cbf0e1be-d944-6b49-e979-1ab2297f66b0
+	fromColumn: 'Fact Issue'.'Rollup End Date'
+	toColumn: 'Dim Due Date'.Date
 
-relationship r10
-	fromColumn: Fact_Issue.Planned_Start_Date
-	toColumn: Dim_Date.date
+relationship AutoDetected_60d17391-9153-4f9e-9fd5-b739dac6f8e0
+	fromColumn: 'Fact Issue'.'Team Key'
+	toColumn: 'Dim Team'.'Team Key'
+
+relationship ea5df7b8-52fb-32d4-d80f-9d1049240d65
+	fromColumn: 'Fact Test'.'Latest Run Date'
+	toColumn: 'Dim Date'.Date
+
+relationship AutoDetected_5dcea619-0e40-4912-a118-f80112927805
+	fromColumn: 'Fact Resource Allocation'.'Project Key'
+	toColumn: 'Dim Project'.'Project Key'
+
+relationship AutoDetected_117312d2-813d-4e02-acbc-5d1494123e0b
+	fromColumn: 'Fact Issue History'.'Project Key'
+	toColumn: 'Dim Project'.'Project Key'
+
+relationship AutoDetected_34b14474-011c-4865-af53-f2d6f2adbc46
+	fromColumn: 'Fact Test'.'Project Key'
+	toColumn: 'Dim Project'.'Project Key'
+
+relationship AutoDetected_86385d0a-f2bc-4726-9bca-5f1ea0fe89b4
+	fromColumn: 'Fact Test Coverage'.'Project Key'
+	toColumn: 'Dim Project'.'Project Key'
+
+relationship AutoDetected_7fbb20c7-e0e5-4622-93e3-c8c36e2f3b9a
+	fromColumn: 'Fact Issue History'.'Resource Key'
+	toColumn: 'Dim Resource'.'Resource Key'
+
+relationship AutoDetected_845d3642-f596-427a-b703-473d81f629b2
+	fromColumn: 'Fact Resource Allocation'.'Team Key'
+	toColumn: 'Dim Team'.'Team Key'
+
+relationship AutoDetected_dfef8ade-04f3-4d63-b01f-745f1cc91807
+	fromColumn: 'Fact Issue History'.'Team Key'
+	toColumn: 'Dim Team'.'Team Key'
+
+relationship AutoDetected_88d3328d-69ed-448b-9a96-80d67582adaa
+	fromColumn: 'Fact Test'.'Team Key'
+	toColumn: 'Dim Team'.'Team Key'
+
+relationship AutoDetected_f3cbb4e6-af96-47e4-8f69-b425a24d879d
+	fromColumn: 'Fact Test Coverage'.'Team Key'
+	toColumn: 'Dim Team'.'Team Key'
+
+relationship AutoDetected_4b3b5e7f-7c02-4b5a-98ae-7cb842dd98d4
+	fromColumn: 'Fact Worklog'.'Resource Role Key'
+	toColumn: 'Dim Resource Role'.'Resource Role Key'
+
+relationship AutoDetected_79e0978e-cdb5-4ece-8478-844a95c00c1f
+	fromColumn: 'Fact Issue'.'Resolution Key'
+	toColumn: 'Dim Resolution'.'Resolution Key'
+
+relationship 57086f5a-8fce-7fbd-7e61-8f13dd95ebd6
+	fromColumn: 'Fact Issue History'.'Issue Key'
+	toColumn: 'Dim Issue'.'Issue Key'
+
+relationship dc5e2c6c-8102-7802-9e30-d489e8a106f8
+	fromColumn: 'Fact Issue History'.'Valid From Date'
+	toColumn: 'Dim Date'.Date
+
+relationship b0ebe790-c9a0-5e8d-7f16-758d29a5518f
+	fromColumn: 'Fact Issue History'.'Valid To Date'
+	toColumn: 'Dim Due Date'.Date
+
+relationship 4e2e77d8-e03a-80a5-95f7-ed3e13dbafb9
+	fromColumn: 'Fact Issue'.'Rollup Start Date'
+	toColumn: 'Dim Date'.Date
+
+relationship 17103346-0693-bc38-ea30-4918d7396c79
+	fromColumn: 'Fact Resource Allocation'.'Resource Role Key'
+	toColumn: 'Dim Resource Role'.'Resource Role Key'
+
+relationship e504600a-8547-bebc-ac2b-0193ae24b93b
+	fromColumn: 'Fact Resource Day Allocation'.'Issue Key'
+	toColumn: 'Dim Issue'.'Issue Key'
+
+relationship 07ff923e-2321-77a1-de8b-0babad388162
+	fromColumn: 'Fact Resource Day Allocation'.Date
+	toColumn: 'Dim Date'.Date
+
+relationship 881e5102-2cf3-c027-162f-e542401ab6e2
+	fromColumn: 'Fact Resource Day Allocation'.'Resource Key'
+	toColumn: 'Dim Resource'.'Resource Key'
+
+relationship 5e970afe-a0ce-e1f6-f22e-f7a4695d3542
+	fromColumn: 'Fact Test Coverage'.'Requirement Key'
+	toColumn: 'Dim Issue'.'Issue Key'
+
+relationship d1717a98-6287-7438-bd5e-3eae8c944d05
+	fromColumn: 'Fact Test Coverage'.'Test Set Key'
+	toColumn: 'Dim test Set'.'Test Set Key'
+
+relationship cc225b96-d23d-394f-22ce-9be86949b572
 	isActive: false
+	fromColumn: 'Fact Test'.'Parent Issue Key'
+	toColumn: 'Dim Issue'.'Issue Key'
 
-relationship r11
-	fromColumn: Fact_Issue.Planned_End_Date
-	toColumn: Dim_Date.date
+relationship 2dabb2c7-38e2-98be-159d-7207c6d6e9cd
+	fromColumn: 'Fact Test'.'Test Issue Key'
+	toColumn: 'Dim Issue'.'Issue Key'
+
+relationship c981d843-2836-f4b0-8f90-24f5b1bbc8aa
+	fromColumn: 'Fact Test'.'Test Set Key'
+	toColumn: 'Dim test Set'.'Test Set Key'
+
+relationship 2d37ab73-3445-7bee-a173-478b29b7a287
+	fromColumn: 'Fact Test'.'Test Status Key'
+	toColumn: 'Dim Test Status'.'Test Status Key'
+
+relationship 016c3906-c9e5-a39e-6807-c75c047af7c0
+	fromColumn: 'Fact Worklog'.'Author Key'
+	toColumn: 'Dim Resource'.'Resource Key'
+
+relationship 7435d156-c888-b703-d219-da7520251cea
+	fromColumn: 'Fact Worklog'.'Issue Key'
+	toColumn: 'Dim Issue'.'Issue Key'
+
+relationship 53a69cb6-5f29-9ad8-6662-2df3eae57901
+	fromColumn: 'Fact Worklog'.'Started Date'
+	toColumn: 'Dim Date'.Date
+
+relationship 9f17a3de-ce43-99b5-19d9-d37ed12cfbbd
+	fromColumn: 'Fact Test'.'Resource Key'
+	toColumn: 'Dim Resource'.'Resource Key'
+
+relationship AutoDetected_62de9671-eae3-4660-ac80-fd31918b56dc
+	fromColumn: 'Bridge Issue Link'.'Issue Code'
+	toColumn: 'Dim Issue'.'Issue Code'
+
+relationship AutoDetected_638c041c-b0d0-4fd6-9f39-6fb6889d7b00
 	isActive: false
+	fromColumn: 'Bridge Issue Link'.'Issue Code'
+	toColumn: 'Fact Issue'.'Issue Code'
 
-relationship r12
-	fromColumn: Fact_Issue.Actual_Start_Date
-	toColumn: Dim_Date.date
-	isActive: false
-
-relationship r13
-	fromColumn: Fact_Issue.Actual_End_Date
-	toColumn: Dim_Date.date
-	isActive: false
-
-relationship r14
-	fromColumn: Fact_Issue.Created_Date
-	toColumn: Dim_Date.date
-	isActive: false
-
-relationship r15
-	fromColumn: Fact_Issue_History.Issue_Key
-	toColumn: Dim_Issue.Issue_Key
-
-relationship r16
-	fromColumn: Fact_Issue_History.Project_Key
-	toColumn: Dim_Project.Project_Key
-
-relationship r17
-	fromColumn: Fact_Issue_History.Team_Key
-	toColumn: Dim_Team.Team_Key
-
-relationship r18
-	fromColumn: Fact_Issue_History.Status_Key
-	toColumn: Dim_Status.Status_Key
-
-relationship r19
-	fromColumn: Fact_Issue_History.Changed_By_Key
-	toColumn: Dim_Resource.Resource_Key
-
-relationship r20
-	fromColumn: Fact_Issue_History.Valid_From_Date
-	toColumn: Dim_Date.date
-
-relationship r21
-	fromColumn: Fact_Issue_History.Valid_To_Date
-	toColumn: Dim_Date.date
-	isActive: false
-
-relationship r22
-	fromColumn: Fact_Resource_Allocation.Issue_Key
-	toColumn: Dim_Issue.Issue_Key
-
-relationship r23
-	fromColumn: Fact_Resource_Allocation.Resource_Key
-	toColumn: Dim_Resource.Resource_Key
-
-relationship r24
-	fromColumn: Fact_Resource_Allocation.Role_Key
-	toColumn: Dim_Role.Role_Key
-
-relationship r25
-	fromColumn: Fact_Resource_Allocation.Project_Key
-	toColumn: Dim_Project.Project_Key
-
-relationship r26
-	fromColumn: Fact_Resource_Allocation.Team_Key
-	toColumn: Dim_Team.Team_Key
-
-relationship r27
-	fromColumn: Fact_Test.Test_Set_Key
-	toColumn: Dim_Test_Set.Test_Set_Key
-
-relationship r28
-	fromColumn: Fact_Test.Test_Status_Key
-	toColumn: Dim_Test_Status.Test_Status_Key
-
-relationship r29
-	fromColumn: Fact_Test.Executor_Key
-	toColumn: Dim_Resource.Resource_Key
-
-relationship r30
-	fromColumn: Fact_Test.Latest_Run_Date
-	toColumn: Dim_Date.date
-
-relationship r44
-	fromColumn: Fact_Test.Test_Issue_Key
-	toColumn: Dim_Issue.Issue_Key
-
-relationship r45
-	fromColumn: Fact_Test.Parent_Issue_Key
-	toColumn: Dim_Issue.Issue_Key
-	isActive: false
-
-relationship r48
-	fromColumn: Bridge_Issue_Link.Issue_Key
-	toColumn: Dim_Issue.Issue_Key
-
-relationship r49
-	fromColumn: Bridge_Issue_Link.Linked_Issue_Key
-	toColumn: Dim_Issue.Issue_Key
-	isActive: false
-
-relationship r50
-	fromColumn: Bridge_Issue_Link.Link_Type_Key
-	toColumn: Dim_Link_Type.Link_Type_Key
-
-relationship r37
-	fromColumn: Fact_Test.Project_Key
-	toColumn: Dim_Project.Project_Key
-
-relationship r38
-	fromColumn: Fact_Test.Team_Key
-	toColumn: Dim_Team.Team_Key
-
-relationship r31
-	fromColumn: Fact_Test_Coverage.Requirement_Key
-	toColumn: Dim_Issue.Issue_Key
-
-relationship r32
-	fromColumn: Fact_Test_Coverage.Test_Set_Key
-	toColumn: Dim_Test_Set.Test_Set_Key
-
-relationship r39
-	fromColumn: Fact_Test_Coverage.Project_Key
-	toColumn: Dim_Project.Project_Key
-
-relationship r40
-	fromColumn: Fact_Test_Coverage.Team_Key
-	toColumn: Dim_Team.Team_Key
-
-relationship r33
-	fromColumn: Fact_Worklog.Issue_Key
-	toColumn: Dim_Issue.Issue_Key
-
-relationship r34
-	fromColumn: Fact_Worklog.Author_Key
-	toColumn: Dim_Resource.Resource_Key
-
-relationship r35
-	fromColumn: Fact_Worklog.Role_Key
-	toColumn: Dim_Role.Role_Key
-
-relationship r36
-	fromColumn: Fact_Worklog.Started_Date
-	toColumn: Dim_Date.date
-
-relationship r41
-	fromColumn: Fact_Resource_Day_Allocation.Resource_Key
-	toColumn: Dim_Resource.Resource_Key
-
-relationship r42
-	fromColumn: Fact_Resource_Day_Allocation.Issue_Key
-	toColumn: Dim_Issue.Issue_Key
-
-relationship r43
-	fromColumn: Fact_Resource_Day_Allocation.Date
-	toColumn: Dim_Date.date
+relationship AutoDetected_05e544ad-7f90-406b-99d3-5fe3e9d79e1f
+	fromColumn: 'Bridge Issue Link'.'Link Type Name'
+	toColumn: 'Dim Link Type'.Link_Type_Name
 

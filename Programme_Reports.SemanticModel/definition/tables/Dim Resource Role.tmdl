@@ -1,0 +1,72 @@
+/// Dim Due date table
+table 'Dim Resource Role'
+	lineageTag: db936813-7400-4959-baaf-21cd0fd8061b
+
+	column 'Role Name'
+		dataType: string
+		lineageTag: 45927fcd-fdf1-44df-a83a-66336f7fd30a
+		summarizeBy: none
+		sourceColumn: Role Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Role Description'
+		dataType: string
+		lineageTag: fab97830-8b1e-400d-88d7-5d9589fed1fe
+		summarizeBy: none
+		sourceColumn: Role Description
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Lead'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: d09d13ac-b6f7-4f8c-ab4f-9b56ef3807c2
+		summarizeBy: none
+		sourceColumn: Is Lead
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Contributes To Effort'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 9fc28ef0-e7b8-4dda-93a6-3293f826be99
+		summarizeBy: none
+		sourceColumn: Contributes To Effort
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Sort Order'
+		dataType: int64
+		formatString: 0
+		lineageTag: 3f2272f5-7e7f-4530-8f37-840bd029033e
+		summarizeBy: sum
+		sourceColumn: Sort Order
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Resource Role Key'
+		dataType: string
+		isHidden
+		lineageTag: ba129d29-9ee2-4a87-af54-2e3ff2b23751
+		summarizeBy: none
+		sourceColumn: Resource Role Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Dim Resource Role' = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("cekvmk67pvoetale6vvoo5wfji-brlvcnhvridetpgxmhh6wmlcw4.datawarehouse.fabric.microsoft.com", "gold"),
+				    gold_dim_role = Source{[Schema="gold",Item="dim_resourcerole"]}[Data],
+				  RenamedColumns = Table.TransformColumnNames( gold_dim_role, each Text.Replace(_, "_", " "))
+				in
+				    RenamedColumns
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

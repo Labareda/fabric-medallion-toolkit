@@ -1,0 +1,239 @@
+table 'Fact Issue History'
+	lineageTag: 9e2d5d2c-ed36-45c4-8e67-92d8a2a4efc1
+
+	measure 'Avg Days in Status' = AVERAGE('Fact Issue History'[Days In Period])
+		lineageTag: 2861c36e-61cb-4f25-9ac7-861ea784d1a9
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Reopen Count' = CALCULATE(COUNTROWS('Fact Issue History'), 'Fact Issue History'[Is Reopen] = True)
+		formatString: 0
+		lineageTag: fecb5005-6ac1-44fb-b7b9-53ca3e7c6283
+
+	column 'Issue Id'
+		dataType: string
+		lineageTag: 887181c2-4522-415c-8f7b-12d0bd61c6d2
+		summarizeBy: none
+		sourceColumn: Issue Id
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue Code'
+		dataType: string
+		lineageTag: d3b215dc-85fb-4f88-b567-18f0fe50b581
+		summarizeBy: none
+		sourceColumn: Issue Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Valid From'
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 7ed64f2c-f29e-4860-8f9c-2b47b222f722
+		summarizeBy: none
+		sourceColumn: Valid From
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Valid To'
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 147efb67-8551-4d0d-859c-0488ef33f94b
+		summarizeBy: none
+		sourceColumn: Valid To
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Valid From Date'
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 654d140c-e63a-43dd-937d-e2f3b9cc6a0c
+		summarizeBy: none
+		sourceColumn: Valid From Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Valid To Date'
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 867ec080-3061-418b-bd43-5100a540bc9c
+		summarizeBy: none
+		sourceColumn: Valid To Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Is Current'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: b1be8f61-fd0d-41fe-a131-735ab2e914be
+		summarizeBy: none
+		sourceColumn: Is Current
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Status Name'
+		dataType: string
+		lineageTag: fa4a9c41-c1fe-4a7d-98e3-d1039b738647
+		summarizeBy: none
+		sourceColumn: Status Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'From Status Name'
+		dataType: string
+		lineageTag: 41479382-29f9-4fa6-bbb6-a4e56d6c8708
+		summarizeBy: none
+		sourceColumn: From Status Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Story Points'
+		dataType: double
+		lineageTag: 3b200eca-f64f-4dfd-bfe3-44d1043eb330
+		summarizeBy: sum
+		sourceColumn: Story Points
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Is Done'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: b7b3a887-e5ac-4fbd-827d-2c5fb3c891d6
+		summarizeBy: none
+		sourceColumn: Is Done
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Reopen'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 7e138b7c-3980-463c-b216-b08d416d6d28
+		summarizeBy: none
+		sourceColumn: Is Reopen
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Seed Period'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: d9512741-be82-4d5d-b3b3-3595cfe5b1a2
+		summarizeBy: none
+		sourceColumn: Is Seed Period
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Days In Period'
+		dataType: double
+		lineageTag: cfa726af-c226-4caf-affa-7890dd2b783b
+		summarizeBy: sum
+		sourceColumn: Days In Period
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Hours In Period'
+		dataType: double
+		lineageTag: bdfa87f3-af30-43ab-8404-a7a6e656a294
+		summarizeBy: sum
+		sourceColumn: Hours In Period
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Period Count'
+		dataType: int64
+		formatString: 0
+		lineageTag: 78575b58-29dd-4c1f-9e9f-d89ea17c0549
+		summarizeBy: sum
+		sourceColumn: Period Count
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue Key'
+		dataType: string
+		isHidden
+		lineageTag: 29a6ec28-b8dc-4f44-8361-02557fa9ccae
+		summarizeBy: none
+		sourceColumn: Issue Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Status Key'
+		dataType: string
+		isHidden
+		lineageTag: d4db25dd-8a00-4432-a655-831015338984
+		summarizeBy: none
+		sourceColumn: Status Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue History Key'
+		dataType: string
+		isHidden
+		lineageTag: 106ba4a5-bd9c-4f8d-928e-c5f75be108be
+		summarizeBy: none
+		sourceColumn: Issue History Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Project Key'
+		dataType: string
+		isHidden
+		lineageTag: 88f602e7-d85b-4f62-ae45-d96d391a9a2c
+		summarizeBy: none
+		sourceColumn: Project Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Team Key'
+		dataType: string
+		isHidden
+		lineageTag: bad8f5f5-23b0-4ba6-b983-db8505e4b4fa
+		summarizeBy: none
+		sourceColumn: Team Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Resource Key'
+		dataType: string
+		isHidden
+		lineageTag: 2e62360f-b70a-4bcc-a71d-40417f514b0a
+		summarizeBy: none
+		sourceColumn: Resource Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Fact Issue History' = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("cekvmk67pvoetale6vvoo5wfji-brlvcnhvridetpgxmhh6wmlcw4.datawarehouse.fabric.microsoft.com", "gold"),
+				    gold_fact_issue_history = Source{[Schema="gold",Item="fact_issue_history"]}[Data],
+				    RenamedColumns = Table.TransformColumnNames(gold_fact_issue_history, each Text.Replace(_, "_", " "))
+				in
+				    RenamedColumns
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+
