@@ -9,6 +9,10 @@
         "page": "2.3.1"
       },
       "type": "SharedResources"
+    },
+    "customTheme": {
+      "name": "ProgrammeReportsTheme",
+      "type": "RegisteredResources"
     }
   },
   "objects": {
@@ -83,6 +87,11 @@
           "name": "Transform_(8)7931964752403259.png",
           "path": "Transform_(8)7931964752403259.png",
           "type": "Image"
+        },
+        {
+          "name": "ProgrammeReportsTheme",
+          "path": "ProgrammeReportsTheme.json",
+          "type": "CustomTheme"
         }
       ]
     }

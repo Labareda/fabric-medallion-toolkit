@@ -17,25 +17,36 @@ table 'Fact Test'
 		lineageTag: e1a1b9ea-7690-4a92-86b5-93739040d5cb
 
 	measure 'Blocking Issue Codes' = ```
-			
+
 			    CALCULATE(
 			        CONCATENATEX('Bridge Issue Link', 'Bridge Issue Link'[Linked Issue Code], ","),
 			        'Bridge Issue Link'[Link Type Name] = "Blocks",
-			        'Bridge Issue Link'[Direction] = "Inward"
+			        'Bridge Issue Link'[Direction] = "Inward",
+			        USERELATIONSHIP('Fact Test'[Test Issue Key], 'Dim Issue'[Issue Key])
 			    )
 			```
 		lineageTag: b516ec56-4294-4ba6-96bb-9b0f5abdd5e5
 
 	measure 'Has Blocking Link' = ```
-			
+
 			    CALCULATE(
 			        COUNTROWS('Bridge Issue Link'),
 			        'Bridge Issue Link'[Link Type Name] = "Blocks",
-			        'Bridge Issue Link'[Direction] = "Inward"
+			        'Bridge Issue Link'[Direction] = "Inward",
+			        USERELATIONSHIP('Fact Test'[Test Issue Key], 'Dim Issue'[Issue Key])
 			    ) > 0
 			```
 		formatString: """TRUE"";""TRUE"";""FALSE"""
 		lineageTag: 850d874f-324e-42c4-8f1e-2bb0c143e62c
+
+	measure 'Test Summary' = ```
+
+			    CALCULATE(
+			        SELECTEDVALUE('Dim Issue'[Issue Summary]),
+			        USERELATIONSHIP('Fact Test'[Test Issue Key], 'Dim Issue'[Issue Key])
+			    )
+			```
+		lineageTag: 3a7c5e91-2f4d-48b6-9e1a-6d8c0f2b5e73
 
 	measure 'Pass Rate %' = DIVIDE([Tests Passed], [Total Tests])
 		lineageTag: aef3d7c4-4653-47a5-9dbc-52ffe5407faf

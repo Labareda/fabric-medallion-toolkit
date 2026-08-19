@@ -128,11 +128,11 @@ relationship d1717a98-6287-7438-bd5e-3eae8c944d05
 	toColumn: 'Dim test Set'.'Test Set Key'
 
 relationship cc225b96-d23d-394f-22ce-9be86949b572
-	isActive: false
 	fromColumn: 'Fact Test'.'Parent Issue Key'
 	toColumn: 'Dim Issue'.'Issue Key'
 
 relationship 2dabb2c7-38e2-98be-159d-7207c6d6e9cd
+	isActive: false
 	fromColumn: 'Fact Test'.'Test Issue Key'
 	toColumn: 'Dim Issue'.'Issue Key'
 

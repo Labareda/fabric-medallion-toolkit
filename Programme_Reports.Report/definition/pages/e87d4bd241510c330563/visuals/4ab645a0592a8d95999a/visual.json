@@ -34,27 +34,27 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Dim Issue"
+                      "Entity": "Fact Test"
                     }
                   },
-                  "Property": "Issue Code"
+                  "Property": "Test Code"
                 }
               },
-              "queryRef": "Dim Issue.Issue Code",
+              "queryRef": "Fact Test.Test Code",
               "nativeQueryRef": "Test Code"
             },
             {
               "field": {
-                "Column": {
+                "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Dim Issue"
+                      "Entity": "Fact Test"
                     }
                   },
-                  "Property": "Issue Summary"
+                  "Property": "Test Summary"
                 }
               },
-              "queryRef": "Dim Issue.Issue Summary",
+              "queryRef": "Fact Test.Test Summary",
               "nativeQueryRef": "Test Summary"
             },
             {
