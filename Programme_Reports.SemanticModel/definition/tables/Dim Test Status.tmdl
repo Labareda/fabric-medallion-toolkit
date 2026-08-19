@@ -87,9 +87,17 @@ table 'Dim Test Status'
 				let
 				  Source = Sql.Database("cekvmk67pvoetale6vvoo5wfji-brlvcnhvridetpgxmhh6wmlcw4.datawarehouse.fabric.microsoft.com", "gold"),
 				    gold_dim_test_status = Source{[Schema="gold",Item="dim_test_status"]}[Data],
-				    RenamedColumns = Table.TransformColumnNames( gold_dim_test_status, each Text.Replace(_, "_", " "))
+				    RenamedColumns = Table.TransformColumnNames( gold_dim_test_status, each Text.Replace(_, "_", " ")),
+				    // Display-only formatting: Xray's status names arrive all-caps
+				    // ("PASSED", "NOT RUN"). Reformatted here in Power Query, not in
+				    // Gold, because Gold's Test_Status_Name is a MERGE key other
+				    // tables join/lookup against by exact string -- changing its
+				    // case there would break those joins. Test Status KEY (not Name)
+				    // is what the semantic model relationship uses, so this has no
+				    // effect on relationships.
+				    FormattedStatus = Table.TransformColumns(RenamedColumns, {{"Test Status Name", each Text.Upper(Text.Start(_, 1)) & Text.Lower(Text.Middle(_, 1, Text.Length(_) - 1)), type text}})
 				in
-				    RenamedColumns
+				    FormattedStatus
 
 	annotation PBI_NavigationStepName = Navigation
 

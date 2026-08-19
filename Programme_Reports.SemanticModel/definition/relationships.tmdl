@@ -83,10 +83,6 @@ relationship AutoDetected_4b3b5e7f-7c02-4b5a-98ae-7cb842dd98d4
 	fromColumn: 'Fact Worklog'.'Resource Role Key'
 	toColumn: 'Dim Resource Role'.'Resource Role Key'
 
-relationship AutoDetected_79e0978e-cdb5-4ece-8478-844a95c00c1f
-	fromColumn: 'Fact Issue'.'Resolution Key'
-	toColumn: 'Dim Resolution'.'Resolution Key'
-
 relationship 57086f5a-8fce-7fbd-7e61-8f13dd95ebd6
 	fromColumn: 'Fact Issue History'.'Issue Key'
 	toColumn: 'Dim Issue'.'Issue Key'

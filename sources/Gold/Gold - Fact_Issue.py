@@ -121,12 +121,6 @@ schema = fmt.TableSchema(
                                      "natural_key_column": "Priority_Id", "key_column": "Priority_Key",
                                      "unknown_value": "Unknown"},
         },
-        "Resolution_Key": {
-            "type": "string",
-            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_resolution",
-                                     "natural_key_column": "Resolution_Id", "key_column": "Resolution_Key",
-                                     "unknown_value": "Unknown"},
-        },
         "IssueType_Key": {
             "type": "string",
             "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_issue_type",
@@ -177,7 +171,6 @@ df = spark.sql(f"""
         project.Project_Key,
         status.Status_Key,
         priority.Priority_Key,
-        resolution.Resolution_Key,
         issue_type.IssueType_Key,
         team.Team_Key,
 
@@ -228,7 +221,6 @@ df = spark.sql(f"""
     LEFT JOIN {GOLD_SCHEMA}.dim_project project   ON i.fields_project_id = project.Project_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_status status     ON i.fields_status_id = status.Status_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_priority priority ON i.fields_priority_id = priority.Priority_Id
-    LEFT JOIN {GOLD_SCHEMA}.dim_resolution resolution ON i.fields_resolution_id = resolution.Resolution_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_issue_type issue_type ON i.fields_issuetype_id = issue_type.IssueType_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_team team          ON i.fields_team_name = team.Team_Name
 """)

@@ -37,6 +37,9 @@
 #     (and the run-level Dim_Test_Status/Dim_Resource lookups it alone
 #     needed) was dropped. Re-add it if a trend/first-time-pass-rate view
 #     comes into scope later -- the notebook history has a working version.
+#   - removed: Dim_Resolution -- not required by any report. Notebook
+#     deleted from sources/Gold; Fact_Issue no longer joins it or carries
+#     Resolution_Key.
 #   + Fact_Resource_Day_Allocation -- resource/day capacity for conflict
 #     detection on the Resource report. Reads Fact_Resource_Allocation AND
 #     Fact_Issue (declared as a dependency below), the second exception to
@@ -81,7 +84,6 @@ DIMENSION_NOTEBOOKS = {
     "Gold - Dim_IssueType": [],
     "Gold - Dim_Status": [],
     "Gold - Dim_Priority": [],
-    "Gold - Dim_Resolution": [],
     "Gold - Dim_Link_Type": [],
     "Gold - Dim Test Status": [],
     "Gold - Dim Test Set": [],

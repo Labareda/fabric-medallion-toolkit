@@ -281,17 +281,6 @@ table 'Fact Issue'
 
 		annotation SummarizationSetBy = Automatic
 
-	column 'Resolution Key'
-		dataType: string
-		isHidden
-		lineageTag: c8875a18-a745-47be-ad4f-34d4652c060f
-		summarizeBy: none
-		sourceColumn: Resolution Key
-
-		changedProperty = IsHidden
-
-		annotation SummarizationSetBy = Automatic
-
 	column 'Team Key'
 		dataType: string
 		isHidden
