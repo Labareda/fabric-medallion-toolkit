@@ -142,6 +142,19 @@ relationship r47
 	toColumn: Dim_Issue.Issue_Key
 	isActive: false
 
+relationship r48
+	fromColumn: Bridge_Issue_Link.Issue_Key
+	toColumn: Dim_Issue.Issue_Key
+
+relationship r49
+	fromColumn: Bridge_Issue_Link.Linked_Issue_Key
+	toColumn: Dim_Issue.Issue_Key
+	isActive: false
+
+relationship r50
+	fromColumn: Bridge_Issue_Link.Link_Type_Key
+	toColumn: Dim_Link_Type.Link_Type_Key
+
 relationship r37
 	fromColumn: Fact_Test.Project_Key
 	toColumn: Dim_Project.Project_Key

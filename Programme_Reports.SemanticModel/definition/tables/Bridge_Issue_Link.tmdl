@@ -1,0 +1,83 @@
+table 'Bridge_Issue_Link'
+	lineageTag: bridge_issue_link
+
+	column 'Issue_Link_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Issue_Link_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue_Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Issue_Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Linked_Issue_Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Linked_Issue_Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Link_Type_Name'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Link_Type_Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Direction'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Direction
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Link_Label'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Link_Label
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Issue_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Linked_Issue_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Linked_Issue_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Link_Type_Key'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Link_Type_Key
+		isHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	measure 'Linked Item Count' = COUNTROWS('Bridge_Issue_Link')
+		formatString: #,##0
+
+	partition 'Bridge_Issue_Link' = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("<YOUR_GOLD_SQL_ENDPOINT>", "Gold"),
+				    Data = Source{[Schema="gold",Item="bridge_issue_link"]}[Data]
+				in
+				    Data
+
+	annotation PBI_ResultType = Table

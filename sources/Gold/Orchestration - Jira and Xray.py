@@ -45,6 +45,12 @@
 #     by" table, for the Blocked Tests report (client wants a list of
 #     blocked tests plus the work items blocking them; Dim_Issue.
 #     Predecessor_Issue_Code is a comma-joined string, not report-friendly).
+#   + Bridge_Issue_Link -- general-purpose version of Bridge_Issue_Blocks:
+#     every link type, both directions, so a report can filter to whichever
+#     relation is wanted (Blocked by, Tests, Relates to, ...) instead of a
+#     bridge per type. Also gives Dim_Link_Type its first real consumer --
+#     it's carried no relationship since the original Bridge_Issue_Link was
+#     deleted a few commits back.
 
 # CELL ********************
 from notebookutils import mssparkutils
@@ -97,6 +103,7 @@ FACT_NOTEBOOKS = {
     "Gold - Fact_Resource_Allocation": [],
     "Gold - Fact_Worklog": [],
     "Gold - Bridge_Issue_Blocks": [],
+    "Gold - Bridge_Issue_Link": [],
     "Gold - Fact Test": [],
     # Reads Gold.gold.fact_test (set_stats CTE) -- one of two exceptions to
     # "facts only depend on other facts here, never implicitly."

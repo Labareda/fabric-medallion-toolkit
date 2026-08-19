@@ -1,6 +1,6 @@
 # Programme_Reports semantic model
 
-Import-mode TMDL definition for the Gold star schema in `sources/Gold`. 13 dimensions generated directly from each notebook's `TableSchema` (so the column list matches what actually gets written to `Gold.gold.*`) plus one hand-added role-playing dimension (`Dim_Due_Date`, see below), 8 facts, 47 relationships.
+Import-mode TMDL definition for the Gold star schema in `sources/Gold`. 13 dimensions generated directly from each notebook's `TableSchema` (so the column list matches what actually gets written to `Gold.gold.*`) plus one hand-added role-playing dimension (`Dim_Due_Date`, see below), 9 facts, 50 relationships.
 
 `Fact_Test_Run` (run-by-run trend history) was deliberately left out -- the test report only needs the current-status matrix (`Fact_Test`) and requirement coverage (`Fact_Test_Coverage`), not a trend/first-time-pass-rate view. The notebook still exists in git history if that's needed later.
 
@@ -77,9 +77,18 @@ Three measures added to `Fact_Test` for the actual worklist the client described
 - `[Has Blocking Link]` -- boolean, whether any blocking issue is recorded at all.
 - `[Blocked Tests Missing a Blocking Link]` -- count of Blocked tests with NO `is blocked by` link yet. This is the number that matters for the worklist.
 
-## Known model gaps (not fixed here -- flagging for a decision)
+## Bridge_Issue_Link -- every link type, not just Blocks
 
-- **Dim_Link_Type has no relationships** -- nothing consumes it since `Bridge_Issue_Link` was deleted. It's in this model as a placeholder; delete the table here (and the notebook) if issue-link traceability reporting isn't coming back.
+New general-purpose bridge, grain: one row per issue per link record, from that issue's OWN perspective -- mirrors Jira's "Linked work items" panel exactly (created, is blocked by, tests, relates to, implements, ... whatever's in your data), rather than one bridge per link type. Where `Bridge_Issue_Blocks` normalises "Blocks" specifically down to one semantic (blocked, blocking) pair, this table keeps BOTH sides of every link as their own row deliberately -- issue A "is blocked by" B gets a row on A, and B "blocks" A gets its own separate row on B. Both are correct; that's what lets a report start from either issue and filter to whichever relation and direction it wants (`Link_Type_Name`, `Direction`, `Link_Label`).
+
+Gives `Dim_Link_Type` its first real relationship since the original `Bridge_Issue_Link` was deleted a few commits back (previously flagged here as an orphaned placeholder table -- resolved).
+
+Relationships, same pattern as `Bridge_Issue_Blocks`:
+- `Issue_Key` -- **active**. The anchor issue (whichever issue that row's own perspective belongs to).
+- `Linked_Issue_Key` -- **inactive** (same target table as Issue_Key). The other side of the link.
+- `Link_Type_Key` -- active, to `Dim_Link_Type`.
+
+`Bridge_Issue_Blocks` is kept alongside this, not replaced by it -- it still gives the Blocked Tests report a cleaner, pre-normalised shape (one row per actual blocking relationship, correct key roles already resolved) than filtering this general table down to `Link_Type_Name = 'Blocks' AND Direction = 'Inward'` would.
 
 ## Measures included
 
