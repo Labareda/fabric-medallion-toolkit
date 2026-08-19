@@ -109,14 +109,28 @@ def get_token() -> str:
     return resp.json()
 
 def run_graphql(token: str, query: str, retries: int = 5) -> dict:
-    """POST a GraphQL query, with backoff on the 429s Xray hands out freely."""
+    """POST a GraphQL query, with backoff on 429s AND on read timeouts.
+
+    A wide page (100 executions each nested up to 100 runs, or the 100x100
+    container/linked-test pages added for test_sets/test_plans/preconditions)
+    can genuinely take Xray's server longer than 60s to assemble -- that's a
+    slow response, not a dead connection, so it's retried with backoff like a
+    429 rather than left to kill the whole run. 120s (was 60s) as the
+    per-attempt cap gives the server more room before even the first retry.
+    """
     for attempt in range(retries):
-        resp = requests.post(
-            XRAY_GRAPHQL_URL,
-            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-            data=json.dumps({"query": query}),
-            timeout=60,
-        )
+        try:
+            resp = requests.post(
+                XRAY_GRAPHQL_URL,
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                data=json.dumps({"query": query}),
+                timeout=120,
+            )
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as exc:
+            wait = 2 ** attempt
+            print(f"  {type(exc).__name__} ({exc}), retrying in {wait}s")
+            time.sleep(wait)
+            continue
         if resp.status_code == 429:
             wait = 2 ** attempt
             print(f"  429 rate-limited, backing off {wait}s")
@@ -129,7 +143,7 @@ def run_graphql(token: str, query: str, retries: int = 5) -> dict:
         if "errors" in body and body["errors"]:
             raise RuntimeError(f"Xray GraphQL error: {body['errors']}")
         return body["data"]
-    raise RuntimeError(f"Xray GraphQL still rate-limited after {retries} attempts")
+    raise RuntimeError(f"Xray GraphQL still failing (rate-limited or timing out) after {retries} attempts")
 
 # CELL ********************
 # --- Watermark: only pull executions MODIFIED since the last successful run ---
