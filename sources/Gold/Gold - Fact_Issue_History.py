@@ -98,7 +98,7 @@ schema = fmt.TableSchema(
         "Changed_By_Key": {
             "type": "string",
             "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_resource",
-                                     "natural_key_column": "Resource_Account_Id", "key_column": "Resource_Key",
+                                     "natural_key_column": "Resource_Id", "key_column": "Resource_Key",
                                      "unknown_value": "Unknown"},
         },
     },
@@ -240,7 +240,7 @@ df = spark.sql(f"""
     LEFT JOIN {GOLD_SCHEMA}.dim_issue di     ON f.issue_id = di.Issue_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_project project ON i.fields_project_id = project.Project_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_team team    ON i.fields_team_name = team.Team_Name
-    LEFT JOIN {GOLD_SCHEMA}.dim_resource res ON f.author_account_id = res.Resource_Account_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_resource res ON f.author_account_id = res.Resource_Id
 """)
 
 # MARKDOWN ********************

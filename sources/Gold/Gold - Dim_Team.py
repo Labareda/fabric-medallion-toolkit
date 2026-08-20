@@ -30,7 +30,7 @@
 #   FROM Silver.jira.issues
 #
 # If with_team is a small fraction, a "delivery by team" visual will look
-# broken rather than sparse -- Dim_Resource + Dim_Role is the better
+# broken rather than sparse -- Dim_Resource + Dim_Resource_Role is the better
 # grouping until the field is filled in.
 
 # CELL ********************

@@ -54,7 +54,7 @@
 # Fact_Resource_Allocation. Most Gantt visuals (xViz included) bind their
 # Resource field from the SAME table as Task/Start/End, not through a
 # separate fact relationship, so the properly-modelled path
-# (Fact_Resource_Allocation -> Dim_Resource -> Dim_Role, filter Role='Lead')
+# (Fact_Resource_Allocation -> Dim_Resource -> Dim_Resource_Role, filter Role='Lead')
 # doesn't reach the Gantt visual directly. These stay denormalised text for
 # that reason; Fact_Resource_Allocation is still the source of truth for any
 # resourcing analysis that isn't the Gantt itself (headcount, effort by

@@ -118,7 +118,7 @@ schema = fmt.TableSchema(
             "type": "string",
             "lookup_missing_from": {
                 "table": f"{GOLD_SCHEMA}.dim_resource",
-                "natural_key_column": "Resource_Account_Id",
+                "natural_key_column": "Resource_Id",
                 "key_column": "Resource_Key",
                 "unknown_value": "Unknown",
             },
@@ -286,7 +286,7 @@ df = spark.sql(f"""
     LEFT JOIN {GOLD_SCHEMA}.dim_test_status dtstat
            ON dtstat.Test_Status_Name = COALESCE(lr.Latest_Status, 'NOT RUN')
     LEFT JOIN {GOLD_SCHEMA}.dim_resource res
-           ON res.Resource_Account_Id = lr.executed_by_id
+           ON res.Resource_Id = lr.executed_by_id
     LEFT JOIN {GOLD_SCHEMA}.dim_project proj
            ON proj.Project_Id = parent_issue.fields_project_id
     LEFT JOIN {GOLD_SCHEMA}.dim_team team

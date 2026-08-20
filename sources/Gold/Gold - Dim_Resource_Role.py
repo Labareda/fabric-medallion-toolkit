@@ -2,7 +2,10 @@
 
 # MARKDOWN ********************
 
-# ## Dim_Role -- Lead vs Involved
+# ## Dim_Resource_Role -- Lead vs Involved
+# Table/key renamed from Dim_Role/Role_Key to Dim_Resource_Role/
+# Resource_Role_Key to match Fact_Resource_Allocation and Fact_Worklog's FK
+# column naming, and what the semantic model (Dim Resource Role) expects.
 # The client's resourcing question is about ROLE, not about users, so this
 # tiny dimension is the axis they actually slice on.
 #
@@ -22,9 +25,9 @@ GOLD_SCHEMA = "Gold.gold"
 
 # CELL ********************
 schema = fmt.TableSchema(
-    table_name=f"{GOLD_SCHEMA}.dim_role",
+    table_name=f"{GOLD_SCHEMA}.dim_resourcerole",
     table_type="dim",
-    key_column="Role_Key",
+    key_column="Resource_Role_Key",
     columns={
         "Role_Name":             {"type": "string", "merge_field": True, "missing": "Unknown"},
         "Role_Description":      {"type": "string", "default": ""},

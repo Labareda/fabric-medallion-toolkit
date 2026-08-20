@@ -10,7 +10,7 @@
 # CHANGES FROM "Orchestration - Jira":
 #   + Xray source added as a second extraction branch (see OPTIONAL_STEPS --
 #     an Xray outage no longer blocks the Jira reporting refresh)
-#   + Dim_Resolution, Dim_Role, Dim_Team, Dim_Test_Status
+#   + Dim_Resolution, Dim_Resource_Role, Dim_Team, Dim_Test_Status
 #   + Fact_Issue_History, Fact_Worklog
 #   ~ renamed: Fact_ResourceAllocation -> Fact_Resource_Allocation
 #   - removed: Dim_Board, Dim_Sprint, Bridge_IssueSprint (the client barely
@@ -79,7 +79,7 @@ DIMENSION_NOTEBOOKS = {
     "Gold - Dim_Date": [],
     "Gold - Dim_Project": [],
     "Gold - Dim_Resource": [],
-    "Gold - Dim_Role": [],
+    "Gold - Dim_Resource_Role": [],
     "Gold - Dim_Team": [],
     "Gold - Dim_IssueType": [],
     "Gold - Dim_Status": [],

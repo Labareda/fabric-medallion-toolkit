@@ -15,7 +15,7 @@
 #
 # This is a THIN dimension on purpose. The client's question is "who leads
 # this and who is involved", not "show me a user list" -- so the analytical
-# weight sits in Fact_Resource_Allocation and Dim_Role, not here.
+# weight sits in Fact_Resource_Allocation and Dim_Resource_Role, not here.
 #
 # Daily_Capacity_Hours: hardcoded 5.0 for everyone for now -- a placeholder
 # the resource report's capacity/utilisation measures can divide by. Replace
@@ -33,7 +33,7 @@ schema = fmt.TableSchema(
     table_type="dim",
     key_column="Resource_Key",
     columns={
-        "Resource_Account_Id":   {"type": "string", "merge_field": True, "missing": "Unknown"},
+        "Resource_Id":   {"type": "string", "merge_field": True, "missing": "Unknown"},
         "Resource_Name":         {"type": "string", "default": "Unassigned"},
         "Email":                 {"type": "string", "default": ""},
         "Is_Active":             {"type": "boolean", "default": True},
@@ -46,7 +46,7 @@ df = spark.sql("""
     WITH
     -- Everyone who is an assignee or named in People Involved, anywhere.
     involved_ids AS (
-        SELECT DISTINCT person_account_id AS Resource_Account_Id
+        SELECT DISTINCT person_account_id AS Resource_Id
         FROM Silver.jira.issue_people_involved
         WHERE person_account_id IS NOT NULL
 
@@ -57,7 +57,7 @@ df = spark.sql("""
         WHERE fields_assignee_accountId IS NOT NULL
     ),
     directory AS (
-        SELECT u.accountId AS Resource_Account_Id, u.displayName AS Resource_Name,
+        SELECT u.accountId AS Resource_Id, u.displayName AS Resource_Name,
                u.emailAddress AS Email, u.active AS Is_Active
         FROM Silver.jira.users u
         WHERE u.accountId IS NOT NULL
@@ -66,12 +66,12 @@ df = spark.sql("""
     -- (deactivated, or a customer-scoped account). One row per account id --
     -- MAX picks a value deterministically so the merge key stays stable.
     involved_only AS (
-        SELECT p.person_account_id AS Resource_Account_Id,
+        SELECT p.person_account_id AS Resource_Id,
                MAX(p.person_name)   AS Resource_Name,
                MAX(p.person_email)  AS Email,
                MAX(p.person_active) AS Is_Active
         FROM Silver.jira.issue_people_involved p
-        LEFT ANTI JOIN directory d ON p.person_account_id = d.Resource_Account_Id
+        LEFT ANTI JOIN directory d ON p.person_account_id = d.Resource_Id
         WHERE p.person_account_id IS NOT NULL
         GROUP BY p.person_account_id
     )
@@ -79,13 +79,13 @@ df = spark.sql("""
     FROM (
         -- Directory rows, but only for people who are actually involved or
         -- assigned -- this is what keeps unrelated Jira users out.
-        SELECT d.Resource_Account_Id, d.Resource_Name, d.Email, d.Is_Active
+        SELECT d.Resource_Id, d.Resource_Name, d.Email, d.Is_Active
         FROM directory d
-        INNER JOIN involved_ids i ON d.Resource_Account_Id = i.Resource_Account_Id
+        INNER JOIN involved_ids i ON d.Resource_Id = i.Resource_Id
 
         UNION ALL
 
-        SELECT Resource_Account_Id, Resource_Name, Email, Is_Active
+        SELECT Resource_Id, Resource_Name, Email, Is_Active
         FROM involved_only
     )
 """)

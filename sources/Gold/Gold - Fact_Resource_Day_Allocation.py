@@ -13,7 +13,7 @@
 # and Jira has no such number anywhere -- there is no "hours per day" field
 # on an issue. This table MANUFACTURES one, on explicit assumptions:
 #
-#   1. Only LEAD allocations count towards effort (Dim_Role.Contributes_To_
+#   1. Only LEAD allocations count towards effort (Dim_Resource_Role.Contributes_To_
 #      Effort) -- matches Fact_Resource_Allocation's own Allocation_Weight
 #      logic. Someone Involved isn't assumed to be spending hours on it.
 #   2. An issue's Original_Estimate_Hours is spread EVENLY across every
@@ -49,7 +49,7 @@ schema = fmt.TableSchema(
     table_type="fact",
     key_column="Resource_Day_Allocation_Key",
     columns={
-        "Resource_Account_Id": {"type": "string", "merge_field": True},
+        "Resource_Id": {"type": "string", "merge_field": True},
         "Issue_Id":            {"type": "string", "merge_field": True},
         "Date":                {"type": "date", "merge_field": True},
         "Allocated_Hours":     {"type": "double", "default": 0.0},
@@ -57,7 +57,7 @@ schema = fmt.TableSchema(
             "type": "string",
             "lookup_missing_from": {
                 "table": f"{GOLD_SCHEMA}.dim_resource",
-                "natural_key_column": "Resource_Account_Id",
+                "natural_key_column": "Resource_Id",
                 "key_column": "Resource_Key",
                 "unknown_value": "Unknown",
             },
@@ -81,13 +81,13 @@ df = spark.sql(f"""
     -- estimate -- see assumptions 1 and 3 above.
     lead_effort AS (
         SELECT
-            fra.Resource_Account_Id,
+            fra.Resource_Id,
             fra.Issue_Id,
             fi.Planned_Start_Date,
             fi.Planned_End_Date,
             fi.Original_Estimate_Hours
         FROM {GOLD_SCHEMA}.fact_resource_allocation fra
-        JOIN {GOLD_SCHEMA}.dim_role role
+        JOIN {GOLD_SCHEMA}.dim_resourcerole role
           ON role.Role_Name = fra.Role_Name AND role.Contributes_To_Effort = TRUE
         JOIN {GOLD_SCHEMA}.fact_issue fi
           ON fi.Issue_Id = fra.Issue_Id
@@ -100,7 +100,7 @@ df = spark.sql(f"""
     -- One row per working day in range -- assumption 4.
     working_days AS (
         SELECT
-            le.Resource_Account_Id, le.Issue_Id, le.Original_Estimate_Hours,
+            le.Resource_Id, le.Issue_Id, le.Original_Estimate_Hours,
             d.date AS Alloc_Date
         FROM lead_effort le
         JOIN {GOLD_SCHEMA}.dim_date d
@@ -108,13 +108,13 @@ df = spark.sql(f"""
          AND d.is_weekend = FALSE
     ),
     day_counts AS (
-        SELECT Resource_Account_Id, Issue_Id, COUNT(*) AS Working_Day_Count
+        SELECT Resource_Id, Issue_Id, COUNT(*) AS Working_Day_Count
         FROM working_days
-        GROUP BY Resource_Account_Id, Issue_Id
+        GROUP BY Resource_Id, Issue_Id
     )
     -- Even spread across the working days -- assumption 2.
     SELECT
-        wd.Resource_Account_Id,
+        wd.Resource_Id,
         wd.Issue_Id,
         wd.Alloc_Date AS Date,
         wd.Original_Estimate_Hours / dc.Working_Day_Count AS Allocated_Hours,
@@ -122,8 +122,8 @@ df = spark.sql(f"""
         di.Issue_Key
     FROM working_days wd
     JOIN day_counts dc
-      ON dc.Resource_Account_Id = wd.Resource_Account_Id AND dc.Issue_Id = wd.Issue_Id
-    LEFT JOIN {GOLD_SCHEMA}.dim_resource res ON res.Resource_Account_Id = wd.Resource_Account_Id
+      ON dc.Resource_Id = wd.Resource_Id AND dc.Issue_Id = wd.Issue_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_resource res ON res.Resource_Id = wd.Resource_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_issue di     ON di.Issue_Id = wd.Issue_Id
 """)
 

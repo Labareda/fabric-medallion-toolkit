@@ -31,7 +31,7 @@ schema = fmt.TableSchema(
     key_column="Resource_Allocation_Key",
     columns={
         "Issue_Id":          {"type": "string", "merge_field": True},
-        "Resource_Account_Id": {"type": "string", "merge_field": True},
+        "Resource_Id":       {"type": "string", "merge_field": True},
         "Role_Name":         {"type": "string", "merge_field": True},
         "Issue_Code":        {"type": "string", "default": "Unknown"},
         "Allocation_Weight": {"type": "double", "default": 0.0},
@@ -45,13 +45,13 @@ schema = fmt.TableSchema(
         "Resource_Key": {
             "type": "string",
             "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_resource",
-                                     "natural_key_column": "Resource_Account_Id", "key_column": "Resource_Key",
+                                     "natural_key_column": "Resource_Id", "key_column": "Resource_Key",
                                      "unknown_value": "Unknown"},
         },
-        "Role_Key": {
+        "Resource_Role_Key": {
             "type": "string",
-            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_role",
-                                     "natural_key_column": "Role_Name", "key_column": "Role_Key",
+            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_resourcerole",
+                                     "natural_key_column": "Role_Name", "key_column": "Resource_Role_Key",
                                      "unknown_value": "Unknown"},
         },
         # Project_Key/Team_Key sit directly on every fact table so a project
@@ -75,7 +75,7 @@ schema = fmt.TableSchema(
 df = spark.sql(f"""
     WITH allocations AS (
         SELECT i.id AS Issue_Id, i.key AS Issue_Code,
-               i.fields_assignee_accountId AS Resource_Account_Id,
+               i.fields_assignee_accountId AS Resource_Id,
                'Lead' AS Role_Name, 1.0 AS Allocation_Weight
         FROM Silver.jira.issues i
         WHERE i.fields_assignee_accountId IS NOT NULL
@@ -90,15 +90,15 @@ df = spark.sql(f"""
           AND (i2.fields_assignee_accountId IS NULL
                OR i2.fields_assignee_accountId <> p.person_account_id)
     )
-    SELECT a.Issue_Id, a.Issue_Code, a.Resource_Account_Id, a.Role_Name,
+    SELECT a.Issue_Id, a.Issue_Code, a.Resource_Id, a.Role_Name,
            a.Allocation_Weight, 1 AS Allocation_Count,
-           dim_issue.Issue_Key, res.Resource_Key, role.Role_Key,
+           dim_issue.Issue_Key, res.Resource_Key, role.Resource_Role_Key,
            project.Project_Key, team.Team_Key
     FROM allocations a
     LEFT JOIN Silver.jira.issues i2b            ON a.Issue_Id = i2b.id
     LEFT JOIN {GOLD_SCHEMA}.dim_issue dim_issue ON a.Issue_Id = dim_issue.Issue_Id
-    LEFT JOIN {GOLD_SCHEMA}.dim_resource res    ON a.Resource_Account_Id = res.Resource_Account_Id
-    LEFT JOIN {GOLD_SCHEMA}.dim_role role       ON a.Role_Name = role.Role_Name
+    LEFT JOIN {GOLD_SCHEMA}.dim_resource res    ON a.Resource_Id = res.Resource_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_resourcerole role ON a.Role_Name = role.Role_Name
     LEFT JOIN {GOLD_SCHEMA}.dim_project project ON i2b.fields_project_id = project.Project_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_team team       ON i2b.fields_team_name = team.Team_Name
 """)
