@@ -62,18 +62,38 @@ df = spark.sql("""
         FROM Silver.jira.users u
         WHERE u.accountId IS NOT NULL
     ),
-    -- Involved/assigned people who never made it into the user directory
-    -- (deactivated, or a customer-scoped account). One row per account id --
-    -- MAX picks a value deterministically so the merge key stays stable.
-    involved_only AS (
-        SELECT p.person_account_id AS Resource_Id,
-               MAX(p.person_name)   AS Resource_Name,
-               MAX(p.person_email)  AS Email,
-               MAX(p.person_active) AS Is_Active
-        FROM Silver.jira.issue_people_involved p
-        LEFT ANTI JOIN directory d ON p.person_account_id = d.Resource_Id
-        WHERE p.person_account_id IS NOT NULL
-        GROUP BY p.person_account_id
+    -- Involved OR assigned people who never made it into the user
+    -- directory (deactivated, or a customer-scoped account). BUG FIX: this
+    -- used to only scan issue_people_involved -- an assignee who is
+    -- deactivated/customer-scoped AND never separately listed in People
+    -- Involved fell through both branches and silently vanished from
+    -- Dim_Resource entirely. issues.fields_assignee_* carries the same
+    -- displayName/emailAddress/active info the assignee object gives, so
+    -- both sources are unioned here BEFORE the anti-join and GROUP BY --
+    -- one dedup point, so a person who is both an assignee on one issue
+    -- and Involved on another (and missing from the directory either way)
+    -- still gets exactly one row, not two.
+    missing_people_raw AS (
+        SELECT person_account_id AS Resource_Id, person_name AS Resource_Name,
+               person_email AS Email, person_active AS Is_Active
+        FROM Silver.jira.issue_people_involved
+        WHERE person_account_id IS NOT NULL
+
+        UNION ALL
+
+        SELECT fields_assignee_accountId, fields_assignee_displayName,
+               fields_assignee_emailAddress, fields_assignee_active
+        FROM Silver.jira.issues
+        WHERE fields_assignee_accountId IS NOT NULL
+    ),
+    missing_from_directory AS (
+        SELECT m.Resource_Id,
+               MAX(m.Resource_Name) AS Resource_Name,
+               MAX(m.Email)         AS Email,
+               MAX(m.Is_Active)     AS Is_Active
+        FROM missing_people_raw m
+        LEFT ANTI JOIN directory d ON m.Resource_Id = d.Resource_Id
+        GROUP BY m.Resource_Id
     )
     SELECT *, CAST(5.0 AS DOUBLE) AS Daily_Capacity_Hours
     FROM (
@@ -86,7 +106,7 @@ df = spark.sql("""
         UNION ALL
 
         SELECT Resource_Id, Resource_Name, Email, Is_Active
-        FROM involved_only
+        FROM missing_from_directory
     )
 """)
 

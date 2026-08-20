@@ -85,7 +85,14 @@ df = spark.sql(f"""
 
         UNION ALL
 
-        SELECT p.issue_id, p.issue_key, p.person_account_id, 'Involved', 0.0
+        -- DISTINCT: confirmed (via a real duplicate found in this exact
+        -- table) that Silver.jira.issue_people_involved can carry the same
+        -- (issue_id, person_account_id) pair twice -- landing the same
+        -- person twice against one issue's People Involved field is a
+        -- source-side duplicate, not new information, so it's deduped
+        -- right at the source rather than left to collide against
+        -- Fact_Resource_Allocation's merge_field check downstream.
+        SELECT DISTINCT p.issue_id, p.issue_key, p.person_account_id, 'Involved', 0.0
         FROM Silver.jira.issue_people_involved p
         JOIN Silver.jira.issues i2 ON i2.id = p.issue_id
         WHERE p.person_account_id IS NOT NULL
