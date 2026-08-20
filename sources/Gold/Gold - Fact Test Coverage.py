@@ -39,8 +39,12 @@ schema = fmt.TableSchema(
     columns={
         "Requirement_Code":     {"type": "string", "merge_field": True},
         "Test_Set_Code":        {"type": "string", "merge_field": True},
-        "Requirement_Name":     {"type": "string", "default": "Unknown"},
-        "Requirement_Category": {"type": "string", "default": "Unknown"},
+        # Requirement_Name/Requirement_Category dropped -- Name duplicated
+        # Dim_Issue.Summary (reachable via Requirement_Key below), and
+        # Category was a CONSTANT: the requirements CTE only ever selects
+        # issues WHERE Issue_Category = 'Requirement', so every row said
+        # the same word. Neither carried information a relationship
+        # couldn't already give for free.
         "Test_Set_Name":        {"type": "string"},
         "Is_Covered":           {"type": "boolean", "default": False},
         "Tests_In_Set":         {"type": "int", "default": 0},
@@ -96,8 +100,6 @@ df = spark.sql(f"""
     requirements AS (
         SELECT
             i.key                       AS Requirement_Code,
-            i.fields_summary            AS Requirement_Name,
-            c.Issue_Category            AS Requirement_Category,
             i.fields_project_id         AS Project_Id,
             i.fields_team_name          AS Team_Name
         FROM Silver.jira.issues i
@@ -157,15 +159,18 @@ df = spark.sql(f"""
         LEFT JOIN Silver.xray.test_sets ts ON ts.test_issue_key = ct.Test_Code
     ),
 
-    -- Test counts per set, via Dim_Test_Status flags already on Fact_Test
+    -- Test counts per set. Is_Pass/Is_Fail/Is_Not_Run live on Dim_Test_Status
+    -- now (not Fact_Test -- see Gold - Fact Test.py), joined here via
+    -- Test_Status_Key the same way the semantic model's measures do.
     set_stats AS (
         SELECT
             ft.Test_Set_Code,
-            COUNT(*)                                     AS Tests_In_Set,
-            SUM(CASE WHEN ft.Is_Pass    THEN 1 ELSE 0 END) AS Tests_Passed,
-            SUM(CASE WHEN ft.Is_Fail    THEN 1 ELSE 0 END) AS Tests_Failed,
-            SUM(CASE WHEN ft.Is_Not_Run THEN 1 ELSE 0 END) AS Tests_Not_Run
+            COUNT(*)                                      AS Tests_In_Set,
+            SUM(CASE WHEN dts.Is_Pass    THEN 1 ELSE 0 END) AS Tests_Passed,
+            SUM(CASE WHEN dts.Is_Fail    THEN 1 ELSE 0 END) AS Tests_Failed,
+            SUM(CASE WHEN dts.Is_Not_Run THEN 1 ELSE 0 END) AS Tests_Not_Run
         FROM {GOLD_SCHEMA}.fact_test ft
+        LEFT JOIN {GOLD_SCHEMA}.dim_test_status dts ON dts.Test_Status_Key = ft.Test_Status_Key
         GROUP BY ft.Test_Set_Code
     )
 
@@ -173,8 +178,6 @@ df = spark.sql(f"""
     SELECT
         r.Requirement_Code,
         cs.Test_Set_Code,
-        r.Requirement_Name,
-        r.Requirement_Category,
         dts.Test_Set_Name,
         TRUE                    AS Is_Covered,
         COALESCE(ss.Tests_In_Set,  0) AS Tests_In_Set,
@@ -200,8 +203,6 @@ df = spark.sql(f"""
     SELECT
         r.Requirement_Code,
         'NONE'              AS Test_Set_Code,
-        r.Requirement_Name,
-        r.Requirement_Category,
         NULL                AS Test_Set_Name,
         FALSE               AS Is_Covered,
         0, 0, 0, 0,

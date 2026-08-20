@@ -104,22 +104,6 @@ table 'Fact Test Coverage'
 
 		annotation SummarizationSetBy = Automatic
 
-	column 'Requirement Name'
-		dataType: string
-		lineageTag: b2aafd26-badd-4937-b8d7-f16e9ff37302
-		summarizeBy: none
-		sourceColumn: Requirement Name
-
-		annotation SummarizationSetBy = Automatic
-
-	column 'Requirement Category'
-		dataType: string
-		lineageTag: 17a0cb0b-c8d5-48ec-a493-0d87df669db0
-		summarizeBy: none
-		sourceColumn: Requirement Category
-
-		annotation SummarizationSetBy = Automatic
-
 	column 'Test Set Name'
 		dataType: string
 		lineageTag: 4c406bae-e9ec-4c9c-8dee-631087625409
