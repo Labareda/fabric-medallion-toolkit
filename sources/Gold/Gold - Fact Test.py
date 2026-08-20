@@ -179,12 +179,20 @@ schema = fmt.TableSchema(
 df = spark.sql(f"""
     WITH
     memberships AS (
+        -- test_issue_id IS NOT NULL: S2B - Xray.py deliberately lands an
+        -- EMPTY Test Set (zero linked tests) as one row with null test
+        -- columns, so Dim_Test_Set can still show it exists. That's the
+        -- right call for the dimension, but wrong for THIS fact -- its
+        -- grain is "one row per test set MEMBERSHIP", and an empty set has
+        -- no membership at all. Passing that row through gave Test_Id a
+        -- real NULL, which merge_field NOT NULL rightly rejected.
         SELECT
             ts.test_set_issue_id  AS Test_Set_Id,
             ts.test_set_issue_key AS Test_Set_Code,
             ts.test_issue_id      AS Test_Id,
             ts.test_issue_key     AS Test_Code
         FROM Silver.xray.test_sets ts
+        WHERE ts.test_issue_id IS NOT NULL
     ),
     latest_runs AS (
         SELECT
