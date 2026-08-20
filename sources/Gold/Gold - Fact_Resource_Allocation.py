@@ -32,7 +32,15 @@ schema = fmt.TableSchema(
     columns={
         "Issue_Id":          {"type": "string", "merge_field": True},
         "Resource_Id":       {"type": "string", "merge_field": True},
-        "Role_Name":         {"type": "string", "merge_field": True},
+        # Resource_Role_Key (not Role_Name) is the third grain column --
+        # Role_Name never needs to be a stored column at all: it's always
+        # either 'Lead' or 'Involved' internally (used to join Dim_Resource_
+        # Role below), and a report gets the display text via the existing
+        # Resource_Role_Key relationship to Dim_Resource_Role instead of a
+        # duplicated text column on this fact. Resource_Role_Key can never
+        # be null here (both role names always exist in Dim_Resource_Role),
+        # so it's a plain merge field, not a lookup_missing_from fallback --
+        # a null here would mean a real problem worth failing loudly on.
         "Issue_Code":        {"type": "string", "default": "Unknown"},
         "Allocation_Weight": {"type": "double", "default": 0.0},
         "Allocation_Count":  {"type": "int", "default": 1},
@@ -48,12 +56,7 @@ schema = fmt.TableSchema(
                                      "natural_key_column": "Resource_Id", "key_column": "Resource_Key",
                                      "unknown_value": "Unknown"},
         },
-        "Resource_Role_Key": {
-            "type": "string",
-            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_resourcerole",
-                                     "natural_key_column": "Role_Name", "key_column": "Resource_Role_Key",
-                                     "unknown_value": "Unknown"},
-        },
+        "Resource_Role_Key": {"type": "string", "merge_field": True},
         # Project_Key/Team_Key sit directly on every fact table so a project
         # or team slicer filters in one hop -- matches Fact_Issue.
         "Project_Key": {
@@ -90,7 +93,7 @@ df = spark.sql(f"""
           AND (i2.fields_assignee_accountId IS NULL
                OR i2.fields_assignee_accountId <> p.person_account_id)
     )
-    SELECT a.Issue_Id, a.Issue_Code, a.Resource_Id, a.Role_Name,
+    SELECT a.Issue_Id, a.Issue_Code, a.Resource_Id,
            a.Allocation_Weight, 1 AS Allocation_Count,
            dim_issue.Issue_Key, res.Resource_Key, role.Resource_Role_Key,
            project.Project_Key, team.Team_Key

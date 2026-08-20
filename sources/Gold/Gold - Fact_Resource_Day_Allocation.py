@@ -88,7 +88,7 @@ df = spark.sql(f"""
             fi.Original_Estimate_Hours
         FROM {GOLD_SCHEMA}.fact_resource_allocation fra
         JOIN {GOLD_SCHEMA}.dim_resourcerole role
-          ON role.Role_Name = fra.Role_Name AND role.Contributes_To_Effort = TRUE
+          ON role.Resource_Role_Key = fra.Resource_Role_Key AND role.Contributes_To_Effort = TRUE
         JOIN {GOLD_SCHEMA}.fact_issue fi
           ON fi.Issue_Id = fra.Issue_Id
         WHERE fi.Planned_Start_Date IS NOT NULL

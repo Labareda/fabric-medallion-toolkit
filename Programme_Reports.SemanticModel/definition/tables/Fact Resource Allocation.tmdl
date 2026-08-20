@@ -64,16 +64,6 @@ table 'Fact Resource Allocation'
 
 		annotation SummarizationSetBy = Automatic
 
-	column 'Role Name'
-		dataType: string
-		isHidden
-		lineageTag: d70de0f2-07fc-4e93-99f5-743654c30c3e
-		summarizeBy: none
-		sourceColumn: Role Name
-
-		changedProperty = IsHidden
-
-		annotation SummarizationSetBy = Automatic
 
 	column 'Allocation Weight'
 		dataType: double
