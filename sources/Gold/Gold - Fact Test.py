@@ -284,7 +284,12 @@ df = spark.sql(f"""
     LEFT JOIN {GOLD_SCHEMA}.dim_test_set dts
            ON dts.Test_Set_Id = m.Test_Set_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_test_status dtstat
-           ON dtstat.Test_Status_Name = COALESCE(lr.Latest_Status, 'NOT RUN')
+           -- LOWER() on both sides: Dim_Test_Status.Test_Status_Name is now
+           -- sentence case ("Passed") while Latest_Status stays Xray's raw
+           -- uppercase ("PASSED") -- case-insensitive match means a future
+           -- casing change on either side can't silently break this join
+           -- again the way an exact-string match would.
+           ON LOWER(dtstat.Test_Status_Name) = LOWER(COALESCE(lr.Latest_Status, 'NOT RUN'))
     LEFT JOIN {GOLD_SCHEMA}.dim_resource res
            ON res.Resource_Id = lr.executed_by_id
     LEFT JOIN {GOLD_SCHEMA}.dim_project proj
