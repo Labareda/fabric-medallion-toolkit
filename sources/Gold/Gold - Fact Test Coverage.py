@@ -10,10 +10,10 @@
 #   - Which requirements have NO test sets (the go-live risk number)?
 #   - How many tests pass per requirement?
 #
-# Kept separate from Fact_Test because the grain is different. Fact_Test
-# is about individual tests within a set. This is about which requirements
-# are covered at all. A requirement with 3 covering test sets has 3 rows
-# here, with the combined pass rate for each set carried along.
+# Kept separate from Fact_Test_Run because the grain is different.
+# Fact_Test_Run is about individual test RUNS. This is about which
+# requirements are covered at all. A requirement with 3 covering test sets
+# has 3 rows here, with the combined pass rate for each set carried along.
 #
 # If a requirement has NO covering test set, it still appears here as one
 # row with Is_Covered = False. This is how "uncovered requirements" reports
@@ -145,12 +145,7 @@ df = spark.sql(f"""
     -- Requirement link above (one test can be in several sets, or none).
     -- A test not in any set still covers its requirement -- kept under the
     -- 'NONE' sentinel so coverage isn't lost just because the test wasn't
-    -- organised into a set. KNOWN GAP: Fact_Test's own grain is "one row
-    -- per test SET membership", so a standalone test (no set) has no
-    -- Fact_Test row at all -- set_stats below will show 0 for the 'NONE'
-    -- bucket even if the test has real runs. Acceptable for now since
-    -- Xray tests are organised into sets in practice on this instance;
-    -- revisit if standalone-test coverage actually needs real numbers.
+    -- organised into a set.
     covering_sets AS (
         SELECT DISTINCT
             ct.Requirement_Code,
@@ -159,19 +154,28 @@ df = spark.sql(f"""
         LEFT JOIN Silver.xray.test_sets ts ON ts.test_issue_key = ct.Test_Code
     ),
 
-    -- Test counts per set. Is_Pass/Is_Fail/Is_Not_Run live on Dim_Test_Status
-    -- now (not Fact_Test -- see Gold - Fact Test.py), joined here via
-    -- Test_Status_Key the same way the semantic model's measures do.
+    -- Fact_Test_Run is RUN grain (Gold - Fact_Test_Run.py replaced the old
+    -- Fact_Test) -- reduce to one row per test (its LATEST run) before
+    -- counting, or a test re-run several times would inflate Tests_Passed/
+    -- Failed with its own history instead of counting its current state once.
+    latest_run_per_test AS (
+        SELECT
+            ftr.Test_Issue_Key, ftr.Test_Set_Code, ftr.Test_Status_Key,
+            ROW_NUMBER() OVER (PARTITION BY ftr.Test_Issue_Key ORDER BY ftr.Started_On DESC) AS rn
+        FROM {GOLD_SCHEMA}.fact_test_run ftr
+    ),
+    -- Test counts per set, off each test's current (latest-run) status.
     set_stats AS (
         SELECT
-            ft.Test_Set_Code,
-            COUNT(*)                                      AS Tests_In_Set,
-            SUM(CASE WHEN dts.Is_Pass    THEN 1 ELSE 0 END) AS Tests_Passed,
-            SUM(CASE WHEN dts.Is_Fail    THEN 1 ELSE 0 END) AS Tests_Failed,
-            SUM(CASE WHEN dts.Is_Not_Run THEN 1 ELSE 0 END) AS Tests_Not_Run
-        FROM {GOLD_SCHEMA}.fact_test ft
-        LEFT JOIN {GOLD_SCHEMA}.dim_test_status dts ON dts.Test_Status_Key = ft.Test_Status_Key
-        GROUP BY ft.Test_Set_Code
+            lr.Test_Set_Code,
+            COUNT(*)                                          AS Tests_In_Set,
+            SUM(CASE WHEN dtstat.Is_Pass    THEN 1 ELSE 0 END) AS Tests_Passed,
+            SUM(CASE WHEN dtstat.Is_Fail    THEN 1 ELSE 0 END) AS Tests_Failed,
+            SUM(CASE WHEN dtstat.Is_Not_Run THEN 1 ELSE 0 END) AS Tests_Not_Run
+        FROM latest_run_per_test lr
+        LEFT JOIN {GOLD_SCHEMA}.dim_test_status dtstat ON dtstat.Test_Status_Key = lr.Test_Status_Key
+        WHERE lr.rn = 1
+        GROUP BY lr.Test_Set_Code
     )
 
     -- Covered requirements

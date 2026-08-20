@@ -218,19 +218,6 @@
         },
         {
           "location": {
-            "x": 1587.4007263776884,
-            "y": 408.02818162318937
-          },
-          "nodeIndex": "Fact Test",
-          "nodeLineageTag": "46e00e0e-8007-4424-87bf-b1a1eab6c5fb",
-          "size": {
-            "height": 300,
-            "width": 234
-          },
-          "zIndex": 3
-        },
-        {
-          "location": {
             "x": 1868.7340597110219,
             "y": 407.19484828985605
           },

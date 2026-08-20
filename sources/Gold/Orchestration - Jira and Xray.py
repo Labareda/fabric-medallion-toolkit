@@ -31,12 +31,20 @@
 #     "built but never run" trap warned about above for Fact_Comment). Now
 #     wired in, all OPTIONAL (Xray-dependent) like the rest of the test
 #     tables, so the Test Report actually gets fresh data.
-#   - removed: Fact_Test_Run -- the test report only needs the current-
-#     status matrix (Fact_Test) and requirement coverage (Fact_Test
-#     Coverage), not a full run-by-run trend, so the run-history fact
-#     (and the run-level Dim_Test_Status/Dim_Resource lookups it alone
-#     needed) was dropped. Re-add it if a trend/first-time-pass-rate view
-#     comes into scope later -- the notebook history has a working version.
+#   ~ Fact_Test_Run REVIVED, Fact_Test (test-SET-membership grain) REMOVED
+#     -- this reverses the "- removed: Fact_Test_Run" note directly above
+#     (kept for history). Fact_Test turned out to be the wrong anchor:
+#     Xray coverage/blocking links sit on the TEST issue itself, for ANY
+#     issue type on the other end, not on the Test Set -- routing through
+#     Test Set membership silently broke "select any issue, see its
+#     tests" and needed USERELATIONSHIP gymnastics for blocking lookups.
+#     Fact_Test_Run (one row per run, keyed on Test_Issue_Key) answers
+#     both status AND "which issue is this test linked to" with one
+#     unambiguous relationship, no second fact needed. Test Set grouping
+#     didn't get its own bridge table either -- Test_Set_Code on
+#     Fact_Test_Run is a grouping LABEL (MIN_BY, same trade-off as
+#     Parent_Issue_Code), not a true many-to-many relationship, since
+#     nothing actually needs a test shown under every set it belongs to.
 #   - removed: Dim_Resolution -- not required by any report. Notebook
 #     deleted from sources/Gold; Fact_Issue no longer joins it or carries
 #     Resolution_Key.
@@ -110,10 +118,12 @@ FACT_NOTEBOOKS = {
     "Gold - Fact_Resource_Allocation": [],
     "Gold - Fact_Worklog": [],
     "Gold - Bridge_Issue_Link": [],
-    "Gold - Fact Test": [],
-    # Reads Gold.gold.fact_test (set_stats CTE) -- one of two exceptions to
-    # "facts only depend on other facts here, never implicitly."
-    "Gold - Fact Test Coverage": ["Gold - Fact Test"],
+    # Run-level spine, keyed directly on the Test issue -- reads only
+    # Silver.xray.test_runs plus dimensions.
+    "Gold - Fact_Test_Run": [],
+    # Reads Gold.gold.fact_test_run (set_stats CTE) -- one of two exceptions
+    # to "facts only depend on other facts here, never implicitly."
+    "Gold - Fact Test Coverage": ["Gold - Fact_Test_Run"],
     # Reads Gold.gold.fact_resource_allocation AND fact_issue -- the other
     # exception. Must run after both.
     "Gold - Fact_Resource_Day_Allocation": ["Gold - Fact_Resource_Allocation", "Gold - Fact_Issue"],
@@ -137,8 +147,8 @@ OPTIONAL_STEPS = {
     "B2S - Xray",
     "Gold - Dim Test Status",
     "Gold - Dim Test Set",
-    "Gold - Fact Test",
     "Gold - Fact Test Coverage",
+    "Gold - Fact_Test_Run",
 }
 
 LAKEHOUSES_TO_REFRESH = ["Silver", "Gold"]

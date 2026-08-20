@@ -1,0 +1,208 @@
+table 'Fact Test Run'
+	lineageTag: 635f9f6e-87ea-4936-9e88-6c04f8731368
+
+	measure 'Latest Run Date' = MAX('Fact Test Run'[Started On])
+		formatString: Long Date
+		lineageTag: 5a8fad44-1c65-4291-8d7d-879cf712cc8b
+
+	measure 'Latest Test Status' = ```
+
+			VAR LatestDate = [Latest Run Date]
+			RETURN
+			    CALCULATE(
+			        SELECTEDVALUE('Dim Test Status'[Test Status Name]),
+			        'Fact Test Run'[Started On] = LatestDate
+			    )
+			```
+		lineageTag: c74e73e9-29f5-4f59-80bb-8b6eac278ea9
+
+	measure 'Is Latest Run Blocked' = [Latest Test Status] = "Blocked"
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 833af212-3a35-4991-93cf-61328fec2490
+
+	measure 'Total Runs' = COUNTROWS('Fact Test Run')
+		formatString: 0
+		lineageTag: e4a6a742-afad-41e6-8c8f-7f24b30f49b3
+
+	measure 'Runs Passed' = SUM('Fact Test Run'[Is Passed])
+		formatString: 0
+		lineageTag: 2fb45764-9f6f-40ed-bd0d-ce0ba2297256
+
+	measure 'Runs Failed' = SUM('Fact Test Run'[Is Failed])
+		formatString: 0
+		lineageTag: 264d6876-37a7-467e-b9e7-e3696aa79700
+
+	column 'Run Id'
+		dataType: string
+		isHidden
+		lineageTag: 021fa623-9ff4-4eb5-ba79-99eba1074f77
+		summarizeBy: none
+		sourceColumn: Run Id
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Passed'
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: e72d10d1-959f-4ff4-bf45-c39259b0ff4f
+		summarizeBy: sum
+		sourceColumn: Is Passed
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Failed'
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 423ae60b-51c7-4509-9cf9-5754a3f8d2e8
+		summarizeBy: sum
+		sourceColumn: Is Failed
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Final'
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 0cac33a2-0dbb-4b66-a3dd-79173b258289
+		summarizeBy: sum
+		sourceColumn: Is Final
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Run Count'
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 40208ad2-649a-471b-b876-c3912d1ccfc8
+		summarizeBy: sum
+		sourceColumn: Run Count
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Type'
+		dataType: string
+		lineageTag: 1e6c2b7a-4f3d-4a91-9b8e-2d5f7a9c1b0e
+		summarizeBy: none
+		sourceColumn: Test Type
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Started On'
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 8f2a4c6d-1b3e-4a7c-9d0f-5e6b8a2c4d1f
+		summarizeBy: none
+		sourceColumn: Started On
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Finished On'
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 3d5f7b9c-2e4a-4b8d-8c1f-6a9b3d5e7f0c
+		summarizeBy: none
+		sourceColumn: Finished On
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Executed Date'
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 7b9d1f3e-4c6a-4d8f-9e2b-1c4a6d8f0b3e
+
+		annotation UnderlyingDateTimeDataType = Date
+		summarizeBy: none
+		sourceColumn: Executed Date
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Set Code'
+		dataType: string
+		lineageTag: 9a1c3e5b-7d0f-4a2c-9e4b-6f8a0c2e4d6f
+		summarizeBy: none
+		sourceColumn: Test Set Code
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Issue Key'
+		dataType: string
+		isHidden
+		lineageTag: 4a6c8e0f-2d4b-4a6e-8c0f-3b5d7a9c1e2f
+		summarizeBy: none
+		sourceColumn: Test Issue Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Execution Issue Key'
+		dataType: string
+		isHidden
+		lineageTag: 9c1e3a5b-6d8f-4a0c-9e2b-4d6f8a0c2e4b
+		summarizeBy: none
+		sourceColumn: Execution Issue Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Status Key'
+		dataType: string
+		isHidden
+		lineageTag: 2e4b6d8f-0a2c-4e6a-8c0e-5f7b9d1a3c5e
+		summarizeBy: none
+		sourceColumn: Test Status Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Executed By Key'
+		dataType: string
+		isHidden
+		lineageTag: 6d8f0a2c-4e6b-4a8d-9c1e-3f5b7d9a1c3e
+		summarizeBy: none
+		sourceColumn: Executed By Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Run Fact Key'
+		dataType: string
+		isHidden
+		lineageTag: 0a2c4e6b-8d0f-4a2c-9e4b-5f7a9c1e3b5d
+		summarizeBy: none
+		sourceColumn: Test Run Fact Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Fact Test Run' = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("cekvmk67pvoetale6vvoo5wfji-brlvcnhvridetpgxmhh6wmlcw4.datawarehouse.fabric.microsoft.com", "gold"),
+				    gold_fact_test_run = Source{[Schema="gold",Item="fact_test_run"]}[Data],
+				    RenamedColumns = Table.TransformColumnNames( gold_fact_test_run, each Text.Replace(_, "_", " "))
+				in
+				    RenamedColumns
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
