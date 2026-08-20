@@ -23,11 +23,11 @@
                       "Entity": "Dim Status"
                     }
                   },
-                  "Property": "Status Category Name"
+                  "Property": "Status Category"
                 }
               },
-              "queryRef": "Dim Status.Status Category Name",
-              "nativeQueryRef": "Status Category Name"
+              "queryRef": "Dim Status.Status Category",
+              "nativeQueryRef": "Status Category"
             }
           ]
         }

@@ -20,14 +20,14 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Dim Issue"
+                      "Entity": "Dim Issue Type"
                     }
                   },
-                  "Property": "Hierarchy Level Name"
+                  "Property": "Issue Type Name"
                 }
               },
-              "queryRef": "Dim Issue.Hierarchy Level Name",
-              "nativeQueryRef": "Hierarchy Level Name",
+              "queryRef": "Dim Issue Type.Issue Type Name",
+              "nativeQueryRef": "Issue Type Name",
               "active": true
             }
           ]
@@ -163,10 +163,10 @@
           "Column": {
             "Expression": {
               "SourceRef": {
-                "Entity": "Dim Issue"
+                "Entity": "Dim Issue Type"
               }
             },
-            "Property": "Hierarchy Level Name"
+            "Property": "Issue Type Name"
           }
         },
         "type": "Categorical",
@@ -175,7 +175,7 @@
           "From": [
             {
               "Name": "d",
-              "Entity": "Dim Issue",
+              "Entity": "Dim Issue Type",
               "Type": 0
             }
           ],
@@ -193,7 +193,7 @@
                                 "Source": "d"
                               }
                             },
-                            "Property": "Hierarchy Level Name"
+                            "Property": "Issue Type Name"
                           }
                         }
                       ],
