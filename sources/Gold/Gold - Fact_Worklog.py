@@ -71,7 +71,12 @@ df = spark.sql(f"""
         FROM Silver.jira.issue_people_involved
         WHERE person_account_id IS NOT NULL
     )
-    SELECT
+    -- DISTINCT: Silver.jira.worklogs can carry the exact same worklog_id
+    -- twice with identical data -- same landing-duplication pattern seen
+    -- in issue_links and issue_people_involved elsewhere in this pipeline.
+    -- Deduped here rather than left to collide against Worklog_Id's
+    -- merge_field uniqueness check downstream.
+    SELECT DISTINCT
         w.worklog_id AS Worklog_Id,
         w.issue_key  AS Issue_Code,
         w.started    AS Started_At,
