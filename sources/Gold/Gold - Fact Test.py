@@ -38,11 +38,13 @@
 # model goes.
 #
 # PARENT ISSUE CONTEXT
-# Each test set is linked to one or more parent issues (Stories/Requirements)
-# via Jira's "Test" link. We carry the FIRST linked parent issue directly
+# CORRECTED: the "Test" link sits on the TEST issue itself, not the Test
+# Set (verified against real Silver.jira.issue_links -- see parent_issues
+# below). Each Test is linked to one or more parent issues (Stories/
+# Requirements) it covers. We carry the FIRST linked parent issue directly
 # onto this fact so the client sees:
 #   Parent Issue -> Test Set -> Test
-# without needing a bridge table in their report. Where a test set has
+# without needing a bridge table in their report. Where a test has
 # multiple parent issues, all are surfaced in Fact_Test_Coverage (separate
 # notebook) for the coverage report.
 #
@@ -209,32 +211,38 @@ df = spark.sql(f"""
         GROUP BY test_issue_id
     ),
 
-    -- First parent issue linked to each test set via a 'Test' link.
-    -- Silver.jira.issue_links has NO linked_issue_id column -- only
-    -- inward_issue_key / outward_issue_key (strings), and link_type is
-    -- just 'Test' (NOT 'Tests'/'is tested by'/'tested by' -- those are
-    -- the inward/outward LABELS on that link_type, not values it takes).
-    -- Confirmed directly from the Silver data:
+    -- First parent (Requirement) issue linked to each TEST via a 'Test'
+    -- link. CORRECTED: this link sits on the individual TEST issue, not
+    -- the Test Set -- confirmed against real Silver.jira.issue_links data
+    -- (link_type='Test', issue_link_types: inward "is tested by" / outward
+    -- "tests"). e.g. TRAN-2841 (a Requirement) "is tested by" TRAN-2926 (a
+    -- Test) landed as one row with issue_key=TRAN-2841,
+    -- inward_issue_key=TRAN-2926 -- TRAN-2926 is a TEST, not a Test Set.
+    -- The previous version joined this to m.Test_Set_Code, which almost
+    -- never matched a real Test Set key -- Parent_Issue_Code/Parent_Issue_Key
+    -- were empty for nearly every row as a result. Joining on the TEST's
+    -- own key (m.Test_Code) instead is what actually reflects Xray's
+    -- Tests[] relationship on a Requirement issue.
     --   outward_issue_key populated -> issue_key "tests" outward_issue_key
-    --     => issue_key is the TEST SET, outward_issue_key is the REQUIREMENT
+    --     => issue_key is the TEST, outward_issue_key is the REQUIREMENT
     --   inward_issue_key populated  -> issue_key "is tested by" inward_issue_key
-    --     => issue_key is the REQUIREMENT, inward_issue_key is the TEST SET
-    -- Both directions normalised to the same (Test_Set_Code, Parent_Issue_Code)
-    -- shape before picking the first one per set.
+    --     => issue_key is the REQUIREMENT, inward_issue_key is the TEST
+    -- Both directions normalised to the same (Test_Code, Parent_Issue_Code)
+    -- shape before picking the first one per test.
     parent_issues AS (
-        SELECT Test_Set_Code, MIN_BY(Parent_Issue_Code, link_id) AS Parent_Issue_Code
+        SELECT Test_Code, MIN_BY(Parent_Issue_Code, link_id) AS Parent_Issue_Code
         FROM (
-            SELECT issue_key AS Test_Set_Code, outward_issue_key AS Parent_Issue_Code, link_id
+            SELECT issue_key AS Test_Code, outward_issue_key AS Parent_Issue_Code, link_id
             FROM Silver.jira.issue_links
             WHERE link_type = 'Test' AND outward_issue_key IS NOT NULL
 
             UNION ALL
 
-            SELECT inward_issue_key AS Test_Set_Code, issue_key AS Parent_Issue_Code, link_id
+            SELECT inward_issue_key AS Test_Code, issue_key AS Parent_Issue_Code, link_id
             FROM Silver.jira.issue_links
             WHERE link_type = 'Test' AND inward_issue_key IS NOT NULL
         ) x
-        GROUP BY Test_Set_Code
+        GROUP BY Test_Code
     )
     SELECT
         m.Test_Set_Id,
@@ -270,7 +278,7 @@ df = spark.sql(f"""
     LEFT JOIN Silver.jira.users u
            ON u.accountId = lr.executed_by_id
     LEFT JOIN parent_issues p
-           ON p.Test_Set_Code = m.Test_Set_Code
+           ON p.Test_Code = m.Test_Code
     LEFT JOIN Silver.jira.issues parent_issue
            ON parent_issue.key = p.Parent_Issue_Code
     LEFT JOIN {GOLD_SCHEMA}.dim_test_set dts

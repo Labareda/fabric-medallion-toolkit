@@ -106,39 +106,55 @@ df = spark.sql(f"""
         WHERE c.Issue_Category = 'Requirement'
     ),
 
-    -- Test sets that cover each requirement via issue links. Silver.jira.
-    -- issue_links has NO linked_issue_id column -- only inward_issue_key /
-    -- outward_issue_key (strings), and link_type is just 'Test' (NOT
-    -- 'Tests'/'is tested by'/'tested by' -- those are the inward/outward
-    -- LABELS on that same link_type, not values link_type itself takes).
-    -- Confirmed directly from the Silver data:
+    -- Tests that cover each requirement via issue links. CORRECTED: the
+    -- "Test" link sits on the individual TEST issue, not the Test Set --
+    -- confirmed against real Silver.jira.issue_links data (e.g. TRAN-2841,
+    -- a Requirement, "is tested by" TRAN-2926, a TEST -- not a Test Set).
+    -- Same fix as Gold - Fact Test.py's parent_issues CTE; see there for
+    -- the fuller reasoning. This used to join Test_Set_Code straight off
+    -- the link, which almost never matched a real Test Set key, so
+    -- coverage was silently near-empty.
     --   outward_issue_key populated -> issue_key "tests" outward_issue_key
-    --     => issue_key is the TEST SET, outward_issue_key is the REQUIREMENT
+    --     => issue_key is the TEST, outward_issue_key is the REQUIREMENT
     --   inward_issue_key populated  -> issue_key "is tested by" inward_issue_key
-    --     => issue_key is the REQUIREMENT, inward_issue_key is the TEST SET
-    -- A link is captured from whichever side Jira recorded it on, so both
-    -- directions have to be normalised to the same (Test_Set_Code,
-    -- Requirement_Code) shape here.
+    --     => issue_key is the REQUIREMENT, inward_issue_key is the TEST
     --
     -- UNION (not UNION ALL): the Jira REST API attaches each link to BOTH
     -- linked issues' own issuelinks field, so a per-issue Silver ingestion
     -- captures the SAME link twice under two different link_ids -- once
-    -- anchored on the Test Set (outward_issue_key populated), once
-    -- anchored on the Requirement (inward_issue_key populated). Both rows
-    -- produce the identical (Test_Set_Code, Requirement_Code) pair, which
-    -- is a real duplicate for this fact's merge key, not new information
-    -- -- confirmed by the "duplicate merge field combinations" error this
-    -- raised with UNION ALL. Plain UNION dedups the combined result.
-    covering_sets AS (
-        SELECT issue_key AS Test_Set_Code, outward_issue_key AS Requirement_Code
+    -- anchored on the Test (outward_issue_key populated), once anchored on
+    -- the Requirement (inward_issue_key populated). Both rows produce the
+    -- identical (Test_Code, Requirement_Code) pair, which is a real
+    -- duplicate, not new information. Plain UNION dedups it.
+    covering_tests AS (
+        SELECT issue_key AS Test_Code, outward_issue_key AS Requirement_Code
         FROM Silver.jira.issue_links
         WHERE link_type = 'Test' AND outward_issue_key IS NOT NULL
 
         UNION
 
-        SELECT inward_issue_key AS Test_Set_Code, issue_key AS Requirement_Code
+        SELECT inward_issue_key AS Test_Code, issue_key AS Requirement_Code
         FROM Silver.jira.issue_links
         WHERE link_type = 'Test' AND inward_issue_key IS NOT NULL
+    ),
+
+    -- A covered TEST rolls up to whichever Test Set(s) it belongs to, via
+    -- Silver.xray.test_sets MEMBERSHIP -- a separate relationship from the
+    -- Requirement link above (one test can be in several sets, or none).
+    -- A test not in any set still covers its requirement -- kept under the
+    -- 'NONE' sentinel so coverage isn't lost just because the test wasn't
+    -- organised into a set. KNOWN GAP: Fact_Test's own grain is "one row
+    -- per test SET membership", so a standalone test (no set) has no
+    -- Fact_Test row at all -- set_stats below will show 0 for the 'NONE'
+    -- bucket even if the test has real runs. Acceptable for now since
+    -- Xray tests are organised into sets in practice on this instance;
+    -- revisit if standalone-test coverage actually needs real numbers.
+    covering_sets AS (
+        SELECT DISTINCT
+            ct.Requirement_Code,
+            COALESCE(ts.test_set_issue_key, 'NONE') AS Test_Set_Code
+        FROM covering_tests ct
+        LEFT JOIN Silver.xray.test_sets ts ON ts.test_issue_key = ct.Test_Code
     ),
 
     -- Test counts per set, via Dim_Test_Status flags already on Fact_Test
