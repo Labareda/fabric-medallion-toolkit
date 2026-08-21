@@ -202,28 +202,34 @@ df = spark.sql(f"""
         LEFT JOIN Silver.xray.test_sets ts ON ts.test_issue_key = ct.Test_Code
     ),
 
-    -- Fact_Test_Run is RUN grain (Gold - Fact_Test_Run.py replaced the old
-    -- Fact_Test) -- reduce to one row per test (its LATEST run) before
-    -- counting, or a test re-run several times would inflate Tests_Passed/
-    -- Failed with its own history instead of counting its current state once.
-    latest_run_per_test AS (
+    -- Fact_Test_Run is RUN grain and no longer carries Test_Set_Code at all
+    -- (that column was removed -- Bridge_Issue_Link's Test Set containment
+    -- rows are the single source of truth for set membership now, see
+    -- Gold - Fact_Test_Run.py's header note). Reduce Fact_Test_Run to one
+    -- row per test (its LATEST run) first, or a test re-run several times
+    -- would inflate Tests_Passed/Failed with its own history instead of
+    -- counting its current state once.
+    latest_status_per_test AS (
         SELECT
-            ftr.Test_Issue_Key, ftr.Test_Set_Code, ftr.Test_Status_Key,
+            ftr.Test_Issue_Key, ftr.Test_Status_Key,
             ROW_NUMBER() OVER (PARTITION BY ftr.Test_Issue_Key ORDER BY ftr.Started_On DESC) AS rn
         FROM {GOLD_SCHEMA}.fact_test_run ftr
     ),
-    -- Test counts per set, off each test's current (latest-run) status.
+    -- Test counts per set: Test Set membership from Silver.xray.test_sets
+    -- directly (same source covering_sets above uses), each member test's
+    -- current status looked up from latest_status_per_test.
     set_stats AS (
         SELECT
-            lr.Test_Set_Code,
+            ts.test_set_issue_key                             AS Test_Set_Code,
             COUNT(*)                                          AS Tests_In_Set,
             SUM(CASE WHEN dtstat.Is_Pass    THEN 1 ELSE 0 END) AS Tests_Passed,
             SUM(CASE WHEN dtstat.Is_Fail    THEN 1 ELSE 0 END) AS Tests_Failed,
             SUM(CASE WHEN dtstat.Is_Not_Run THEN 1 ELSE 0 END) AS Tests_Not_Run
-        FROM latest_run_per_test lr
-        LEFT JOIN {GOLD_SCHEMA}.dim_test_status dtstat ON dtstat.Test_Status_Key = lr.Test_Status_Key
-        WHERE lr.rn = 1
-        GROUP BY lr.Test_Set_Code
+        FROM Silver.xray.test_sets ts
+        LEFT JOIN latest_status_per_test lsp ON lsp.Test_Issue_Key = ts.test_issue_key AND lsp.rn = 1
+        LEFT JOIN {GOLD_SCHEMA}.dim_test_status dtstat ON dtstat.Test_Status_Key = lsp.Test_Status_Key
+        WHERE ts.test_issue_key IS NOT NULL
+        GROUP BY ts.test_set_issue_key
     )
 
     -- Covered requirements
