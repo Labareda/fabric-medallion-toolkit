@@ -20,13 +20,13 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Fact Test"
+                      "Entity": "Fact Test Run"
                     }
                   },
                   "Property": "Blocked Test Missing a Blocking Link"
                 }
               },
-              "queryRef": "Fact Test.Blocked Test Missing a Blocking Link",
+              "queryRef": "Fact Test Run.Blocked Test Missing a Blocking Link",
               "nativeQueryRef": "Blocked Test Missing a Blocking Link"
             }
           ]

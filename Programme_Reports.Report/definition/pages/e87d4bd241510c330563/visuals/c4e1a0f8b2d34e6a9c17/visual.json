@@ -20,13 +20,13 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Fact Test"
+                      "Entity": "Fact Test Run"
                     }
                   },
                   "Property": "Total Tests"
                 }
               },
-              "queryRef": "Fact Test.Total Tests",
+              "queryRef": "Fact Test Run.Total Tests",
               "nativeQueryRef": "Total Tests"
             }
           ]

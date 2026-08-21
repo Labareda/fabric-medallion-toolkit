@@ -32,6 +32,95 @@ table 'Fact Test Run'
 		formatString: 0
 		lineageTag: 264d6876-37a7-467e-b9e7-e3696aa79700
 
+	measure 'Test Summary' = SELECTEDVALUE('Dim Issue'[Issue Summary])
+		lineageTag: 6ab6b4b5-f791-45e8-860f-af02037a76ac
+
+	measure 'Total Tests' = DISTINCTCOUNT('Fact Test Run'[Test Issue Key])
+		formatString: 0
+		lineageTag: 575c807b-f6c5-44f6-8e03-cf4b180e1301
+
+	measure 'Latest Executor' = ```
+
+			    VAR LatestDate = [Latest Run Date]
+			    RETURN
+			        CALCULATE(
+			            SELECTEDVALUE('Dim Resource'[Resource Name]),
+			            'Fact Test Run'[Started On] = LatestDate
+			        )
+			```
+		lineageTag: 02a72f8d-ec1b-4628-ae8b-e75ef23aae26
+
+	measure 'Tests Passed' = ```
+
+			    COUNTROWS(
+			        FILTER(
+			            ADDCOLUMNS(
+			                SUMMARIZE('Fact Test Run', 'Fact Test Run'[Test Issue Key]),
+			                "@Status", CALCULATE([Latest Test Status])
+			            ),
+			            [@Status] = "Passed"
+			        )
+			    )
+			```
+		formatString: 0
+		lineageTag: b078332d-7026-4e9a-ad80-d4cc001a7dde
+
+	measure 'Tests Failed' = ```
+
+			    COUNTROWS(
+			        FILTER(
+			            ADDCOLUMNS(
+			                SUMMARIZE('Fact Test Run', 'Fact Test Run'[Test Issue Key]),
+			                "@Status", CALCULATE([Latest Test Status])
+			            ),
+			            [@Status] = "Failed"
+			        )
+			    )
+			```
+		formatString: 0
+		lineageTag: a99add48-b0aa-4046-88aa-56f76e24df6f
+
+	measure 'Pass Rate %' = DIVIDE([Tests Passed], [Total Tests])
+		formatString: 0.0%
+		lineageTag: 759175e8-e13d-4d04-a822-577f52301860
+
+	measure 'Blocking Issue Codes' = ```
+
+			    CALCULATE(
+			        CONCATENATEX('Bridge Issue Link', 'Bridge Issue Link'[Linked Issue Code], ","),
+			        'Bridge Issue Link'[Link Type Name] = "Blocks",
+			        'Bridge Issue Link'[Direction] = "Inward"
+			    )
+			```
+		lineageTag: eefa7f2a-d245-42cb-b785-d9d8c0e8a545
+
+	measure 'Has Blocking Link' = ```
+
+			    CALCULATE(
+			        COUNTROWS('Bridge Issue Link'),
+			        'Bridge Issue Link'[Link Type Name] = "Blocks",
+			        'Bridge Issue Link'[Direction] = "Inward"
+			    ) > 0
+			```
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: bf40cc10-ccbd-4122-baec-7e69c95b76ed
+
+	measure 'Blocked Test Missing a Blocking Link' = ```
+
+			    COUNTROWS(
+			        FILTER(
+			            ADDCOLUMNS(
+			                SUMMARIZE('Fact Test Run', 'Fact Test Run'[Test Issue Key]),
+			                "@IsBlocked", CALCULATE([Is Latest Run Blocked]),
+			                "@HasLink", CALCULATE([Has Blocking Link])
+			            ),
+			            [@IsBlocked] = TRUE && [@HasLink] = FALSE
+			        )
+			    )
+			```
+		formatString: 0
+		lineageTag: 9f3912aa-8ee2-4b90-9827-09a3ed8851e1
+
 	column 'Run Id'
 		dataType: string
 		isHidden

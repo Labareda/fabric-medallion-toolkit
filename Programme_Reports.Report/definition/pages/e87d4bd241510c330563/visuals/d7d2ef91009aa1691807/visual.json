@@ -20,13 +20,13 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Fact Test"
+                      "Entity": "Dim Issue"
                     }
                   },
-                  "Property": "Test Code"
+                  "Property": "Issue Code"
                 }
               },
-              "queryRef": "Fact Test.Test Code",
+              "queryRef": "Dim Issue.Issue Code",
               "nativeQueryRef": "Test Code"
             },
             {
@@ -34,27 +34,27 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Fact Test"
+                      "Entity": "Fact Test Run"
                     }
                   },
                   "Property": "Test Summary"
                 }
               },
-              "queryRef": "Fact Test.Test Summary",
+              "queryRef": "Fact Test Run.Test Summary",
               "nativeQueryRef": "Test Summary"
             },
             {
               "field": {
-                "Column": {
+                "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Fact Test"
+                      "Entity": "Fact Test Run"
                     }
                   },
-                  "Property": "Latest Status"
+                  "Property": "Latest Test Status"
                 }
               },
-              "queryRef": "Fact Test.Latest Status",
+              "queryRef": "Fact Test Run.Latest Test Status",
               "nativeQueryRef": "Latest Status"
             },
             {
@@ -62,13 +62,13 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Fact Test"
+                      "Entity": "Fact Test Run"
                     }
                   },
                   "Property": "Blocking Issue Codes"
                 }
               },
-              "queryRef": "Fact Test.Blocking Issue Codes",
+              "queryRef": "Fact Test Run.Blocking Issue Codes",
               "nativeQueryRef": "Blocking Issue Codes"
             },
             {
@@ -76,13 +76,13 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Fact Test"
+                      "Entity": "Fact Test Run"
                     }
                   },
                   "Property": "Has Blocking Link"
                 }
               },
-              "queryRef": "Fact Test.Has Blocking Link",
+              "queryRef": "Fact Test Run.Has Blocking Link",
               "nativeQueryRef": "Has Blocking Link"
             }
           ]
@@ -96,50 +96,45 @@
       {
         "name": "b4a91cf3e1c94d2fb6a3",
         "field": {
-          "Column": {
+          "Measure": {
             "Expression": {
               "SourceRef": {
-                "Entity": "Dim Test Status"
+                "Entity": "Fact Test Run"
               }
             },
-            "Property": "Is Blocked"
+            "Property": "Is Latest Run Blocked"
           }
         },
-        "type": "Categorical",
+        "type": "Advanced",
         "filter": {
           "Version": 2,
           "From": [
             {
-              "Name": "d",
-              "Entity": "Dim Test Status",
+              "Name": "f",
+              "Entity": "Fact Test Run",
               "Type": 0
             }
           ],
           "Where": [
             {
               "Condition": {
-                "In": {
-                  "Expressions": [
-                    {
-                      "Column": {
-                        "Expression": {
-                          "SourceRef": {
-                            "Source": "d"
-                          }
-                        },
-                        "Property": "Is Blocked"
-                      }
-                    }
-                  ],
-                  "Values": [
-                    [
-                      {
-                        "Literal": {
-                          "Value": "true"
+                "Comparison": {
+                  "ComparisonKind": 0,
+                  "Left": {
+                    "Measure": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Source": "f"
                         }
-                      }
-                    ]
-                  ]
+                      },
+                      "Property": "Is Latest Run Blocked"
+                    }
+                  },
+                  "Right": {
+                    "Literal": {
+                      "Value": "true"
+                    }
+                  }
                 }
               }
             }

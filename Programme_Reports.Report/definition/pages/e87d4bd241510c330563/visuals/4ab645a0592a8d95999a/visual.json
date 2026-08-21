@@ -20,13 +20,13 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Dim test Set"
+                      "Entity": "Fact Test Run"
                     }
                   },
                   "Property": "Test Set Code"
                 }
               },
-              "queryRef": "Dim test Set.Test Set Code",
+              "queryRef": "Fact Test Run.Test Set Code",
               "nativeQueryRef": "Test Set Code"
             },
             {
@@ -34,13 +34,13 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Fact Test"
+                      "Entity": "Dim Issue"
                     }
                   },
-                  "Property": "Test Code"
+                  "Property": "Issue Code"
                 }
               },
-              "queryRef": "Fact Test.Test Code",
+              "queryRef": "Dim Issue.Issue Code",
               "nativeQueryRef": "Test Code"
             },
             {
@@ -48,55 +48,55 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Fact Test"
+                      "Entity": "Fact Test Run"
                     }
                   },
                   "Property": "Test Summary"
                 }
               },
-              "queryRef": "Fact Test.Test Summary",
+              "queryRef": "Fact Test Run.Test Summary",
               "nativeQueryRef": "Test Summary"
             },
             {
               "field": {
-                "Column": {
+                "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Dim Test Status"
+                      "Entity": "Fact Test Run"
                     }
                   },
-                  "Property": "Test Status Name"
+                  "Property": "Latest Test Status"
                 }
               },
-              "queryRef": "Dim Test Status.Test Status Name",
-              "nativeQueryRef": "Test Status Name"
+              "queryRef": "Fact Test Run.Latest Test Status",
+              "nativeQueryRef": "Latest Test Status"
             },
             {
               "field": {
-                "Column": {
+                "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Fact Test"
+                      "Entity": "Fact Test Run"
                     }
                   },
                   "Property": "Latest Run Date"
                 }
               },
-              "queryRef": "Fact Test.Latest Run Date",
+              "queryRef": "Fact Test Run.Latest Run Date",
               "nativeQueryRef": "Latest Run Date"
             },
             {
               "field": {
-                "Column": {
+                "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Fact Test"
+                      "Entity": "Fact Test Run"
                     }
                   },
                   "Property": "Latest Executor"
                 }
               },
-              "queryRef": "Fact Test.Latest Executor",
+              "queryRef": "Fact Test Run.Latest Executor",
               "nativeQueryRef": "Latest Executor"
             }
           ]
