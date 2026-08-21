@@ -18,19 +18,19 @@
 # Dim_Issue -- select ANY issue and see whether it IS a test or is LINKED
 # to one, no USERELATIONSHIP gymnastics, no second fact to keep in sync.
 #
-# Test Set membership did NOT get its own bridge table -- a genuine
-# many-to-many bridge is only worth it if the report needs to show a test
-# under every set it belongs to. It doesn't: Test_Set_Code here is a
-# GROUPING LABEL, same trade-off already accepted for Parent_Issue_Code
-# elsewhere -- MIN_BY picks the first/primary set deterministically. A
-# test in 2-3 sets displays under one of them, not all; that's the honest
-# cost of skipping a bridge nobody's asked to actually use.
-#
-# Blocking relationships (Blocked/Blocks) are NOT modelled here at all --
-# Bridge_Issue_Link, filtered to Link Type Name = 'Blocks', already
-# answers "what does this issue block / is blocked by" for ANY issue
-# through the shared Dim_Issue relationship. No measure on this fact
-# needs to know about blocking.
+# Test Set / Test Plan / Test Execution membership is NOT modelled here at
+# all, not even as a grouping-label column -- an earlier version of this
+# file carried Test_Set_Code (MIN_BY, one "primary" set per test) for
+# exactly that, but Bridge_Issue_Link now carries Test Set/Test Plan/Test
+# Execution containment as real rows (both directions), which is STRICTLY
+# BETTER: it shows every set/plan/execution a test belongs to, not one
+# arbitrarily-picked "primary" one. Keeping Test_Set_Code here too would
+# have been the exact same fact stored twice. Blocking relationships
+# (Blocked/Blocks) were never modelled here either, same reasoning --
+# Bridge_Issue_Link, filtered to Link Type Name = 'Blocks'/'Test Set'/
+# 'Test Plan'/'Test Execution', answers all of it for ANY issue through
+# the shared Dim_Issue relationship. This fact only carries what's
+# genuinely intrinsic to a RUN: status, timing, who executed it.
 #
 # "Latest status" is deliberately NOT a stored column -- with one row per
 # RUN, "latest per test" is a MAX(Started_On) per Test_Issue_Key, which
@@ -69,8 +69,6 @@ schema = fmt.TableSchema(
         "Started_On":     {"type": "timestamp"},
         "Finished_On":    {"type": "timestamp"},
         "Executed_Date":  {"type": "date"},
-        # Grouping label only, not a relationship -- see header note.
-        "Test_Set_Code":  {"type": "string"},
 
         "Test_Issue_Key": {
             "type": "string",
@@ -112,17 +110,6 @@ schema = fmt.TableSchema(
 )
 
 # CELL ********************
-# Primary Test Set per test -- MIN_BY picks one deterministically for a
-# test in multiple sets (see header note: grouping label, not a bridge).
-primary_test_set = spark.sql("""
-    SELECT test_issue_id, MIN_BY(test_set_issue_key, test_set_issue_id) AS Test_Set_Code
-    FROM Silver.xray.test_sets
-    WHERE test_issue_id IS NOT NULL
-    GROUP BY test_issue_id
-""")
-primary_test_set.createOrReplaceTempView("primary_test_set")
-
-# CELL ********************
 df = spark.sql(f"""
     SELECT
         r.run_id AS Run_Id,
@@ -136,7 +123,6 @@ df = spark.sql(f"""
         r.started_on AS Started_On,
         r.finished_on AS Finished_On,
         CAST(r.finished_on AS date) AS Executed_Date,
-        pts.Test_Set_Code,
 
         test_issue.Issue_Key AS Test_Issue_Key,
         exec_issue.Issue_Key AS Execution_Issue_Key,
@@ -144,7 +130,6 @@ df = spark.sql(f"""
         resource.Resource_Key AS Executed_By_Key
 
     FROM Silver.xray.test_runs r
-    LEFT JOIN primary_test_set pts                ON pts.test_issue_id = r.test_issue_id
     LEFT JOIN {GOLD_SCHEMA}.dim_issue test_issue ON test_issue.Issue_Id = r.test_issue_id
     LEFT JOIN {GOLD_SCHEMA}.dim_issue exec_issue  ON exec_issue.Issue_Id = r.execution_issue_id
     -- LOWER() on both sides: Dim_Test_Status.Test_Status_Name is sentence

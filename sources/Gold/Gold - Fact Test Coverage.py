@@ -108,36 +108,84 @@ df = spark.sql(f"""
         WHERE c.Issue_Category = 'Requirement'
     ),
 
-    -- Tests that cover each requirement via issue links. CORRECTED: the
-    -- "Test" link sits on the individual TEST issue, not the Test Set --
-    -- confirmed against real Silver.jira.issue_links data (e.g. TRAN-2841,
-    -- a Requirement, "is tested by" TRAN-2926, a TEST -- not a Test Set).
-    -- Same fix as Gold - Fact Test.py's parent_issues CTE; see there for
-    -- the fuller reasoning. This used to join Test_Set_Code straight off
-    -- the link, which almost never matched a real Test Set key, so
-    -- coverage was silently near-empty.
+    -- Requirement <-> "Test"-link ANCHOR pairs. The anchor is NOT always an
+    -- individual Test -- confirmed against two different real examples:
+    -- TRAN-2926 (an individual Test) directly "tests" a Requirement, but
+    -- ALSO TRAN-267 (a TEST SET) directly "tests" TF-6248 -- Jira doesn't
+    -- restrict which issue type a 'Test' link sits on, and this client's
+    -- data genuinely uses both. Kept as "Anchor_Code" here, not "Test_Code"
+    -- -- resolving which individual test(s) it actually means is the next
+    -- CTE's job.
     --   outward_issue_key populated -> issue_key "tests" outward_issue_key
-    --     => issue_key is the TEST, outward_issue_key is the REQUIREMENT
+    --     => issue_key is the ANCHOR, outward_issue_key is the REQUIREMENT
     --   inward_issue_key populated  -> issue_key "is tested by" inward_issue_key
-    --     => issue_key is the REQUIREMENT, inward_issue_key is the TEST
+    --     => issue_key is the REQUIREMENT, inward_issue_key is the ANCHOR
     --
     -- UNION (not UNION ALL): the Jira REST API attaches each link to BOTH
     -- linked issues' own issuelinks field, so a per-issue Silver ingestion
     -- captures the SAME link twice under two different link_ids -- once
-    -- anchored on the Test (outward_issue_key populated), once anchored on
-    -- the Requirement (inward_issue_key populated). Both rows produce the
-    -- identical (Test_Code, Requirement_Code) pair, which is a real
+    -- anchored on the Anchor (outward_issue_key populated), once anchored
+    -- on the Requirement (inward_issue_key populated). Both rows produce
+    -- the identical (Anchor_Code, Requirement_Code) pair, which is a real
     -- duplicate, not new information. Plain UNION dedups it.
-    covering_tests AS (
-        SELECT issue_key AS Test_Code, outward_issue_key AS Requirement_Code
+    test_link_anchors AS (
+        SELECT issue_key AS Anchor_Code, outward_issue_key AS Requirement_Code
         FROM Silver.jira.issue_links
         WHERE link_type = 'Test' AND outward_issue_key IS NOT NULL
 
         UNION
 
-        SELECT inward_issue_key AS Test_Code, issue_key AS Requirement_Code
+        SELECT inward_issue_key AS Anchor_Code, issue_key AS Requirement_Code
         FROM Silver.jira.issue_links
         WHERE link_type = 'Test' AND inward_issue_key IS NOT NULL
+    ),
+
+    -- Resolve each anchor to the individual Test(s) it actually represents.
+    -- Per the client (Jira issuetypes that connect to Xray test data: Test,
+    -- Test Execution, Test Set, Test Plan, Sub Test Execution), a 'Test'
+    -- link can anchor on any container, not just an individual Test:
+    --   Test Set / Test Plan -> expand to every test in that container
+    --     (Xray's own issuetype description for Test Plan: "aggregate all
+    --     executions for those tests" -- same container shape as a Set).
+    --   Test Execution / Sub Test Execution -> no separate Silver table
+    --     distinguishes the two (test_runs.execution_issue_key covers
+    --     both), so both expand identically: every test actually RUN
+    --     under that execution.
+    -- Anything matching none of these is already an individual test and
+    -- covers just itself.
+    covering_tests AS (
+        SELECT ts.test_issue_key AS Test_Code, tla.Requirement_Code
+        FROM test_link_anchors tla
+        JOIN Silver.xray.test_sets ts ON ts.test_set_issue_key = tla.Anchor_Code
+
+        UNION
+
+        SELECT tp.test_issue_key AS Test_Code, tla.Requirement_Code
+        FROM test_link_anchors tla
+        JOIN Silver.xray.test_plans tp ON tp.test_plan_issue_key = tla.Anchor_Code
+
+        UNION
+
+        SELECT DISTINCT tr.test_issue_key AS Test_Code, tla.Requirement_Code
+        FROM test_link_anchors tla
+        JOIN Silver.xray.test_runs tr ON tr.execution_issue_key = tla.Anchor_Code
+
+        UNION
+
+        SELECT tla.Anchor_Code AS Test_Code, tla.Requirement_Code
+        FROM test_link_anchors tla
+        WHERE NOT EXISTS (
+            SELECT 1 FROM Silver.xray.test_sets ts2
+            WHERE ts2.test_set_issue_key = tla.Anchor_Code
+        )
+        AND NOT EXISTS (
+            SELECT 1 FROM Silver.xray.test_plans tp2
+            WHERE tp2.test_plan_issue_key = tla.Anchor_Code
+        )
+        AND NOT EXISTS (
+            SELECT 1 FROM Silver.xray.test_runs tr2
+            WHERE tr2.execution_issue_key = tla.Anchor_Code
+        )
     ),
 
     -- A covered TEST rolls up to whichever Test Set(s) it belongs to, via

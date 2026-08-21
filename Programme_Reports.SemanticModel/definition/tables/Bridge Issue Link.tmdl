@@ -5,6 +5,33 @@ table 'Bridge Issue Link'
 		formatString: 0
 		lineageTag: 22019657-5b1c-437c-9e11-7f9715aa2a6a
 
+	measure 'Linked Test Status' = ```
+
+			    CALCULATE(
+			        [Latest Test Status],
+			        'Fact Test Run'[Test Issue Key] = SELECTEDVALUE('Bridge Issue Link'[Linked Issue Code])
+			    )
+			```
+		lineageTag: 91bf9697-732d-48ac-8334-127c977ba693
+
+	measure 'Linked Issue Summary' = ```
+
+			    CALCULATE(
+			        SELECTEDVALUE('Dim Issue'[Issue Summary]),
+			        'Dim Issue'[Issue Code] = SELECTEDVALUE('Bridge Issue Link'[Linked Issue Code])
+			    )
+			```
+		lineageTag: 8102399b-e0f6-4bd0-818a-a0e07885c862
+
+	measure 'Linked Issue Acceptance Criteria' = ```
+
+			    CALCULATE(
+			        SELECTEDVALUE('Dim Issue'[Test Acceptance Criteria]),
+			        'Dim Issue'[Issue Code] = SELECTEDVALUE('Bridge Issue Link'[Linked Issue Code])
+			    )
+			```
+		lineageTag: 2afdc1a2-3d7b-4c99-a249-fd1341658dcb
+
 	column Direction
 		dataType: string
 		lineageTag: fe57d8d7-ca08-46f8-8ed5-9e31a7405d79
@@ -42,6 +69,24 @@ table 'Bridge Issue Link'
 		lineageTag: 892906ac-f9d6-42a2-98a1-6c8ac4665e1a
 		summarizeBy: none
 		sourceColumn: Link Label
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Blocked'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 10319299-b400-41e9-9476-2a3506f85f2e
+		summarizeBy: none
+		sourceColumn: Is Blocked
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Blocking'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 5c0290f9-7bac-4ab3-95de-d178e0a46a37
+		summarizeBy: none
+		sourceColumn: Is Blocking
 
 		annotation SummarizationSetBy = Automatic
 

@@ -17,17 +17,17 @@
           "projections": [
             {
               "field": {
-                "Column": {
+                "Measure": {
                   "Expression": {
                     "SourceRef": {
                       "Entity": "Fact Test Run"
                     }
                   },
-                  "Property": "Test Set Code"
+                  "Property": "Test Set Codes"
                 }
               },
-              "queryRef": "Fact Test Run.Test Set Code",
-              "nativeQueryRef": "Test Set Code"
+              "queryRef": "Fact Test Run.Test Set Codes",
+              "nativeQueryRef": "Test Set Codes"
             },
             {
               "field": {

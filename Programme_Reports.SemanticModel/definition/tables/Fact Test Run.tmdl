@@ -84,12 +84,21 @@ table 'Fact Test Run'
 		formatString: 0.0%
 		lineageTag: 759175e8-e13d-4d04-a822-577f52301860
 
+	measure 'Test Set Codes' = ```
+
+			    CALCULATE(
+			        CONCATENATEX('Bridge Issue Link', 'Bridge Issue Link'[Linked Issue Code], ", "),
+			        'Bridge Issue Link'[Link Type Name] = "Test Set",
+			        'Bridge Issue Link'[Direction] = "Inward"
+			    )
+			```
+		lineageTag: eafd0b43-81ce-454c-afaf-2327ed15b418
+
 	measure 'Blocking Issue Codes' = ```
 
 			    CALCULATE(
 			        CONCATENATEX('Bridge Issue Link', 'Bridge Issue Link'[Linked Issue Code], ","),
-			        'Bridge Issue Link'[Link Type Name] = "Blocks",
-			        'Bridge Issue Link'[Direction] = "Inward"
+			        'Bridge Issue Link'[Is Blocked] = TRUE
 			    )
 			```
 		lineageTag: eefa7f2a-d245-42cb-b785-d9d8c0e8a545
@@ -98,8 +107,7 @@ table 'Fact Test Run'
 
 			    CALCULATE(
 			        COUNTROWS('Bridge Issue Link'),
-			        'Bridge Issue Link'[Link Type Name] = "Blocks",
-			        'Bridge Issue Link'[Direction] = "Inward"
+			        'Bridge Issue Link'[Is Blocked] = TRUE
 			    ) > 0
 			```
 		formatString: """TRUE"";""TRUE"";""FALSE"""
@@ -216,14 +224,6 @@ table 'Fact Test Run'
 		annotation SummarizationSetBy = Automatic
 
 		annotation UnderlyingDateTimeDataType = Date
-
-	column 'Test Set Code'
-		dataType: string
-		lineageTag: 9a1c3e5b-7d0f-4a2c-9e4b-6f8a0c2e4d6f
-		summarizeBy: none
-		sourceColumn: Test Set Code
-
-		annotation SummarizationSetBy = Automatic
 
 	column 'Test Issue Key'
 		dataType: string

@@ -153,7 +153,5 @@ relationship 7d00d205-19fe-44fb-82c7-d0df63e392e9
 	fromColumn: 'Fact Test Run'.'Executed By Key'
 	toColumn: 'Dim Resource'.'Resource Key'
 
-relationship 28c6e578-417c-4925-87da-0a3503987879
-	fromColumn: 'Fact Test Run'.'Test Set Code'
-	toColumn: 'Dim test Set'.'Test Set Code'
+
 
