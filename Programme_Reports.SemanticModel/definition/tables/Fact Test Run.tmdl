@@ -98,7 +98,7 @@ table 'Fact Test Run'
 
 			    CALCULATE(
 			        CONCATENATEX('Bridge Issue Link', 'Bridge Issue Link'[Linked Issue Code], ","),
-			        'Bridge Issue Link'[Is Blocked] = TRUE
+			        'Bridge Issue Link'[Link Label] = "is blocked by"
 			    )
 			```
 		lineageTag: eefa7f2a-d245-42cb-b785-d9d8c0e8a545
@@ -107,7 +107,7 @@ table 'Fact Test Run'
 
 			    CALCULATE(
 			        COUNTROWS('Bridge Issue Link'),
-			        'Bridge Issue Link'[Is Blocked] = TRUE
+			        'Bridge Issue Link'[Link Label] = "is blocked by"
 			    ) > 0
 			```
 		formatString: """TRUE"";""TRUE"";""FALSE"""

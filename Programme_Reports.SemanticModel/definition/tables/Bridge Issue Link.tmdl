@@ -72,24 +72,6 @@ table 'Bridge Issue Link'
 
 		annotation SummarizationSetBy = Automatic
 
-	column 'Is Blocked'
-		dataType: boolean
-		formatString: """TRUE"";""TRUE"";""FALSE"""
-		lineageTag: 10319299-b400-41e9-9476-2a3506f85f2e
-		summarizeBy: none
-		sourceColumn: Is Blocked
-
-		annotation SummarizationSetBy = Automatic
-
-	column 'Is Blocking'
-		dataType: boolean
-		formatString: """TRUE"";""TRUE"";""FALSE"""
-		lineageTag: 5c0290f9-7bac-4ab3-95de-d178e0a46a37
-		summarizeBy: none
-		sourceColumn: Is Blocking
-
-		annotation SummarizationSetBy = Automatic
-
 	column 'Issue Key'
 		dataType: string
 		isHidden

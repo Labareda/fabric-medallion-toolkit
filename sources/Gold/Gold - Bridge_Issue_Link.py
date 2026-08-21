@@ -67,15 +67,6 @@ schema = fmt.TableSchema(
         "Link_Type_Name":    {"type": "string", "merge_field": True},
         "Direction":         {"type": "string", "merge_field": True},
         "Link_Label":        {"type": "string", "default": "Unknown"},
-        # Computed ONCE here, not left for every report visual to
-        # re-derive: "is this issue blocked" depends on BOTH Link_Type_Name
-        # and Direction (Blocks+Outward means Issue_Code BLOCKS the other
-        # side, Blocks+Inward means Issue_Code IS BLOCKED -- same relationship,
-        # opposite role). A client filtering on Link_Type_Name alone gets
-        # both roles mixed together with no way to tell them apart. One
-        # plain boolean removes that whole footgun.
-        "Is_Blocked":  {"type": "boolean", "default": False},
-        "Is_Blocking": {"type": "boolean", "default": False},
         "Issue_Key": {
             "type": "string",
             "lookup_missing_from": {
@@ -187,8 +178,6 @@ all_rows.createOrReplaceTempView("all_relationship_rows")
 df = spark.sql(f"""
     SELECT DISTINCT
         a.Issue_Code, a.Linked_Issue_Code, a.Link_Type_Name, a.Direction, a.Link_Label,
-        a.Link_Type_Name = 'Blocks' AND a.Direction = 'Inward'  AS Is_Blocked,
-        a.Link_Type_Name = 'Blocks' AND a.Direction = 'Outward' AS Is_Blocking,
         di.Issue_Key,
         linked_di.Issue_Key AS Linked_Issue_Key,
         lt.Link_Type_Key
