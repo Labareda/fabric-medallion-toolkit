@@ -144,108 +144,61 @@ schema = fmt.TableSchema(
 )
 
 # CELL ********************
-# table_exists via try/except on spark.table, NOT spark.catalog.tableExists
-# -- the catalog API can't parse a 3-part Fabric name (Lakehouse.schema.
-# table): it reads "Silver.xray" as a two-part namespace and throws
-# REQUIRES_SINGLE_PART_NAMESPACE. spark.table resolves the 3-part name
-# correctly and raises AnalysisException only when the table genuinely
-# doesn't exist, which is exactly the signal we want.
-def table_exists(name: str) -> bool:
-    try:
-        spark.table(name)
-        return True
-    except Exception:
-        return False
+# ONE spark.sql query -- the spark.sql parser is the only thing that resolves
+# 3-part Fabric names (Lakehouse.schema.table); spark.table / spark.catalog
+# throw REQUIRES_SINGLE_PART_NAMESPACE on them. No existence checks / Python
+# unions: Xray (S2B/B2S - Xray) always runs before Gold in orchestration and
+# the Xray tables exist, so the earlier graceful-degradation scaffolding was
+# unnecessary complexity.
+#
+# all_rows: every issue-to-issue relationship, one row per (issue, linked
+#   issue, type, direction) --
+#   * Jira issue_links -- one row already has EITHER outward OR inward
+#     populated (never both), so a straight COALESCE, no direction synthesis.
+#   * Xray containment (Test Set / Test Plan / Test Execution) -- test_sets/
+#     test_plans/test_runs only record "test is in container" one way round,
+#     so both directions are synthesized (contains / belongs to). Test
+#     Execution uses DISTINCT since test_runs is run grain (many runs per
+#     (execution, test) pair).
+# latest_status_per_test: each test's latest run status, for the
+#   denormalised Linked_Test_Status / Test_Status_Key on the linked side.
+df = spark.sql(f"""
+    WITH all_rows AS (
+        SELECT
+            il.issue_key AS Issue_Code,
+            COALESCE(il.outward_issue_key, il.inward_issue_key) AS Linked_Issue_Code,
+            il.link_type AS Link_Type_Name,
+            CASE WHEN il.outward_issue_key IS NOT NULL THEN 'Outward' ELSE 'Inward' END AS Direction,
+            COALESCE(il.outward_label, il.inward_label) AS Link_Label
+        FROM Silver.jira.issue_links il
+        WHERE COALESCE(il.outward_issue_key, il.inward_issue_key) IS NOT NULL
 
-# CELL ********************
-# Built as separate DataFrames, unioned in Python -- NOT one big embedded
-# SQL string -- so the Xray-membership branches can be skipped gracefully
-# (table_exists) if Xray hasn't run yet. Spark validates every table
-# reference in a SQL string at ANALYSIS time, before any row is returned --
-# so if the Xray branches were embedded in the same query as issue_link_rows,
-# a missing Silver.xray table would fail the WHOLE query, taking the
-# Jira-only relationships down with it. This table used to be Jira-only and
-# Xray-independent; absorbing the test-membership job must not regress that.
-issue_link_rows = spark.sql("""
-    SELECT
-        il.issue_key AS Issue_Code,
-        COALESCE(il.outward_issue_key, il.inward_issue_key) AS Linked_Issue_Code,
-        il.link_type AS Link_Type_Name,
-        CASE WHEN il.outward_issue_key IS NOT NULL THEN 'Outward' ELSE 'Inward' END AS Direction,
-        COALESCE(il.outward_label, il.inward_label) AS Link_Label
-    FROM Silver.jira.issue_links il
-    WHERE COALESCE(il.outward_issue_key, il.inward_issue_key) IS NOT NULL
-""")
-all_rows = issue_link_rows
-
-# CELL ********************
-# Xray-native containment, synthesized both directions -- test_sets/
-# test_plans/test_runs only ever record "this test is in this container",
-# never the reverse, unlike Jira's own issue_links.
-if table_exists("Silver.xray.test_sets"):
-    test_set_rows = spark.sql("""
-        SELECT test_set_issue_key AS Issue_Code, test_issue_key AS Linked_Issue_Code,
-               'Test Set' AS Link_Type_Name, 'Outward' AS Direction, 'contains' AS Link_Label
+        UNION ALL
+        SELECT test_set_issue_key, test_issue_key, 'Test Set', 'Outward', 'contains'
+        FROM Silver.xray.test_sets WHERE test_issue_key IS NOT NULL
+        UNION ALL
+        SELECT test_issue_key, test_set_issue_key, 'Test Set', 'Inward', 'belongs to'
         FROM Silver.xray.test_sets WHERE test_issue_key IS NOT NULL
 
         UNION ALL
-
-        SELECT test_issue_key AS Issue_Code, test_set_issue_key AS Linked_Issue_Code,
-               'Test Set' AS Link_Type_Name, 'Inward' AS Direction, 'belongs to' AS Link_Label
-        FROM Silver.xray.test_sets WHERE test_issue_key IS NOT NULL
-    """)
-    all_rows = all_rows.unionByName(test_set_rows)
-else:
-    print("No Silver.xray.test_sets -- skipping Test Set containment rows this run.")
-
-if table_exists("Silver.xray.test_plans"):
-    test_plan_rows = spark.sql("""
-        SELECT test_plan_issue_key AS Issue_Code, test_issue_key AS Linked_Issue_Code,
-               'Test Plan' AS Link_Type_Name, 'Outward' AS Direction, 'contains' AS Link_Label
+        SELECT test_plan_issue_key, test_issue_key, 'Test Plan', 'Outward', 'contains'
+        FROM Silver.xray.test_plans WHERE test_issue_key IS NOT NULL
+        UNION ALL
+        SELECT test_issue_key, test_plan_issue_key, 'Test Plan', 'Inward', 'belongs to'
         FROM Silver.xray.test_plans WHERE test_issue_key IS NOT NULL
 
         UNION ALL
-
-        SELECT test_issue_key AS Issue_Code, test_plan_issue_key AS Linked_Issue_Code,
-               'Test Plan' AS Link_Type_Name, 'Inward' AS Direction, 'belongs to' AS Link_Label
-        FROM Silver.xray.test_plans WHERE test_issue_key IS NOT NULL
-    """)
-    all_rows = all_rows.unionByName(test_plan_rows)
-else:
-    print("No Silver.xray.test_plans -- skipping Test Plan containment rows this run.")
-
-if table_exists("Silver.xray.test_runs"):
-    # DISTINCT: test_runs is RUN grain (many runs per test under one
-    # execution) -- this only needs the (execution, test) pair once.
-    test_execution_rows = spark.sql("""
-        SELECT DISTINCT execution_issue_key AS Issue_Code, test_issue_key AS Linked_Issue_Code,
-               'Test Execution' AS Link_Type_Name, 'Outward' AS Direction, 'contains' AS Link_Label
+        SELECT DISTINCT execution_issue_key, test_issue_key, 'Test Execution', 'Outward', 'contains'
         FROM Silver.xray.test_runs WHERE test_issue_key IS NOT NULL
-
-        UNION
-
-        SELECT DISTINCT test_issue_key AS Issue_Code, execution_issue_key AS Linked_Issue_Code,
-               'Test Execution' AS Link_Type_Name, 'Inward' AS Direction, 'belongs to' AS Link_Label
+        UNION ALL
+        SELECT DISTINCT test_issue_key, execution_issue_key, 'Test Execution', 'Inward', 'belongs to'
         FROM Silver.xray.test_runs WHERE test_issue_key IS NOT NULL
-    """)
-    all_rows = all_rows.unionByName(test_execution_rows)
-else:
-    print("No Silver.xray.test_runs -- skipping Test Execution containment rows this run.")
-
-# CELL ********************
-# Latest test status per test issue -- the source for the denormalised
-# Linked_Test_Status. Built from Silver.xray.test_runs directly (NOT from
-# Gold.fact_test -- a bridge shouldn't depend on a fact), and ALWAYS created
-# as a view (empty if Xray hasn't run) so the final SELECT below never
-# references a missing table. Status name comes from Dim_Test_Status so it's
-# the same sentence-case text as everywhere else.
-if table_exists("Silver.xray.test_runs"):
-    spark.sql(f"""
-        CREATE OR REPLACE TEMP VIEW latest_status_per_test AS
-        SELECT test_issue_key AS Test_Code, Test_Status_Name, Test_Status_Key
+    ),
+    latest_status_per_test AS (
+        SELECT Test_Code, Test_Status_Name, Test_Status_Key
         FROM (
             SELECT
-                r.test_issue_key,
+                r.test_issue_key AS Test_Code,
                 dts.Test_Status_Name,
                 dts.Test_Status_Key,
                 ROW_NUMBER() OVER (PARTITION BY r.test_issue_key ORDER BY r.started_on DESC NULLS LAST) AS rn
@@ -254,19 +207,7 @@ if table_exists("Silver.xray.test_runs"):
             WHERE r.test_issue_key IS NOT NULL
         ) x
         WHERE rn = 1
-    """)
-else:
-    spark.sql("""
-        CREATE OR REPLACE TEMP VIEW latest_status_per_test AS
-        SELECT CAST(NULL AS STRING) AS Test_Code,
-               CAST(NULL AS STRING) AS Test_Status_Name,
-               CAST(NULL AS STRING) AS Test_Status_Key
-        WHERE 1 = 0
-    """)
-
-# CELL ********************
-all_rows.createOrReplaceTempView("all_relationship_rows")
-df = spark.sql(f"""
+    )
     SELECT DISTINCT
         a.Issue_Code, a.Linked_Issue_Code, a.Link_Type_Name, a.Direction, a.Link_Label,
         linked_di.Summary       AS Linked_Issue_Summary,
@@ -277,7 +218,7 @@ df = spark.sql(f"""
         lsp.Test_Status_Key,
         proj.Project_Key,
         team.Team_Key
-    FROM all_relationship_rows a
+    FROM all_rows a
     LEFT JOIN {GOLD_SCHEMA}.dim_issue di        ON di.Issue_Code = a.Issue_Code
     LEFT JOIN {GOLD_SCHEMA}.dim_issue linked_di ON linked_di.Issue_Code = a.Linked_Issue_Code
     LEFT JOIN {GOLD_SCHEMA}.dim_link_type lt    ON lt.Link_Type_Name = a.Link_Type_Name
