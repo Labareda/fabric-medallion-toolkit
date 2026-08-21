@@ -5,24 +5,6 @@ table 'Bridge Issue Link'
 		formatString: 0
 		lineageTag: 22019657-5b1c-437c-9e11-7f9715aa2a6a
 
-	measure 'Linked Test Status' = ```
-
-			    CALCULATE(
-			        [Latest Test Status],
-			        'Fact Test Run'[Test Issue Key] = SELECTEDVALUE('Bridge Issue Link'[Linked Issue Code])
-			    )
-			```
-		lineageTag: 91bf9697-732d-48ac-8334-127c977ba693
-
-	measure 'Linked Issue Summary' = ```
-
-			    CALCULATE(
-			        SELECTEDVALUE('Dim Issue'[Issue Summary]),
-			        'Dim Issue'[Issue Code] = SELECTEDVALUE('Bridge Issue Link'[Linked Issue Code])
-			    )
-			```
-		lineageTag: 8102399b-e0f6-4bd0-818a-a0e07885c862
-
 	measure 'Linked Issue Acceptance Criteria' = ```
 
 			    CALCULATE(
@@ -69,6 +51,55 @@ table 'Bridge Issue Link'
 		lineageTag: 892906ac-f9d6-42a2-98a1-6c8ac4665e1a
 		summarizeBy: none
 		sourceColumn: Link Label
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Linked Issue Summary'
+		dataType: string
+		lineageTag: c86c60ee-e87a-4981-863b-e19e83d8dc72
+		summarizeBy: none
+		sourceColumn: Linked Issue Summary
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Linked Test Status'
+		dataType: string
+		lineageTag: b60c9be6-3d02-4bcd-83bb-77a61b5655bd
+		summarizeBy: none
+		sourceColumn: Linked Test Status
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Status Key'
+		dataType: string
+		isHidden
+		lineageTag: 7908a8ae-251b-48a2-9d7e-e4be8b4eadd2
+		summarizeBy: none
+		sourceColumn: Test Status Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Project Key'
+		dataType: string
+		isHidden
+		lineageTag: 80b66fad-4582-436e-a21c-3953e3638e77
+		summarizeBy: none
+		sourceColumn: Project Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Team Key'
+		dataType: string
+		isHidden
+		lineageTag: 160b43aa-b8d8-439b-8adf-3b4f66d26285
+		summarizeBy: none
+		sourceColumn: Team Key
+
+		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
 

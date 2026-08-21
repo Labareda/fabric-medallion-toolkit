@@ -67,6 +67,19 @@ schema = fmt.TableSchema(
         "Link_Type_Name":    {"type": "string", "merge_field": True},
         "Direction":         {"type": "string", "merge_field": True},
         "Link_Label":        {"type": "string", "default": "Unknown"},
+        # DENORMALISED linked-issue attributes -- this is what makes the
+        # bridge a drag-and-drop fact with NO measures for the "select an
+        # issue, see what's linked to it" view. The bridge relates to
+        # Dim_Issue on the ANCHOR (Issue_Code) side; Power BI allows only
+        # one active relationship to Dim_Issue, so the LINKED issue's own
+        # attributes can't come through a relationship -- they're flattened
+        # onto the row here at build time instead.
+        "Linked_Issue_Summary": {"type": "string", "default": ""},
+        # Latest test status of the linked issue, IF it's a test (else "").
+        # This is the column that answers "select a Test Set, see its
+        # member tests' RESULTS" -- the whole reason the client needed the
+        # bridge to carry status.
+        "Linked_Test_Status": {"type": "string", "default": ""},
         "Issue_Key": {
             "type": "string",
             "lookup_missing_from": {
@@ -91,6 +104,39 @@ schema = fmt.TableSchema(
                 "table": f"{GOLD_SCHEMA}.dim_link_type",
                 "natural_key_column": "Link_Type_Name",
                 "key_column": "Link_Type_Key",
+                "unknown_value": "Unknown",
+            },
+        },
+        # FK to the LINKED issue's latest test status, so the client can
+        # SLICE the bridge by status ("show links where the linked test is
+        # Blocked"). Non-test linked issues have no runs -> falls to the
+        # Unknown member, harmless (you'd filter by Link Type anyway).
+        "Test_Status_Key": {
+            "type": "string",
+            "lookup_missing_from": {
+                "table": f"{GOLD_SCHEMA}.dim_test_status",
+                "natural_key_column": "Test_Status_Name",
+                "key_column": "Test_Status_Key",
+                "unknown_value": "Unknown",
+            },
+        },
+        # Anchor issue's project/team, so a project or team slicer filters
+        # the relationships in one hop -- matches every other fact.
+        "Project_Key": {
+            "type": "string",
+            "lookup_missing_from": {
+                "table": f"{GOLD_SCHEMA}.dim_project",
+                "natural_key_column": "Project_Id",
+                "key_column": "Project_Key",
+                "unknown_value": "Unknown",
+            },
+        },
+        "Team_Key": {
+            "type": "string",
+            "lookup_missing_from": {
+                "table": f"{GOLD_SCHEMA}.dim_team",
+                "natural_key_column": "Team_Name",
+                "key_column": "Team_Key",
                 "unknown_value": "Unknown",
             },
         },
@@ -174,17 +220,59 @@ else:
     print("No Silver.xray.test_runs -- skipping Test Execution containment rows this run.")
 
 # CELL ********************
+# Latest test status per test issue -- the source for the denormalised
+# Linked_Test_Status. Built from Silver.xray.test_runs directly (NOT from
+# Gold.fact_test -- a bridge shouldn't depend on a fact), and ALWAYS created
+# as a view (empty if Xray hasn't run) so the final SELECT below never
+# references a missing table. Status name comes from Dim_Test_Status so it's
+# the same sentence-case text as everywhere else.
+if spark.catalog.tableExists("Silver.xray.test_runs"):
+    spark.sql(f"""
+        CREATE OR REPLACE TEMP VIEW latest_status_per_test AS
+        SELECT test_issue_key AS Test_Code, Test_Status_Name, Test_Status_Key
+        FROM (
+            SELECT
+                r.test_issue_key,
+                dts.Test_Status_Name,
+                dts.Test_Status_Key,
+                ROW_NUMBER() OVER (PARTITION BY r.test_issue_key ORDER BY r.started_on DESC NULLS LAST) AS rn
+            FROM Silver.xray.test_runs r
+            LEFT JOIN {GOLD_SCHEMA}.dim_test_status dts ON LOWER(dts.Test_Status_Name) = LOWER(r.status_name)
+            WHERE r.test_issue_key IS NOT NULL
+        ) x
+        WHERE rn = 1
+    """)
+else:
+    spark.sql("""
+        CREATE OR REPLACE TEMP VIEW latest_status_per_test AS
+        SELECT CAST(NULL AS STRING) AS Test_Code,
+               CAST(NULL AS STRING) AS Test_Status_Name,
+               CAST(NULL AS STRING) AS Test_Status_Key
+        WHERE 1 = 0
+    """)
+
+# CELL ********************
 all_rows.createOrReplaceTempView("all_relationship_rows")
 df = spark.sql(f"""
     SELECT DISTINCT
         a.Issue_Code, a.Linked_Issue_Code, a.Link_Type_Name, a.Direction, a.Link_Label,
+        linked_di.Summary       AS Linked_Issue_Summary,
+        lsp.Test_Status_Name    AS Linked_Test_Status,
         di.Issue_Key,
-        linked_di.Issue_Key AS Linked_Issue_Key,
-        lt.Link_Type_Key
+        linked_di.Issue_Key     AS Linked_Issue_Key,
+        lt.Link_Type_Key,
+        lsp.Test_Status_Key,
+        proj.Project_Key,
+        team.Team_Key
     FROM all_relationship_rows a
     LEFT JOIN {GOLD_SCHEMA}.dim_issue di        ON di.Issue_Code = a.Issue_Code
     LEFT JOIN {GOLD_SCHEMA}.dim_issue linked_di ON linked_di.Issue_Code = a.Linked_Issue_Code
     LEFT JOIN {GOLD_SCHEMA}.dim_link_type lt    ON lt.Link_Type_Name = a.Link_Type_Name
+    LEFT JOIN latest_status_per_test lsp        ON lsp.Test_Code = a.Linked_Issue_Code
+    -- anchor issue's own project/team, via Silver.jira.issues
+    LEFT JOIN Silver.jira.issues ai             ON ai.key = a.Issue_Code
+    LEFT JOIN {GOLD_SCHEMA}.dim_project proj     ON proj.Project_Id = ai.fields_project_id
+    LEFT JOIN {GOLD_SCHEMA}.dim_team team        ON team.Team_Name = ai.fields_team_name
 """)
 
 # CELL ********************

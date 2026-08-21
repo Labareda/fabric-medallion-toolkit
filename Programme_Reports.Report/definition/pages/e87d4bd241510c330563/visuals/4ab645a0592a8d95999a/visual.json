@@ -17,87 +17,59 @@
           "projections": [
             {
               "field": {
-                "Measure": {
+                "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Fact Test Run"
+                      "Entity": "Bridge Issue Link"
                     }
                   },
-                  "Property": "Test Set Codes"
+                  "Property": "Link Label"
                 }
               },
-              "queryRef": "Fact Test Run.Test Set Codes",
-              "nativeQueryRef": "Test Set Codes"
+              "queryRef": "Bridge Issue Link.Link Label",
+              "nativeQueryRef": "Relationship"
             },
             {
               "field": {
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Dim Issue"
+                      "Entity": "Bridge Issue Link"
                     }
                   },
-                  "Property": "Issue Code"
+                  "Property": "Linked Issue Code"
                 }
               },
-              "queryRef": "Dim Issue.Issue Code",
-              "nativeQueryRef": "Test Code"
+              "queryRef": "Bridge Issue Link.Linked Issue Code",
+              "nativeQueryRef": "Linked Issue"
             },
             {
               "field": {
-                "Measure": {
+                "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Fact Test Run"
+                      "Entity": "Bridge Issue Link"
                     }
                   },
-                  "Property": "Test Summary"
+                  "Property": "Linked Issue Summary"
                 }
               },
-              "queryRef": "Fact Test Run.Test Summary",
-              "nativeQueryRef": "Test Summary"
+              "queryRef": "Bridge Issue Link.Linked Issue Summary",
+              "nativeQueryRef": "Summary"
             },
             {
               "field": {
-                "Measure": {
+                "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Fact Test Run"
+                      "Entity": "Bridge Issue Link"
                     }
                   },
-                  "Property": "Latest Test Status"
+                  "Property": "Linked Test Status"
                 }
               },
-              "queryRef": "Fact Test Run.Latest Test Status",
-              "nativeQueryRef": "Latest Test Status"
-            },
-            {
-              "field": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Fact Test Run"
-                    }
-                  },
-                  "Property": "Latest Run Date"
-                }
-              },
-              "queryRef": "Fact Test Run.Latest Run Date",
-              "nativeQueryRef": "Latest Run Date"
-            },
-            {
-              "field": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Fact Test Run"
-                    }
-                  },
-                  "Property": "Latest Executor"
-                }
-              },
-              "queryRef": "Fact Test Run.Latest Executor",
-              "nativeQueryRef": "Latest Executor"
+              "queryRef": "Bridge Issue Link.Linked Test Status",
+              "nativeQueryRef": "Test Status"
             }
           ]
         }

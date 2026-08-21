@@ -26,32 +26,25 @@
 #     (it existed to be joined by Bridge_Issue_Link) -- keeping it here as a
 #     built-but-unused dimension unless issue-link traceability reporting
 #     comes back into scope, in which case delete it too.
-#   + Dim Test Set, Fact Test, Fact Test Coverage -- these notebooks existed
-#     in sources/Gold but were never actually scheduled here (the exact
-#     "built but never run" trap warned about above for Fact_Comment). Now
-#     wired in, all OPTIONAL (Xray-dependent) like the rest of the test
-#     tables, so the Test Report actually gets fresh data.
-#   ~ Fact_Test_Run REVIVED, Fact_Test (test-SET-membership grain) REMOVED
-#     -- this reverses the "- removed: Fact_Test_Run" note directly above
-#     (kept for history). Fact_Test turned out to be the wrong anchor:
-#     Xray coverage/blocking links sit on the TEST issue itself, for ANY
-#     issue type on the other end, not on the Test Set -- routing through
-#     Test Set membership silently broke "select any issue, see its
-#     tests" and needed USERELATIONSHIP gymnastics for blocking lookups.
-#     Fact_Test_Run (one row per run, keyed on Test_Issue_Key) answers
-#     both status AND "which issue is this test linked to" with one
-#     unambiguous relationship, no second fact needed. Test Set grouping
-#     didn't get its own bridge table either -- Test_Set_Code on
-#     Fact_Test_Run is a grouping LABEL (MIN_BY, same trade-off as
-#     Parent_Issue_Code), not a true many-to-many relationship, since
-#     nothing actually needs a test shown under every set it belongs to.
+#   ~ ONE test fact now: Gold - Fact_Test (run grain, Is_Latest flag).
+#     This replaced a long churn of designs (test-set-membership Fact_Test
+#     -> Fact_Test_Run + Fact_Test_Coverage + Dim_Test_Set -> this). The
+#     client's own conclusion drove it: they want ONE test table with
+#     everything + a flag to pick the current row, not several. Coverage
+#     (which requirement a test covers), Test Set / Plan / Execution
+#     membership, and blocking all live in Bridge_Issue_Link now -- they're
+#     issue-to-issue links, and the bridge carries each linked test's
+#     latest status denormalised so "select any issue -> see linked tests
+#     + results" works as plain columns. Dim_Test_Set was dropped (a Test
+#     Set is just a Dim_Issue row); "requirements with no test" is a
+#     measure on Dim_Issue, not a fact table.
 #   - removed: Dim_Resolution -- not required by any report. Notebook
 #     deleted from sources/Gold; Fact_Issue no longer joins it or carries
 #     Resolution_Key.
 #   + Fact_Resource_Day_Allocation -- resource/day capacity for conflict
 #     detection on the Resource report. Reads Fact_Resource_Allocation AND
-#     Fact_Issue (declared as a dependency below), the second exception to
-#     "facts don't read facts" alongside Fact Test Coverage.
+#     Fact_Issue (declared as a dependency below) -- the one remaining
+#     fact-reads-fact exception in the model.
 #   + Bridge_Issue_Link -- one row per issue per link record, any link type,
 #     both directions (mirrors Jira's own Linked work items panel). Built
 #     for the Blocked Tests report (client wants blocked tests plus the
@@ -94,7 +87,6 @@ DIMENSION_NOTEBOOKS = {
     "Gold - Dim_Priority": [],
     "Gold - Dim_Link_Type": [],
     "Gold - Dim Test Status": [],
-    "Gold - Dim Test Set": [],
     # Dim_Issue joins Dim_Project for Sort_Path's project-code root prefix.
     # The alphabet actively gets this WRONG (I < P), and it's the exact
     # TABLE_OR_VIEW_NOT_FOUND this pipeline used to die on. Still the only
@@ -118,12 +110,10 @@ FACT_NOTEBOOKS = {
     "Gold - Fact_Resource_Allocation": [],
     "Gold - Fact_Worklog": [],
     "Gold - Bridge_Issue_Link": [],
-    # Run-level spine, keyed directly on the Test issue -- reads only
-    # Silver.xray.test_runs plus dimensions.
-    "Gold - Fact_Test_Run": [],
-    # Reads Gold.gold.fact_test_run (set_stats CTE) -- one of two exceptions
-    # to "facts only depend on other facts here, never implicitly."
-    "Gold - Fact Test Coverage": ["Gold - Fact_Test_Run"],
+    # The ONE test fact -- run grain, Is_Latest flag. Reads only
+    # Silver.xray.test_runs plus dimensions. (Consolidated the old
+    # Fact_Test_Run + Fact_Test_Coverage into this single table.)
+    "Gold - Fact_Test": [],
     # Reads Gold.gold.fact_resource_allocation AND fact_issue -- the other
     # exception. Must run after both.
     "Gold - Fact_Resource_Day_Allocation": ["Gold - Fact_Resource_Allocation", "Gold - Fact_Issue"],
@@ -146,9 +136,7 @@ OPTIONAL_STEPS = {
     "S2B - Xray",
     "B2S - Xray",
     "Gold - Dim Test Status",
-    "Gold - Dim Test Set",
-    "Gold - Fact Test Coverage",
-    "Gold - Fact_Test_Run",
+    "Gold - Fact_Test",
 }
 
 LAKEHOUSES_TO_REFRESH = ["Silver", "Gold"]

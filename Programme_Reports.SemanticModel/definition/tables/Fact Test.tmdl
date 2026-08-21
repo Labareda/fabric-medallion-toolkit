@@ -1,82 +1,28 @@
-table 'Fact Test Run'
+table 'Fact Test'
 	lineageTag: 635f9f6e-87ea-4936-9e88-6c04f8731368
 
-	measure 'Latest Run Date' = MAX('Fact Test Run'[Started On])
+	measure 'Latest Run Date' = CALCULATE(MAX('Fact Test'[Started On]), 'Fact Test'[Is Latest] = TRUE)
 		formatString: Long Date
 		lineageTag: 5a8fad44-1c65-4291-8d7d-879cf712cc8b
 
-	measure 'Latest Test Status' = ```
-
-			VAR LatestDate = [Latest Run Date]
-			RETURN
-			    CALCULATE(
-			        SELECTEDVALUE('Dim Test Status'[Test Status Name]),
-			        'Fact Test Run'[Started On] = LatestDate
-			    )
-			```
+	measure 'Latest Test Status' = CALCULATE(SELECTEDVALUE('Dim Test Status'[Test Status Name]), 'Fact Test'[Is Latest] = TRUE)
 		lineageTag: c74e73e9-29f5-4f59-80bb-8b6eac278ea9
 
-	measure 'Is Latest Run Blocked' = [Latest Test Status] = "Blocked"
-		formatString: """TRUE"";""TRUE"";""FALSE"""
-		lineageTag: 833af212-3a35-4991-93cf-61328fec2490
-
-	measure 'Total Runs' = COUNTROWS('Fact Test Run')
-		formatString: 0
-		lineageTag: e4a6a742-afad-41e6-8c8f-7f24b30f49b3
-
-	measure 'Runs Passed' = SUM('Fact Test Run'[Is Passed])
-		formatString: 0
-		lineageTag: 2fb45764-9f6f-40ed-bd0d-ce0ba2297256
-
-	measure 'Runs Failed' = SUM('Fact Test Run'[Is Failed])
-		formatString: 0
-		lineageTag: 264d6876-37a7-467e-b9e7-e3696aa79700
+	measure 'Latest Executor' = CALCULATE(SELECTEDVALUE('Dim Resource'[Resource Name]), 'Fact Test'[Is Latest] = TRUE)
+		lineageTag: 02a72f8d-ec1b-4628-ae8b-e75ef23aae26
 
 	measure 'Test Summary' = SELECTEDVALUE('Dim Issue'[Issue Summary])
 		lineageTag: 6ab6b4b5-f791-45e8-860f-af02037a76ac
 
-	measure 'Total Tests' = DISTINCTCOUNT('Fact Test Run'[Test Issue Key])
+	measure 'Total Tests' = DISTINCTCOUNT('Fact Test'[Test Issue Key])
 		formatString: 0
 		lineageTag: 575c807b-f6c5-44f6-8e03-cf4b180e1301
 
-	measure 'Latest Executor' = ```
-
-			    VAR LatestDate = [Latest Run Date]
-			    RETURN
-			        CALCULATE(
-			            SELECTEDVALUE('Dim Resource'[Resource Name]),
-			            'Fact Test Run'[Started On] = LatestDate
-			        )
-			```
-		lineageTag: 02a72f8d-ec1b-4628-ae8b-e75ef23aae26
-
-	measure 'Tests Passed' = ```
-
-			    COUNTROWS(
-			        FILTER(
-			            ADDCOLUMNS(
-			                SUMMARIZE('Fact Test Run', 'Fact Test Run'[Test Issue Key]),
-			                "@Status", CALCULATE([Latest Test Status])
-			            ),
-			            [@Status] = "Passed"
-			        )
-			    )
-			```
+	measure 'Tests Passed' = CALCULATE(SUM('Fact Test'[Is Passed]), 'Fact Test'[Is Latest] = TRUE)
 		formatString: 0
 		lineageTag: b078332d-7026-4e9a-ad80-d4cc001a7dde
 
-	measure 'Tests Failed' = ```
-
-			    COUNTROWS(
-			        FILTER(
-			            ADDCOLUMNS(
-			                SUMMARIZE('Fact Test Run', 'Fact Test Run'[Test Issue Key]),
-			                "@Status", CALCULATE([Latest Test Status])
-			            ),
-			            [@Status] = "Failed"
-			        )
-			    )
-			```
+	measure 'Tests Failed' = CALCULATE(SUM('Fact Test'[Is Failed]), 'Fact Test'[Is Latest] = TRUE)
 		formatString: 0
 		lineageTag: a99add48-b0aa-4046-88aa-56f76e24df6f
 
@@ -84,43 +30,26 @@ table 'Fact Test Run'
 		formatString: 0.0%
 		lineageTag: 759175e8-e13d-4d04-a822-577f52301860
 
-	measure 'Test Set Codes' = ```
+	measure 'Total Runs' = COUNTROWS('Fact Test')
+		formatString: 0
+		lineageTag: e4a6a742-afad-41e6-8c8f-7f24b30f49b3
 
-			    CALCULATE(
-			        CONCATENATEX('Bridge Issue Link', 'Bridge Issue Link'[Linked Issue Code], ", "),
-			        'Bridge Issue Link'[Link Type Name] = "Test Set",
-			        'Bridge Issue Link'[Direction] = "Inward"
-			    )
-			```
-		lineageTag: eafd0b43-81ce-454c-afaf-2327ed15b418
+	measure 'Runs Passed' = SUM('Fact Test'[Is Passed])
+		formatString: 0
+		lineageTag: 2fb45764-9f6f-40ed-bd0d-ce0ba2297256
 
-	measure 'Blocking Issue Codes' = ```
-
-			    CALCULATE(
-			        CONCATENATEX('Bridge Issue Link', 'Bridge Issue Link'[Linked Issue Code], ","),
-			        'Bridge Issue Link'[Link Label] = "is blocked by"
-			    )
-			```
-		lineageTag: eefa7f2a-d245-42cb-b785-d9d8c0e8a545
-
-	measure 'Has Blocking Link' = ```
-
-			    CALCULATE(
-			        COUNTROWS('Bridge Issue Link'),
-			        'Bridge Issue Link'[Link Label] = "is blocked by"
-			    ) > 0
-			```
-		formatString: """TRUE"";""TRUE"";""FALSE"""
-		lineageTag: bf40cc10-ccbd-4122-baec-7e69c95b76ed
+	measure 'Runs Failed' = SUM('Fact Test'[Is Failed])
+		formatString: 0
+		lineageTag: 264d6876-37a7-467e-b9e7-e3696aa79700
 
 	measure 'Blocked Test Missing a Blocking Link' = ```
 
 			    COUNTROWS(
 			        FILTER(
 			            ADDCOLUMNS(
-			                SUMMARIZE('Fact Test Run', 'Fact Test Run'[Test Issue Key]),
-			                "@IsBlocked", CALCULATE([Is Latest Run Blocked]),
-			                "@HasLink", CALCULATE([Has Blocking Link])
+			                SUMMARIZE('Fact Test', 'Fact Test'[Test Issue Key]),
+			                "@IsBlocked", CALCULATE([Latest Test Status]) = "Blocked",
+			                "@HasLink", CALCULATE(COUNTROWS('Bridge Issue Link'), 'Bridge Issue Link'[Link Label] = "is blocked by") > 0
 			            ),
 			            [@IsBlocked] = TRUE && [@HasLink] = FALSE
 			        )
@@ -173,6 +102,15 @@ table 'Fact Test Run'
 		sourceColumn: Is Final
 
 		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Latest'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 3519255a-393c-462e-99bf-856be83f5824
+		summarizeBy: none
+		sourceColumn: Is Latest
 
 		annotation SummarizationSetBy = Automatic
 
@@ -269,24 +207,46 @@ table 'Fact Test Run'
 
 		annotation SummarizationSetBy = Automatic
 
-	column 'Test Run Fact Key'
+	column 'Project Key'
 		dataType: string
 		isHidden
-		lineageTag: 0a2c4e6b-8d0f-4a2c-9e4b-5f7a9c1e3b5d
+		lineageTag: 08c42e65-ce82-496e-8987-a744b540ccd9
 		summarizeBy: none
-		sourceColumn: Test Run Fact Key
+		sourceColumn: Project Key
 
 		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
 
-	partition 'Fact Test Run' = m
+	column 'Team Key'
+		dataType: string
+		isHidden
+		lineageTag: b6e69555-bcc5-42d1-9830-b9de1d49a8b1
+		summarizeBy: none
+		sourceColumn: Team Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Fact Key'
+		dataType: string
+		isHidden
+		lineageTag: 0a2c4e6b-8d0f-4a2c-9e4b-5f7a9c1e3b5d
+		summarizeBy: none
+		sourceColumn: Test Fact Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Fact Test' = m
 		mode: import
 		source =
 				let
 				    Source = Sql.Database("cekvmk67pvoetale6vvoo5wfji-brlvcnhvridetpgxmhh6wmlcw4.datawarehouse.fabric.microsoft.com", "gold"),
-				    gold_fact_test_run = Source{[Schema="gold",Item="fact_test_run"]}[Data],
-				    RenamedColumns = Table.TransformColumnNames( gold_fact_test_run, each Text.Replace(_, "_", " "))
+				    gold_fact_test = Source{[Schema="gold",Item="fact_test"]}[Data],
+				    RenamedColumns = Table.TransformColumnNames( gold_fact_test, each Text.Replace(_, "_", " "))
 				in
 				    RenamedColumns
 

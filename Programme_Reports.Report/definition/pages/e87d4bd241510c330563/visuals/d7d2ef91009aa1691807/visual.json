@@ -20,70 +20,42 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Dim Issue"
+                      "Entity": "Bridge Issue Link"
                     }
                   },
                   "Property": "Issue Code"
                 }
               },
-              "queryRef": "Dim Issue.Issue Code",
-              "nativeQueryRef": "Test Code"
+              "queryRef": "Bridge Issue Link.Issue Code",
+              "nativeQueryRef": "Blocked Test"
             },
             {
               "field": {
-                "Measure": {
+                "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Fact Test Run"
+                      "Entity": "Bridge Issue Link"
                     }
                   },
-                  "Property": "Test Summary"
+                  "Property": "Linked Issue Code"
                 }
               },
-              "queryRef": "Fact Test Run.Test Summary",
-              "nativeQueryRef": "Test Summary"
+              "queryRef": "Bridge Issue Link.Linked Issue Code",
+              "nativeQueryRef": "Blocked By"
             },
             {
               "field": {
-                "Measure": {
+                "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Fact Test Run"
+                      "Entity": "Bridge Issue Link"
                     }
                   },
-                  "Property": "Latest Test Status"
+                  "Property": "Linked Issue Summary"
                 }
               },
-              "queryRef": "Fact Test Run.Latest Test Status",
-              "nativeQueryRef": "Latest Status"
-            },
-            {
-              "field": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Fact Test Run"
-                    }
-                  },
-                  "Property": "Blocking Issue Codes"
-                }
-              },
-              "queryRef": "Fact Test Run.Blocking Issue Codes",
-              "nativeQueryRef": "Blocking Issue Codes"
-            },
-            {
-              "field": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Fact Test Run"
-                    }
-                  },
-                  "Property": "Has Blocking Link"
-                }
-              },
-              "queryRef": "Fact Test Run.Has Blocking Link",
-              "nativeQueryRef": "Has Blocking Link"
+              "queryRef": "Bridge Issue Link.Linked Issue Summary",
+              "nativeQueryRef": "Blocker Summary"
             }
           ]
         }
@@ -96,45 +68,50 @@
       {
         "name": "b4a91cf3e1c94d2fb6a3",
         "field": {
-          "Measure": {
+          "Column": {
             "Expression": {
               "SourceRef": {
-                "Entity": "Fact Test Run"
+                "Entity": "Bridge Issue Link"
               }
             },
-            "Property": "Is Latest Run Blocked"
+            "Property": "Link Label"
           }
         },
-        "type": "Advanced",
+        "type": "Categorical",
         "filter": {
           "Version": 2,
           "From": [
             {
-              "Name": "f",
-              "Entity": "Fact Test Run",
+              "Name": "b",
+              "Entity": "Bridge Issue Link",
               "Type": 0
             }
           ],
           "Where": [
             {
               "Condition": {
-                "Comparison": {
-                  "ComparisonKind": 0,
-                  "Left": {
-                    "Measure": {
-                      "Expression": {
-                        "SourceRef": {
-                          "Source": "f"
+                "In": {
+                  "Expressions": [
+                    {
+                      "Column": {
+                        "Expression": {
+                          "SourceRef": {
+                            "Source": "b"
+                          }
+                        },
+                        "Property": "Link Label"
+                      }
+                    }
+                  ],
+                  "Values": [
+                    [
+                      {
+                        "Literal": {
+                          "Value": "'is blocked by'"
                         }
-                      },
-                      "Property": "Is Latest Run Blocked"
-                    }
-                  },
-                  "Right": {
-                    "Literal": {
-                      "Value": "true"
-                    }
-                  }
+                      }
+                    ]
+                  ]
                 }
               }
             }

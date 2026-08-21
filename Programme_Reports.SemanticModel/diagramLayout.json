@@ -42,7 +42,7 @@
           "nodeIndex": "Dim Date",
           "nodeLineageTag": "d89f9f05-cd26-459a-9860-a3ecc0e89ce4",
           "size": {
-            "height": 206.02338278523609,
+            "height": 206.0233827852361,
             "width": 234
           },
           "zIndex": 18
@@ -50,7 +50,7 @@
         {
           "location": {
             "x": 296.375667011798,
-            "y": 894.51763422901445
+            "y": 894.5176342290144
           },
           "nodeIndex": "Dim Issue Type",
           "nodeLineageTag": "17310d84-d50b-4048-95bd-ae9271edba4a",
@@ -62,13 +62,13 @@
         },
         {
           "location": {
-            "x": 558.75164754627133,
+            "x": 558.7516475462713,
             "y": 36.75
           },
           "nodeIndex": "Dim Priority",
           "nodeLineageTag": "6aec81ba-a40a-4109-a0dc-acf3ab7d665a",
           "size": {
-            "height": 219.27725481328491,
+            "height": 219.2772548132849,
             "width": 234
           },
           "zIndex": 13
@@ -81,7 +81,7 @@
           "nodeIndex": "Dim Project",
           "nodeLineageTag": "f8e0e753-ed9b-43a8-b877-9d90d0943e6b",
           "size": {
-            "height": 222.89098074686041,
+            "height": 222.8909807468604,
             "width": 234
           },
           "zIndex": 10
@@ -89,7 +89,7 @@
         {
           "location": {
             "x": 1434.6921347009172,
-            "y": 900.30272686178944
+            "y": 900.3027268617894
           },
           "nodeIndex": "Dim Resource",
           "nodeLineageTag": "c6886920-9031-41bc-8ec0-397de1d49d1b",
@@ -101,7 +101,7 @@
         },
         {
           "location": {
-            "x": 600.09856687206229,
+            "x": 600.0985668720623,
             "y": 900.75
           },
           "nodeIndex": "Dim Status",
@@ -114,8 +114,8 @@
         },
         {
           "location": {
-            "x": 801.45604698000864,
-            "y": 430.86688629059222
+            "x": 801.4560469800086,
+            "y": 430.8668862905922
           },
           "nodeIndex": "Fact Resource Allocation",
           "nodeLineageTag": "9a1b2128-e3cf-4760-866c-85eedebd7c86",
@@ -140,7 +140,7 @@
         },
         {
           "location": {
-            "x": 882.90072637768844,
+            "x": 882.9007263776884,
             "y": 904.694848289856
           },
           "nodeIndex": "Dim Team",
@@ -153,7 +153,7 @@
         },
         {
           "location": {
-            "x": 492.73405971102181,
+            "x": 492.7340597110218,
             "y": 429.69484828985605
           },
           "nodeIndex": "Fact Issue History",
@@ -193,7 +193,7 @@
         {
           "location": {
             "x": 1164.3333333333333,
-            "y": 908.13969657971211
+            "y": 908.1396965797121
           },
           "nodeIndex": "Dim Resource Role",
           "nodeLineageTag": "db936813-7400-4959-baaf-21cd0fd8061b",
@@ -205,34 +205,8 @@
         },
         {
           "location": {
-            "x": 1984.7340597110217,
-            "y": 36.75
-          },
-          "nodeIndex": "Dim test Set",
-          "nodeLineageTag": "82625677-4bae-4e7a-adcd-cbac1dd83329",
-          "size": {
-            "height": 255,
-            "width": 234
-          },
-          "zIndex": 2
-        },
-        {
-          "location": {
-            "x": 1868.7340597110219,
-            "y": 407.19484828985605
-          },
-          "nodeIndex": "Fact Test Coverage",
-          "nodeLineageTag": "d28e8bf6-bc52-40e8-af34-0229ff52af61",
-          "size": {
-            "height": 300,
-            "width": 234
-          },
-          "zIndex": 4
-        },
-        {
-          "location": {
             "x": 2352.7340597110215,
-            "y": 419.11151495652268
+            "y": 419.1115149565227
           },
           "nodeIndex": "Bridge Issue Link",
           "nodeLineageTag": "c9e118c1-4448-4d93-b16f-9a63f69d58a6",
@@ -245,7 +219,7 @@
         {
           "location": {
             "x": 2350.4007263776884,
-            "y": 798.77818162318943
+            "y": 798.7781816231894
           },
           "nodeIndex": "Dim Link Type",
           "nodeLineageTag": "ede086ed-f092-4dc3-aa40-e6197175652b",

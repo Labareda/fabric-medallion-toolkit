@@ -2,49 +2,38 @@
 
 # MARKDOWN ********************
 
-# ## Fact_Test_Run -- the ONLY test fact, keyed directly on the Test issue
+# ## Fact_Test -- the ONE test fact
 # Grain: ONE ROW PER XRAY TEST RUN.
 #
-# REPLACES the old Fact_Test (test-SET-membership grain). That table
-# duplicated this one's job -- both derived status from Silver.xray.
-# test_runs, just aggregated differently -- and routed every "which issue
-# is this test linked to" question through Test Set membership, which is
-# the WRONG anchor: Xray links (coverage, blocking) sit on the TEST issue
-# itself, for ANY issue type on the other end (a Story, a Change Request,
-# even another Test) -- confirmed against a live example (TRAN-2182 is a
-# Test, blocked by TF-18118, via a plain Silver.jira.issue_links row,
-# exactly like Bridge_Issue_Link already reads -- nothing Test-Set-shaped
-# about it). Test_Issue_Key here is a single, unambiguous relationship to
-# Dim_Issue -- select ANY issue and see whether it IS a test or is LINKED
-# to one, no USERELATIONSHIP gymnastics, no second fact to keep in sync.
+# CONSOLIDATES what used to be Fact_Test_Run AND Fact_Test_Coverage into a
+# single table -- the client's own conclusion: they don't want several test
+# facts, they want ONE with everything on it and a flag to pick the current
+# state. So:
+#   * Is_Latest -- TRUE for each test's most recent run (by Started_On),
+#     FALSE for its history. Filter Is_Latest = TRUE in any visual (matrix,
+#     card, measure) for "current status per test"; drop the filter for the
+#     full run-by-run history. No separate "latest status" measure needed.
+#   * Coverage (which requirement a test covers) is NOT re-modelled here --
+#     it's an issue-to-issue link, so it lives in Bridge_Issue_Link like
+#     every other relationship. "Requirements with no test" is a measure on
+#     Dim_Issue (a Requirement with no incoming test link), not a fact table.
 #
-# Test Set / Test Plan / Test Execution membership is NOT modelled here at
-# all, not even as a grouping-label column -- an earlier version of this
-# file carried Test_Set_Code (MIN_BY, one "primary" set per test) for
-# exactly that, but Bridge_Issue_Link now carries Test Set/Test Plan/Test
-# Execution containment as real rows (both directions), which is STRICTLY
-# BETTER: it shows every set/plan/execution a test belongs to, not one
-# arbitrarily-picked "primary" one. Keeping Test_Set_Code here too would
-# have been the exact same fact stored twice. Blocking relationships
-# (Blocked/Blocks) were never modelled here either, same reasoning --
-# Bridge_Issue_Link, filtered to Link Type Name = 'Blocks'/'Test Set'/
-# 'Test Plan'/'Test Execution', answers all of it for ANY issue through
-# the shared Dim_Issue relationship. This fact only carries what's
-# genuinely intrinsic to a RUN: status, timing, who executed it.
+# Test_Issue_Key is the single relationship to Dim_Issue -- select a TEST and
+# see its runs directly. To see the runs of tests LINKED to some other issue
+# (a Test Set, a Requirement), that goes through Bridge_Issue_Link, which
+# carries each linked test's latest status denormalised (Linked_Test_Status)
+# -- see Gold - Bridge_Issue_Link.py. Power BI allows only one active
+# relationship to Dim_Issue, so the linked-issue view can't come through a
+# relationship here; that's exactly why the bridge carries the status column.
 #
-# "Latest status" is deliberately NOT a stored column -- with one row per
-# RUN, "latest per test" is a MAX(Started_On) per Test_Issue_Key, which
-# the semantic model does with one measure that stays correct as new runs
-# land, rather than a value baked in at Gold-build time.
+# Project_Key / Team_Key are the TEST issue's own project/team (a test is a
+# Jira issue with fields_project_id / fields_team_name like any other), so a
+# project or team slicer filters tests in one hop, matching every other fact.
 #
-# Is_Passed/Is_Failed kept as stored 0/1 flags (not pushed to Dim_Test_
-# Status the way the old Fact_Test's booleans were) -- at RUN grain,
-# summing across potentially thousands of rows, a plain SUM() on the fact
-# is simpler than a relationship hop for the same thing. Test_Status_Name
-# is NOT stored, though -- Dim_Test_Status already gives the correctly
-# formatted (sentence case) display text via Test_Status_Key, and storing
-# a second, raw-uppercase copy here would reintroduce the exact
-# ALL-CAPS-in-the-report problem already fixed.
+# Test_Status_Name is NOT stored -- Dim_Test_Status gives the correctly
+# formatted (sentence case) display text via Test_Status_Key; a second
+# raw-uppercase copy here would reintroduce the ALL-CAPS-in-report problem
+# already fixed.
 
 # CELL ********************
 import fabric_medallion_toolkit as fmt
@@ -53,17 +42,20 @@ GOLD_SCHEMA = "Gold.gold"
 
 # CELL ********************
 schema = fmt.TableSchema(
-    table_name=f"{GOLD_SCHEMA}.fact_test_run",
+    table_name=f"{GOLD_SCHEMA}.fact_test",
     table_type="fact",
-    key_column="Test_Run_Fact_Key",
+    key_column="Test_Fact_Key",
     columns={
         "Run_Id": {"type": "string", "merge_field": True},
 
-        # Measures
+        # Measures / flags
         "Is_Passed":  {"type": "int", "default": 0},
         "Is_Failed":  {"type": "int", "default": 0},
         "Is_Final":   {"type": "int", "default": 0},
         "Run_Count":  {"type": "int", "default": 1},
+        # TRUE for each test's most recent run -- the client filters on this
+        # for "current status", drops it for full history.
+        "Is_Latest":  {"type": "boolean", "default": False},
 
         "Test_Type":      {"type": "string", "default": "Unknown"},
         "Started_On":     {"type": "timestamp"},
@@ -106,6 +98,25 @@ schema = fmt.TableSchema(
                 "unknown_value": "Unknown",
             },
         },
+        # The test issue's own project/team.
+        "Project_Key": {
+            "type": "string",
+            "lookup_missing_from": {
+                "table": f"{GOLD_SCHEMA}.dim_project",
+                "natural_key_column": "Project_Id",
+                "key_column": "Project_Key",
+                "unknown_value": "Unknown",
+            },
+        },
+        "Team_Key": {
+            "type": "string",
+            "lookup_missing_from": {
+                "table": f"{GOLD_SCHEMA}.dim_team",
+                "natural_key_column": "Team_Name",
+                "key_column": "Team_Key",
+                "unknown_value": "Unknown",
+            },
+        },
     },
 )
 
@@ -118,6 +129,12 @@ df = spark.sql(f"""
         CASE WHEN r.status_name = 'FAILED' THEN 1 ELSE 0 END AS Is_Failed,
         CASE WHEN r.status_name IN ('PASSED', 'FAILED') THEN 1 ELSE 0 END AS Is_Final,
         1 AS Run_Count,
+        -- Is_Latest: most recent run per test by Started_On. nulls_last so a
+        -- run with no start date never outranks a real dated one.
+        ROW_NUMBER() OVER (
+            PARTITION BY r.test_issue_id
+            ORDER BY r.started_on DESC NULLS LAST
+        ) = 1 AS Is_Latest,
 
         r.test_type AS Test_Type,
         r.started_on AS Started_On,
@@ -127,19 +144,25 @@ df = spark.sql(f"""
         test_issue.Issue_Key AS Test_Issue_Key,
         exec_issue.Issue_Key AS Execution_Issue_Key,
         status.Test_Status_Key,
-        resource.Resource_Key AS Executed_By_Key
+        resource.Resource_Key AS Executed_By_Key,
+        proj.Project_Key,
+        team.Team_Key
 
     FROM Silver.xray.test_runs r
     LEFT JOIN {GOLD_SCHEMA}.dim_issue test_issue ON test_issue.Issue_Id = r.test_issue_id
     LEFT JOIN {GOLD_SCHEMA}.dim_issue exec_issue  ON exec_issue.Issue_Id = r.execution_issue_id
     -- LOWER() on both sides: Dim_Test_Status.Test_Status_Name is sentence
     -- case ("Passed"), r.status_name is Xray's raw uppercase ("PASSED") --
-    -- same case-insensitive join as Gold - Fact Test.py, for the same
-    -- reason (a future casing change on either side can't silently break it).
+    -- case-insensitive so a future casing change can't silently break it.
     LEFT JOIN {GOLD_SCHEMA}.dim_test_status status ON LOWER(status.Test_Status_Name) = LOWER(r.status_name)
     LEFT JOIN {GOLD_SCHEMA}.dim_resource resource  ON resource.Resource_Id = r.executed_by_id
+    -- Test issue's own project/team, via Silver.jira.issues (a test is a
+    -- Jira issue like any other).
+    LEFT JOIN Silver.jira.issues ti              ON ti.id = r.test_issue_id
+    LEFT JOIN {GOLD_SCHEMA}.dim_project proj      ON proj.Project_Id = ti.fields_project_id
+    LEFT JOIN {GOLD_SCHEMA}.dim_team team         ON team.Team_Name = ti.fields_team_name
 """)
 
 # CELL ********************
 fmt.merge(spark, df, schema)
-print("Fact_Test_Run built successfully")
+print("Fact_Test built successfully")

@@ -47,10 +47,6 @@ relationship AutoDetected_117312d2-813d-4e02-acbc-5d1494123e0b
 	fromColumn: 'Fact Issue History'.'Project Key'
 	toColumn: 'Dim Project'.'Project Key'
 
-relationship AutoDetected_86385d0a-f2bc-4726-9bca-5f1ea0fe89b4
-	fromColumn: 'Fact Test Coverage'.'Project Key'
-	toColumn: 'Dim Project'.'Project Key'
-
 relationship AutoDetected_7fbb20c7-e0e5-4622-93e3-c8c36e2f3b9a
 	fromColumn: 'Fact Issue History'.'Resource Key'
 	toColumn: 'Dim Resource'.'Resource Key'
@@ -61,10 +57,6 @@ relationship AutoDetected_845d3642-f596-427a-b703-473d81f629b2
 
 relationship AutoDetected_dfef8ade-04f3-4d63-b01f-745f1cc91807
 	fromColumn: 'Fact Issue History'.'Team Key'
-	toColumn: 'Dim Team'.'Team Key'
-
-relationship AutoDetected_f3cbb4e6-af96-47e4-8f69-b425a24d879d
-	fromColumn: 'Fact Test Coverage'.'Team Key'
 	toColumn: 'Dim Team'.'Team Key'
 
 relationship AutoDetected_4b3b5e7f-7c02-4b5a-98ae-7cb842dd98d4
@@ -103,14 +95,6 @@ relationship 881e5102-2cf3-c027-162f-e542401ab6e2
 	fromColumn: 'Fact Resource Day Allocation'.'Resource Key'
 	toColumn: 'Dim Resource'.'Resource Key'
 
-relationship 5e970afe-a0ce-e1f6-f22e-f7a4695d3542
-	fromColumn: 'Fact Test Coverage'.'Requirement Key'
-	toColumn: 'Dim Issue'.'Issue Key'
-
-relationship d1717a98-6287-7438-bd5e-3eae8c944d05
-	fromColumn: 'Fact Test Coverage'.'Test Set Key'
-	toColumn: 'Dim test Set'.'Test Set Key'
-
 relationship 016c3906-c9e5-a39e-6807-c75c047af7c0
 	fromColumn: 'Fact Worklog'.'Author Key'
 	toColumn: 'Dim Resource'.'Resource Key'
@@ -136,22 +120,42 @@ relationship AutoDetected_05e544ad-7f90-406b-99d3-5fe3e9d79e1f
 	fromColumn: 'Bridge Issue Link'.'Link Type Name'
 	toColumn: 'Dim Link Type'.Link_Type_Name
 
+relationship 5b1a7c3e-0d9f-4a2e-8c6b-1f3d5a7b9c0e
+	fromColumn: 'Bridge Issue Link'.'Test Status Key'
+	toColumn: 'Dim Test Status'.'Test Status Key'
+
+relationship 6c2b8d4f-1e0a-4b3f-9d7c-2a4e6b8c0d1f
+	fromColumn: 'Bridge Issue Link'.'Project Key'
+	toColumn: 'Dim Project'.'Project Key'
+
+relationship 7d3c9e50-2f1b-4c40-ae8d-3b5f7c9d1e20
+	fromColumn: 'Bridge Issue Link'.'Team Key'
+	toColumn: 'Dim Team'.'Team Key'
+
 relationship bcbcd474-7555-4c74-8b21-526b6c992a5a
-	fromColumn: 'Fact Test Run'.'Test Issue Key'
+	fromColumn: 'Fact Test'.'Test Issue Key'
 	toColumn: 'Dim Issue'.'Issue Key'
 
 relationship f796b0b8-b8a3-484c-ab73-e38a683e0e1f
 	isActive: false
-	fromColumn: 'Fact Test Run'.'Execution Issue Key'
+	fromColumn: 'Fact Test'.'Execution Issue Key'
 	toColumn: 'Dim Issue'.'Issue Key'
 
 relationship 3864b6fb-0d8a-4d07-818c-b516683f2b05
-	fromColumn: 'Fact Test Run'.'Test Status Key'
+	fromColumn: 'Fact Test'.'Test Status Key'
 	toColumn: 'Dim Test Status'.'Test Status Key'
 
 relationship 7d00d205-19fe-44fb-82c7-d0df63e392e9
-	fromColumn: 'Fact Test Run'.'Executed By Key'
+	fromColumn: 'Fact Test'.'Executed By Key'
 	toColumn: 'Dim Resource'.'Resource Key'
+
+relationship 8e4d0f61-3a2c-4d51-bf9e-4c608d0e2f31
+	fromColumn: 'Fact Test'.'Project Key'
+	toColumn: 'Dim Project'.'Project Key'
+
+relationship 9f5e1a72-4b3d-4e62-a0af-5d71ae1f3a42
+	fromColumn: 'Fact Test'.'Team Key'
+	toColumn: 'Dim Team'.'Team Key'
 
 
 
