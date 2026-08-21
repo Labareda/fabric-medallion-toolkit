@@ -144,15 +144,28 @@ schema = fmt.TableSchema(
 )
 
 # CELL ********************
+# table_exists via try/except on spark.table, NOT spark.catalog.tableExists
+# -- the catalog API can't parse a 3-part Fabric name (Lakehouse.schema.
+# table): it reads "Silver.xray" as a two-part namespace and throws
+# REQUIRES_SINGLE_PART_NAMESPACE. spark.table resolves the 3-part name
+# correctly and raises AnalysisException only when the table genuinely
+# doesn't exist, which is exactly the signal we want.
+def table_exists(name: str) -> bool:
+    try:
+        spark.table(name)
+        return True
+    except Exception:
+        return False
+
+# CELL ********************
 # Built as separate DataFrames, unioned in Python -- NOT one big embedded
 # SQL string -- so the Xray-membership branches can be skipped gracefully
-# (spark.catalog.tableExists) if Xray hasn't run yet. Spark validates every
-# table reference in a SQL string at ANALYSIS time, before any row is
-# returned -- so if the Xray branches were embedded in the same query as
-# issue_link_rows, a missing Silver.xray table would fail the WHOLE query,
-# taking the Jira-only relationships down with it. This table used to be
-# Jira-only and Xray-independent; absorbing Bridge_Test_Membership's job
-# must not regress that independence.
+# (table_exists) if Xray hasn't run yet. Spark validates every table
+# reference in a SQL string at ANALYSIS time, before any row is returned --
+# so if the Xray branches were embedded in the same query as issue_link_rows,
+# a missing Silver.xray table would fail the WHOLE query, taking the
+# Jira-only relationships down with it. This table used to be Jira-only and
+# Xray-independent; absorbing the test-membership job must not regress that.
 issue_link_rows = spark.sql("""
     SELECT
         il.issue_key AS Issue_Code,
@@ -169,7 +182,7 @@ all_rows = issue_link_rows
 # Xray-native containment, synthesized both directions -- test_sets/
 # test_plans/test_runs only ever record "this test is in this container",
 # never the reverse, unlike Jira's own issue_links.
-if spark.catalog.tableExists("Silver.xray.test_sets"):
+if table_exists("Silver.xray.test_sets"):
     test_set_rows = spark.sql("""
         SELECT test_set_issue_key AS Issue_Code, test_issue_key AS Linked_Issue_Code,
                'Test Set' AS Link_Type_Name, 'Outward' AS Direction, 'contains' AS Link_Label
@@ -185,7 +198,7 @@ if spark.catalog.tableExists("Silver.xray.test_sets"):
 else:
     print("No Silver.xray.test_sets -- skipping Test Set containment rows this run.")
 
-if spark.catalog.tableExists("Silver.xray.test_plans"):
+if table_exists("Silver.xray.test_plans"):
     test_plan_rows = spark.sql("""
         SELECT test_plan_issue_key AS Issue_Code, test_issue_key AS Linked_Issue_Code,
                'Test Plan' AS Link_Type_Name, 'Outward' AS Direction, 'contains' AS Link_Label
@@ -201,7 +214,7 @@ if spark.catalog.tableExists("Silver.xray.test_plans"):
 else:
     print("No Silver.xray.test_plans -- skipping Test Plan containment rows this run.")
 
-if spark.catalog.tableExists("Silver.xray.test_runs"):
+if table_exists("Silver.xray.test_runs"):
     # DISTINCT: test_runs is RUN grain (many runs per test under one
     # execution) -- this only needs the (execution, test) pair once.
     test_execution_rows = spark.sql("""
@@ -226,7 +239,7 @@ else:
 # as a view (empty if Xray hasn't run) so the final SELECT below never
 # references a missing table. Status name comes from Dim_Test_Status so it's
 # the same sentence-case text as everywhere else.
-if spark.catalog.tableExists("Silver.xray.test_runs"):
+if table_exists("Silver.xray.test_runs"):
     spark.sql(f"""
         CREATE OR REPLACE TEMP VIEW latest_status_per_test AS
         SELECT test_issue_key AS Test_Code, Test_Status_Name, Test_Status_Key
