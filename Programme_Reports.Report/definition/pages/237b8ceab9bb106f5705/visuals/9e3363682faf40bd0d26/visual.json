@@ -23,11 +23,11 @@
                       "Entity": "Dim Date"
                     }
                   },
-                  "Property": "Date"
+                  "Property": "Week Start Date"
                 }
               },
-              "queryRef": "Dim Date.Date",
-              "nativeQueryRef": "Date",
+              "queryRef": "Dim Date.Week Start Date",
+              "nativeQueryRef": "Week",
               "active": true
             }
           ]
@@ -58,28 +58,42 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Fact Resource Allocation"
+                      "Entity": "Fact Resource Day Allocation"
                     }
                   },
-                  "Property": "Is Overallocated"
+                  "Property": "Allocated Items"
                 }
               },
-              "queryRef": "Fact Resource Allocation.Is Overallocated",
-              "nativeQueryRef": "Is Overallocated"
+              "queryRef": "Fact Resource Day Allocation.Allocated Items",
+              "nativeQueryRef": "Items"
             },
             {
               "field": {
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Fact Resource Allocation"
+                      "Entity": "Fact Resource Day Allocation"
                     }
                   },
-                  "Property": "Effort-Weighted Allocations"
+                  "Property": "Allocated Hours (Total)"
                 }
               },
-              "queryRef": "Fact Resource Allocation.Daily Load Hours",
-              "nativeQueryRef": "Daily Load Hours"
+              "queryRef": "Fact Resource Day Allocation.Allocated Hours (Total)",
+              "nativeQueryRef": "Load (Hrs)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Fact Resource Day Allocation"
+                    }
+                  },
+                  "Property": "Overallocated"
+                }
+              },
+              "queryRef": "Fact Resource Day Allocation.Overallocated",
+              "nativeQueryRef": "Overallocated"
             }
           ]
         }
@@ -94,7 +108,7 @@
                     "Entity": "Dim Date"
                   }
                 },
-                "Property": "Date"
+                "Property": "Week Start Date"
               }
             },
             "direction": "Ascending"

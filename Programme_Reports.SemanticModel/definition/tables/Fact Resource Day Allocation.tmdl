@@ -6,6 +6,14 @@ table 'Fact Resource Day Allocation'
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
+	measure 'Allocated Items' = DISTINCTCOUNT('Fact Resource Day Allocation'[Issue Key])
+		formatString: 0
+		lineageTag: 61e21a30-5c0e-4c31-b61a-1018fdf2cd57
+
+	measure Overallocated = [Conflict Resource Days] > 0
+		formatString: """Over"";""Over"";""OK"""
+		lineageTag: 93e10636-1da6-4600-a695-880592108949
+
 	measure 'Conflict Resource Days' = ```
 			
 			    VAR ResourceDayTable =  
