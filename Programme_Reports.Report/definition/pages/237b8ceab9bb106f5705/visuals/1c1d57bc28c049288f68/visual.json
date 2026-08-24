@@ -2,11 +2,11 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
   "name": "1c1d57bc28c049288f68",
   "position": {
-    "x": 776,
-    "y": 160,
+    "x": 286,
+    "y": 400,
     "z": 6100,
-    "height": 530,
-    "width": 475,
+    "height": 290,
+    "width": 965,
     "tabOrder": 6100
   },
   "visual": {
@@ -18,11 +18,7 @@
             {
               "field": {
                 "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Dim Issue"
-                    }
-                  },
+                  "Expression": { "SourceRef": { "Entity": "Dim Issue" } },
                   "Property": "Issue Code"
                 }
               },
@@ -32,39 +28,27 @@
             {
               "field": {
                 "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Dim Issue"
-                    }
-                  },
+                  "Expression": { "SourceRef": { "Entity": "Dim Issue" } },
                   "Property": "Summary"
                 }
               },
               "queryRef": "Dim Issue.Summary",
-              "nativeQueryRef": "Issue Summary"
+              "nativeQueryRef": "Summary"
             },
             {
               "field": {
                 "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Dim Resource Role"
-                    }
-                  },
+                  "Expression": { "SourceRef": { "Entity": "Fact Resource Day Allocation" } },
                   "Property": "Role Name"
                 }
               },
-              "queryRef": "Dim Resource Role.Role Name",
+              "queryRef": "Fact Resource Day Allocation.Role Name",
               "nativeQueryRef": "Role"
             },
             {
               "field": {
                 "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Dim Issue"
-                    }
-                  },
+                  "Expression": { "SourceRef": { "Entity": "Dim Issue" } },
                   "Property": "Status Name"
                 }
               },
@@ -73,73 +57,53 @@
             },
             {
               "field": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Fact Issue"
-                    }
-                  },
-                  "Property": "Planned Start"
+                "Column": {
+                  "Expression": { "SourceRef": { "Entity": "Dim Issue" } },
+                  "Property": "Planned Start Date"
                 }
               },
-              "queryRef": "Fact Issue.Planned Start",
+              "queryRef": "Dim Issue.Planned Start Date",
               "nativeQueryRef": "Planned Start"
             },
             {
               "field": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Fact Issue"
-                    }
-                  },
-                  "Property": "Planned End"
+                "Column": {
+                  "Expression": { "SourceRef": { "Entity": "Dim Issue" } },
+                  "Property": "Planned End Date"
                 }
               },
-              "queryRef": "Fact Issue.Planned End",
+              "queryRef": "Dim Issue.Planned End Date",
               "nativeQueryRef": "Planned End"
             },
             {
               "field": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Fact Issue"
-                    }
-                  },
-                  "Property": "Actual Start"
+                "Column": {
+                  "Expression": { "SourceRef": { "Entity": "Dim Issue" } },
+                  "Property": "Actual Start Date"
                 }
               },
-              "queryRef": "Fact Issue.Actual Start",
+              "queryRef": "Dim Issue.Actual Start Date",
               "nativeQueryRef": "Actual Start"
             },
             {
               "field": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Fact Issue"
-                    }
-                  },
-                  "Property": "Actual End"
+                "Column": {
+                  "Expression": { "SourceRef": { "Entity": "Dim Issue" } },
+                  "Property": "Actual End Date"
                 }
               },
-              "queryRef": "Fact Issue.Actual End",
+              "queryRef": "Dim Issue.Actual End Date",
               "nativeQueryRef": "Actual End"
             },
             {
               "field": {
                 "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Fact Resource Allocation"
-                    }
-                  },
-                  "Property": "Linked Issues"
+                  "Expression": { "SourceRef": { "Entity": "Fact Resource Day Allocation" } },
+                  "Property": "Allocated Items"
                 }
               },
-              "queryRef": "Fact Resource Allocation.Linked Issues",
-              "nativeQueryRef": "Linked Issues"
+              "queryRef": "Fact Resource Day Allocation.Allocated Items",
+              "nativeQueryRef": "Days"
             }
           ]
         }
@@ -149,20 +113,8 @@
       "title": [
         {
           "properties": {
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Issues for the selected person'"
-                }
-              }
-            }
+            "show": { "expr": { "Literal": { "Value": "true" } } },
+            "text": { "expr": { "Literal": { "Value": "'Tasks for the selected person / week'" } } }
           }
         }
       ]

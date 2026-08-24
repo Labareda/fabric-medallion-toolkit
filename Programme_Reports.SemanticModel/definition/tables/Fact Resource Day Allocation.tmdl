@@ -61,6 +61,14 @@ table 'Fact Resource Day Allocation'
 
 		annotation SummarizationSetBy = Automatic
 
+	column 'Role Name'
+		dataType: string
+		lineageTag: 2050191e-be11-4051-8d77-600312528820
+		summarizeBy: none
+		sourceColumn: Role Name
+
+		annotation SummarizationSetBy = Automatic
+
 		annotation UnderlyingDateTimeDataType = Date
 
 	column 'Allocated Hours'

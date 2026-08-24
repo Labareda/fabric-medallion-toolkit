@@ -3,17 +3,36 @@
   "name": "9e3363682faf40bd0d26",
   "position": {
     "x": 286,
-    "y": 160,
+    "y": 90,
     "z": 6000,
-    "height": 530,
-    "width": 480,
+    "height": 300,
+    "width": 965,
     "tabOrder": 6000
   },
   "visual": {
-    "visualType": "tableEx",
+    "visualType": "pivotTable",
     "query": {
       "queryState": {
-        "Values": {
+        "Columns": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Date"
+                    }
+                  },
+                  "Property": "Week Start Date"
+                }
+              },
+              "queryRef": "Dim Date.Week Start Date",
+              "nativeQueryRef": "Week",
+              "active": true
+            }
+          ]
+        },
+        "Rows": {
           "projections": [
             {
               "field": {
@@ -27,21 +46,26 @@
                 }
               },
               "queryRef": "Dim Resource.Resource Name",
-              "nativeQueryRef": "Resource Name"
-            },
+              "nativeQueryRef": "Resource Name",
+              "active": true
+            }
+          ]
+        },
+        "Values": {
+          "projections": [
             {
               "field": {
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Fact Resource Allocation"
+                      "Entity": "Fact Resource Day Allocation"
                     }
                   },
-                  "Property": "Linked Issues"
+                  "Property": "Allocated Items"
                 }
               },
-              "queryRef": "Fact Resource Allocation.Linked Issues",
-              "nativeQueryRef": "Linked Issues"
+              "queryRef": "Fact Resource Day Allocation.Allocated Items",
+              "nativeQueryRef": "Tasks"
             }
           ]
         }
@@ -50,19 +74,42 @@
         "sort": [
           {
             "field": {
-              "Measure": {
+              "Column": {
                 "Expression": {
                   "SourceRef": {
-                    "Entity": "Fact Resource Allocation"
+                    "Entity": "Dim Date"
                   }
                 },
-                "Property": "Linked Issues"
+                "Property": "Week Start Date"
               }
             },
-            "direction": "Descending"
+            "direction": "Ascending"
           }
-        ]
+        ],
+        "isDefaultSort": true
       }
+    },
+    "objects": {
+      "subTotals": [
+        {
+          "properties": {
+            "columnSubtotals": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "rowSubtotals": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "visualContainerObjects": {
       "title": [
@@ -78,7 +125,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'People — linked issues (click a person)'"
+                  "Value": "'Tasks per person per week (click a number)'"
                 }
               }
             }
@@ -147,7 +194,7 @@
                               "TimeUnit": 0
                             }
                           },
-                          "Amount": 30,
+                          "Amount": 60,
                           "TimeUnit": 0
                         }
                       },

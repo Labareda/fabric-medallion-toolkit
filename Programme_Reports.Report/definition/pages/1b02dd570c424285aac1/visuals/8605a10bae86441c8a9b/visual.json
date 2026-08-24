@@ -1,0 +1,196 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
+  "name": "8605a10bae86441c8a9b",
+  "position": {
+    "x": 30,
+    "y": 60,
+    "z": 0,
+    "height": 620,
+    "width": 1220,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Issue Code"
+                }
+              },
+              "queryRef": "Dim Issue.Issue Code",
+              "nativeQueryRef": "Issue Code"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Summary"
+                }
+              },
+              "queryRef": "Dim Issue.Summary",
+              "nativeQueryRef": "Summary"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Issue Type Name"
+                }
+              },
+              "queryRef": "Dim Issue.Issue Type Name",
+              "nativeQueryRef": "Type"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Status Name"
+                }
+              },
+              "queryRef": "Dim Issue.Status Name",
+              "nativeQueryRef": "Status"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Lead Name"
+                }
+              },
+              "queryRef": "Dim Issue.Lead Name",
+              "nativeQueryRef": "Assignee"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Planned Start Date"
+                }
+              },
+              "queryRef": "Dim Issue.Planned Start Date",
+              "nativeQueryRef": "Planned Start"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Planned End Date"
+                }
+              },
+              "queryRef": "Dim Issue.Planned End Date",
+              "nativeQueryRef": "Planned End"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Issues missing a planned start or end date — add these in Jira'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "a1b2c3d4e5f60718a9b0",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Dim Issue"
+              }
+            },
+            "Property": "Missing Planned Dates"
+          }
+        },
+        "type": "Advanced",
+        "filter": {
+          "Version": 2,
+          "From": [
+            {
+              "Name": "d",
+              "Entity": "Dim Issue",
+              "Type": 0
+            }
+          ],
+          "Where": [
+            {
+              "Condition": {
+                "Comparison": {
+                  "ComparisonKind": 0,
+                  "Left": {
+                    "Column": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Source": "d"
+                        }
+                      },
+                      "Property": "Missing Planned Dates"
+                    }
+                  },
+                  "Right": {
+                    "Literal": {
+                      "Value": "true"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

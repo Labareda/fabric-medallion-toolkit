@@ -64,6 +64,11 @@ FINAL_COLUMNS = [
     "Description",
     "Created_Date",
     "Updated_Date",
+    "Planned_Start_Date",
+    "Planned_End_Date",
+    "Actual_Start_Date",
+    "Actual_End_Date",
+    "Missing_Planned_Dates",
     "Test_Type",
     "Test_Steps",
     "Parent_Issue_Id",
@@ -177,6 +182,35 @@ schema = fmt.TableSchema(
 
         "Updated_Date": {
             "type": "date"
+        },
+
+        # -------------------------------------------------------------------
+        # Schedule dates -- attributes of the issue itself, so the resource
+        # and missing-dates reports read plain columns (no cross-fact
+        # measures into Fact_Issue). Fact_Issue keeps its own copies for the
+        # additive rollup/Gantt logic; these are the descriptive versions.
+        # -------------------------------------------------------------------
+        "Planned_Start_Date": {
+            "type": "date"
+        },
+
+        "Planned_End_Date": {
+            "type": "date"
+        },
+
+        "Actual_Start_Date": {
+            "type": "date"
+        },
+
+        "Actual_End_Date": {
+            "type": "date"
+        },
+
+        # TRUE when a planned start OR end is missing -- drives the
+        # "Missing Dates" report as a plain column filter (no measure).
+        "Missing_Planned_Dates": {
+            "type": "boolean",
+            "default": True
         },
 
         # -------------------------------------------------------------------
@@ -357,6 +391,12 @@ df = spark.sql(f"""
         CAST(
             i.fields_updated AS date
         ) AS Updated_Date,
+
+        CAST(i.fields_start_date AS date) AS Planned_Start_Date,
+        CAST(i.fields_duedate AS date)    AS Planned_End_Date,
+        CAST(i.fields_actual_start AS date) AS Actual_Start_Date,
+        CAST(COALESCE(i.fields_actual_end, i.fields_resolutiondate) AS date) AS Actual_End_Date,
+        (i.fields_start_date IS NULL OR i.fields_duedate IS NULL) AS Missing_Planned_Dates,
 
         # -------------------------------------------------------------------
         # Hierarchy working columns
