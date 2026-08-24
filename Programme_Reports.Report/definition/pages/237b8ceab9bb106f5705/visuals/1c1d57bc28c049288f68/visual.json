@@ -1,0 +1,172 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
+  "name": "1c1d57bc28c049288f68",
+  "position": {
+    "x": 776,
+    "y": 160,
+    "z": 6100,
+    "height": 530,
+    "width": 475,
+    "tabOrder": 6100
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Issue Code"
+                }
+              },
+              "queryRef": "Dim Issue.Issue Code",
+              "nativeQueryRef": "Issue Code"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Summary"
+                }
+              },
+              "queryRef": "Dim Issue.Summary",
+              "nativeQueryRef": "Issue Summary"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Resource Role"
+                    }
+                  },
+                  "Property": "Role Name"
+                }
+              },
+              "queryRef": "Dim Resource Role.Role Name",
+              "nativeQueryRef": "Role"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Status Name"
+                }
+              },
+              "queryRef": "Dim Issue.Status Name",
+              "nativeQueryRef": "Status"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Fact Issue"
+                    }
+                  },
+                  "Property": "Planned Start"
+                }
+              },
+              "queryRef": "Fact Issue.Planned Start",
+              "nativeQueryRef": "Planned Start"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Fact Issue"
+                    }
+                  },
+                  "Property": "Planned End"
+                }
+              },
+              "queryRef": "Fact Issue.Planned End",
+              "nativeQueryRef": "Planned End"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Fact Issue"
+                    }
+                  },
+                  "Property": "Actual Start"
+                }
+              },
+              "queryRef": "Fact Issue.Actual Start",
+              "nativeQueryRef": "Actual Start"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Fact Issue"
+                    }
+                  },
+                  "Property": "Actual End"
+                }
+              },
+              "queryRef": "Fact Issue.Actual End",
+              "nativeQueryRef": "Actual End"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Fact Resource Allocation"
+                    }
+                  },
+                  "Property": "Linked Issues"
+                }
+              },
+              "queryRef": "Fact Resource Allocation.Linked Issues",
+              "nativeQueryRef": "Linked Issues"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Issues for the selected person'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

@@ -6,6 +6,22 @@ table 'Fact Issue'
 		formatString: 0
 		lineageTag: 610252c6-4bd4-4582-bb13-1badf2adb0d6
 
+	measure 'Planned Start' = MAX('Fact Issue'[Planned Start Date])
+		formatString: Long Date
+		lineageTag: e5cdda08-e3f7-4111-b157-28d7711953e4
+
+	measure 'Planned End' = MAX('Fact Issue'[Planned End Date])
+		formatString: Long Date
+		lineageTag: 3a47f85b-1bc1-45ae-9ac2-ffeb7c3fe0a4
+
+	measure 'Actual Start' = MAX('Fact Issue'[Actual Start Date])
+		formatString: Long Date
+		lineageTag: 316e3ead-2943-40b8-9a46-ec6e49f5c33d
+
+	measure 'Actual End' = MAX('Fact Issue'[Actual End Date])
+		formatString: Long Date
+		lineageTag: c5fb32ca-ce18-4949-94d5-dbc87c7b921a
+
 	column 'Issue Id'
 		dataType: string
 		isHidden

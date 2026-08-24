@@ -3,66 +3,17 @@
   "name": "9e3363682faf40bd0d26",
   "position": {
     "x": 286,
-    "y": 86,
+    "y": 160,
     "z": 6000,
-    "height": 360,
-    "width": 965,
+    "height": 530,
+    "width": 480,
     "tabOrder": 6000
   },
   "visual": {
-    "visualType": "pivotTable",
+    "visualType": "tableEx",
     "query": {
       "queryState": {
-        "Columns": {
-          "projections": [
-            {
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Dim Date"
-                    }
-                  },
-                  "Property": "Week Label"
-                }
-              },
-              "queryRef": "Dim Date.Week Label",
-              "nativeQueryRef": "Week Label",
-              "active": true
-            },
-            {
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Dim Date"
-                    }
-                  },
-                  "Property": "Day Name"
-                }
-              },
-              "queryRef": "Dim Date.Day Name",
-              "nativeQueryRef": "Day Name",
-              "active": true
-            },
-            {
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Dim Date"
-                    }
-                  },
-                  "Property": "Day Of Month"
-                }
-              },
-              "queryRef": "Dim Date.Day Of Month",
-              "nativeQueryRef": "Day Of Month",
-              "active": true
-            }
-          ]
-        },
-        "Rows": {
+        "Values": {
           "projections": [
             {
               "field": {
@@ -76,84 +27,42 @@
                 }
               },
               "queryRef": "Dim Resource.Resource Name",
-              "nativeQueryRef": "Resource Name",
-              "active": true
-            }
-          ]
-        },
-        "Values": {
-          "projections": [
+              "nativeQueryRef": "Resource Name"
+            },
             {
               "field": {
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Fact Resource Day Allocation"
+                      "Entity": "Fact Resource Allocation"
                     }
                   },
-                  "Property": "Allocated Items"
+                  "Property": "Linked Issues"
                 }
               },
-              "queryRef": "Fact Resource Day Allocation.Allocated Items",
-              "nativeQueryRef": "Allocated Items"
+              "queryRef": "Fact Resource Allocation.Linked Issues",
+              "nativeQueryRef": "Linked Issues"
             }
           ]
         }
       },
       "sortDefinition": {
-        "isDefaultSort": true
-      }
-    },
-    "expansionStates": [
-      {
-        "roles": [
-          "Columns"
-        ],
-        "levels": [
+        "sort": [
           {
-            "queryRefs": [
-              "Dim Date.Week Label"
-            ],
-            "isPinned": true
-          },
-          {
-            "queryRefs": [
-              "Dim Date.Day Name"
-            ],
-            "isPinned": true
-          },
-          {
-            "queryRefs": [
-              "Dim Date.Day Of Month"
-            ],
-            "isCollapsed": true,
-            "isPinned": true
-          }
-        ],
-        "root": {}
-      }
-    ],
-    "objects": {
-      "subTotals": [
-        {
-          "properties": {
-            "columnSubtotals": {
-              "expr": {
-                "Literal": {
-                  "Value": "false"
-                }
+            "field": {
+              "Measure": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "Fact Resource Allocation"
+                  }
+                },
+                "Property": "Linked Issues"
               }
             },
-            "rowSubtotals": {
-              "expr": {
-                "Literal": {
-                  "Value": "false"
-                }
-              }
-            }
+            "direction": "Descending"
           }
-        }
-      ]
+        ]
+      }
     },
     "visualContainerObjects": {
       "title": [
@@ -162,67 +71,14 @@
             "show": {
               "expr": {
                 "Literal": {
-                  "Value": "false"
-                }
-              }
-            }
-          }
-        }
-      ],
-      "background": [
-        {
-          "properties": {
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "false"
-                }
-              }
-            }
-          }
-        }
-      ],
-      "visualHeader": [
-        {
-          "properties": {
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "false"
-                }
-              }
-            }
-          }
-        }
-      ],
-      "padding": [
-        {
-          "properties": {
-            "left": {
-              "expr": {
-                "Literal": {
-                  "Value": "0D"
+                  "Value": "true"
                 }
               }
             },
-            "top": {
+            "text": {
               "expr": {
                 "Literal": {
-                  "Value": "0D"
-                }
-              }
-            },
-            "right": {
-              "expr": {
-                "Literal": {
-                  "Value": "0D"
-                }
-              }
-            },
-            "bottom": {
-              "expr": {
-                "Literal": {
-                  "Value": "0D"
+                  "Value": "'People — linked issues (click a person)'"
                 }
               }
             }
@@ -296,86 +152,6 @@
                         }
                       },
                       "TimeUnit": 0
-                    }
-                  }
-                }
-              }
-            }
-          ]
-        },
-        "howCreated": "User"
-      },
-      {
-        "name": "fead94049e33b6536844",
-        "field": {
-          "Column": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "Dim Date"
-              }
-            },
-            "Property": "Day Name"
-          }
-        },
-        "type": "Categorical",
-        "filter": {
-          "Version": 2,
-          "From": [
-            {
-              "Name": "d",
-              "Entity": "Dim Date",
-              "Type": 0
-            }
-          ],
-          "Where": [
-            {
-              "Condition": {
-                "Not": {
-                  "Expression": {
-                    "In": {
-                      "Expressions": [
-                        {
-                          "Column": {
-                            "Expression": {
-                              "SourceRef": {
-                                "Source": "d"
-                              }
-                            },
-                            "Property": "Day Name"
-                          }
-                        }
-                      ],
-                      "Values": [
-                        [
-                          {
-                            "Literal": {
-                              "Value": "'Sunday'"
-                            }
-                          }
-                        ],
-                        [
-                          {
-                            "Literal": {
-                              "Value": "'Saturday'"
-                            }
-                          }
-                        ]
-                      ]
-                    }
-                  }
-                }
-              }
-            }
-          ]
-        },
-        "objects": {
-          "general": [
-            {
-              "properties": {
-                "isInvertedSelectionMode": {
-                  "expr": {
-                    "Literal": {
-                      "Value": "true"
                     }
                   }
                 }

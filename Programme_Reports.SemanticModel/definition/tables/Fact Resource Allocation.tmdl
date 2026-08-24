@@ -2,6 +2,29 @@
 table 'Fact Resource Allocation'
 	lineageTag: 9a1b2128-e3cf-4760-866c-85eedebd7c86
 
+	/// Distinct issues the person is linked to (Lead or Involved), counting
+	/// only issues whose planned start..end range overlaps the date window in
+	/// context (the page's rolling-date filter). Person comes from the visual
+	/// row (Dim_Resource -> this fact); the issue's dates come from Fact_Issue
+	/// via Dim_Issue. Issues without both dates are excluded (can't place them).
+	measure 'Linked Issues' = ```
+
+			VAR WinStart = MIN('Dim Date'[Date])
+			VAR WinEnd   = MAX('Dim Date'[Date])
+			RETURN
+			CALCULATE(
+			    DISTINCTCOUNT('Fact Resource Allocation'[Issue Key]),
+			    FILTER(
+			        VALUES('Dim Issue'[Issue Key]),
+			        VAR s = CALCULATE(MAX('Fact Issue'[Planned Start Date]))
+			        VAR e = CALCULATE(MAX('Fact Issue'[Planned End Date]))
+			        RETURN NOT ISBLANK(s) && NOT ISBLANK(e) && s <= WinEnd && e >= WinStart
+			    )
+			)
+			```
+		formatString: 0
+		lineageTag: 309c8dae-7699-4d67-936a-d39f13a930ac
+
 	measure 'Effort-Weighted Allocations' = SUM('Fact Resource Allocation'[Allocation Weight])
 		lineageTag: b1575d85-a13a-454b-a267-ba891a31a021
 
