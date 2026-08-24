@@ -19,7 +19,6 @@ relationship f473b7fe-9cd9-2502-1ef9-ff9f7aae5514
 	toColumn: 'Dim Issue Type'.'IssueType Key'
 
 relationship 4988896a-3ef8-c880-a0ca-ba7ec260a70f
-	crossFilteringBehavior: bothDirections
 	fromColumn: 'Fact Resource Allocation'.'Issue Key'
 	toColumn: 'Dim Issue'.'Issue Key'
 
@@ -67,14 +66,6 @@ relationship 57086f5a-8fce-7fbd-7e61-8f13dd95ebd6
 	fromColumn: 'Fact Issue History'.'Issue Key'
 	toColumn: 'Dim Issue'.'Issue Key'
 
-relationship dc5e2c6c-8102-7802-9e30-d489e8a106f8
-	fromColumn: 'Fact Issue History'.'Valid From Date'
-	toColumn: 'Dim Date'.Date
-
-relationship b0ebe790-c9a0-5e8d-7f16-758d29a5518f
-	fromColumn: 'Fact Issue History'.'Valid To Date'
-	toColumn: 'Dim Due Date'.Date
-
 relationship 4e2e77d8-e03a-80a5-95f7-ed3e13dbafb9
 	fromColumn: 'Fact Issue'.'Rollup Start Date'
 	toColumn: 'Dim Date'.Date
@@ -95,9 +86,13 @@ relationship 881e5102-2cf3-c027-162f-e542401ab6e2
 	fromColumn: 'Fact Resource Day Allocation'.'Resource Key'
 	toColumn: 'Dim Resource'.'Resource Key'
 
-relationship 016c3906-c9e5-a39e-6807-c75c047af7c0
-	fromColumn: 'Fact Worklog'.'Author Key'
-	toColumn: 'Dim Resource'.'Resource Key'
+relationship 2dabb2c7-38e2-98be-159d-7207c6d6e9cd
+	fromColumn: 'Fact Test'.'Test Issue Key'
+	toColumn: 'Dim Issue'.'Issue Key'
+
+relationship 2d37ab73-3445-7bee-a173-478b29b7a287
+	fromColumn: 'Fact Test'.'Test Status Key'
+	toColumn: 'Dim Test Status'.'Test Status Key'
 
 relationship 7435d156-c888-b703-d219-da7520251cea
 	fromColumn: 'Fact Worklog'.'Issue Key'
@@ -116,47 +111,48 @@ relationship AutoDetected_638c041c-b0d0-4fd6-9f39-6fb6889d7b00
 	fromColumn: 'Bridge Issue Link'.'Issue Code'
 	toColumn: 'Fact Issue'.'Issue Code'
 
-relationship AutoDetected_05e544ad-7f90-406b-99d3-5fe3e9d79e1f
-	fromColumn: 'Bridge Issue Link'.'Link Type Name'
-	toColumn: 'Dim Link Type'.Link_Type_Name
+relationship 0086fce5-b90a-8446-f8ef-93d88c125ad7
+	fromColumn: 'Fact Test'.'Executed By Key'
+	toColumn: 'Dim Resource'.'Resource Key'
 
-relationship 5b1a7c3e-0d9f-4a2e-8c6b-1f3d5a7b9c0e
-	fromColumn: 'Bridge Issue Link'.'Test Status Key'
-	toColumn: 'Dim Test Status'.'Test Status Key'
-
-relationship 6c2b8d4f-1e0a-4b3f-9d7c-2a4e6b8c0d1f
-	fromColumn: 'Bridge Issue Link'.'Project Key'
-	toColumn: 'Dim Project'.'Project Key'
-
-relationship 7d3c9e50-2f1b-4c40-ae8d-3b5f7c9d1e20
-	fromColumn: 'Bridge Issue Link'.'Team Key'
-	toColumn: 'Dim Team'.'Team Key'
-
-relationship bcbcd474-7555-4c74-8b21-526b6c992a5a
-	fromColumn: 'Fact Test'.'Test Issue Key'
-	toColumn: 'Dim Issue'.'Issue Key'
-
-relationship f796b0b8-b8a3-484c-ab73-e38a683e0e1f
+relationship a89dfce7-677f-e2e2-c0ab-58564c0d717b
 	isActive: false
 	fromColumn: 'Fact Test'.'Execution Issue Key'
 	toColumn: 'Dim Issue'.'Issue Key'
 
-relationship 3864b6fb-0d8a-4d07-818c-b516683f2b05
-	fromColumn: 'Fact Test'.'Test Status Key'
-	toColumn: 'Dim Test Status'.'Test Status Key'
-
-relationship 7d00d205-19fe-44fb-82c7-d0df63e392e9
-	fromColumn: 'Fact Test'.'Executed By Key'
+relationship AutoDetected_4e7409e6-76d6-470c-b152-4e7c1c8fd6ed
+	fromColumn: 'Fact Worklog'.'Resource Key'
 	toColumn: 'Dim Resource'.'Resource Key'
 
-relationship 8e4d0f61-3a2c-4d51-bf9e-4c608d0e2f31
+relationship AutoDetected_c1d563b1-ace5-436e-b021-21550d6dbda4
 	fromColumn: 'Fact Test'.'Project Key'
 	toColumn: 'Dim Project'.'Project Key'
 
-relationship 9f5e1a72-4b3d-4e62-a0af-5d71ae1f3a42
+relationship AutoDetected_e6c776aa-3b3e-48e8-afaf-42954c9fb3f7
 	fromColumn: 'Fact Test'.'Team Key'
 	toColumn: 'Dim Team'.'Team Key'
 
+relationship AutoDetected_91b6481f-d61e-4892-87fb-b074371910d9
+	fromColumn: 'Bridge Issue Link'.'Project Key'
+	toColumn: 'Dim Project'.'Project Key'
 
+relationship AutoDetected_19a8180b-6242-44a4-9285-428ec7a28217
+	fromColumn: 'Bridge Issue Link'.'Team Key'
+	toColumn: 'Dim Team'.'Team Key'
 
+relationship AutoDetected_f46d0859-1e7f-4094-86dc-3757ba79403e
+	fromColumn: 'Bridge Issue Link'.'Test Status Key'
+	toColumn: 'Dim Test Status'.'Test Status Key'
+
+relationship 00cfd60a-a9e3-f268-de4c-8eb71cec9e51
+	fromColumn: 'Fact Issue History'.'Valid From'
+	toColumn: 'Dim Date'.Date
+
+relationship d2861f61-96f5-46c6-9141-7511a88d8143
+	fromColumn: 'Fact Issue History'.'Valid To'
+	toColumn: 'Dim Due Date'.Date
+
+relationship d3903bdf-59f5-c2d1-c6af-46d2b1d87529
+	fromColumn: 'Bridge Issue Link'.'Link Type Key'
+	toColumn: 'Dim Link Type'.'Link Type Key'
 

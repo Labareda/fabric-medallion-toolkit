@@ -1,44 +1,47 @@
 table 'Dim Link Type'
 	lineageTag: ede086ed-f092-4dc3-aa40-e6197175652b
 
-	column Link_Type_Id
-		dataType: string
-		lineageTag: 80c4512f-0f54-4e16-b673-2f6e8a4332b7
-		summarizeBy: none
-		sourceColumn: Link_Type_Id
-
-		annotation SummarizationSetBy = Automatic
-
-	column Link_Type_Name
-		dataType: string
-		lineageTag: 5854cd47-4066-496f-aada-4e65393e74d6
-		summarizeBy: none
-		sourceColumn: Link_Type_Name
-
-		annotation SummarizationSetBy = Automatic
-
-	column Inward_Label
-		dataType: string
-		lineageTag: a2522c9f-3f80-43fc-8eb1-36af053c3c93
-		summarizeBy: none
-		sourceColumn: Inward_Label
-
-		annotation SummarizationSetBy = Automatic
-
-	column Outward_Label
-		dataType: string
-		lineageTag: 33620f1e-c491-4d9b-afd7-be995e1a20b3
-		summarizeBy: none
-		sourceColumn: Outward_Label
-
-		annotation SummarizationSetBy = Automatic
-
-	column Link_Type_Key
+	column 'Link Type Id'
 		dataType: string
 		isHidden
-		lineageTag: 3a9d41c4-cd47-415e-9bf0-ebe7b9c7dce1
+		lineageTag: 9dd453af-729f-424b-b700-4850f46bbf7d
 		summarizeBy: none
-		sourceColumn: Link_Type_Key
+		sourceColumn: Link Type Id
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Link Type Name'
+		dataType: string
+		lineageTag: 42e06d65-5af0-4f5e-a2bc-1232711d3925
+		summarizeBy: none
+		sourceColumn: Link Type Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Inward Label'
+		dataType: string
+		lineageTag: 3240e6f9-ad6a-4fef-9b22-5a9cb3bd1540
+		summarizeBy: none
+		sourceColumn: Inward Label
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Outward Label'
+		dataType: string
+		lineageTag: 5ed9d092-dcb9-448e-8d78-a9d8505a1585
+		summarizeBy: none
+		sourceColumn: Outward Label
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Link Type Key'
+		dataType: string
+		isHidden
+		lineageTag: fb90f900-3028-4c0a-b630-824df3bc5925
+		summarizeBy: none
+		sourceColumn: Link Type Key
 
 		changedProperty = IsHidden
 
@@ -49,9 +52,10 @@ table 'Dim Link Type'
 		source =
 				let
 				    Source = Sql.Database("cekvmk67pvoetale6vvoo5wfji-brlvcnhvridetpgxmhh6wmlcw4.datawarehouse.fabric.microsoft.com", "gold"),
-				    gold_dim_link_type = Source{[Schema="gold",Item="dim_link_type"]}[Data]
+				    gold_dim_link_type = Source{[Schema="gold",Item="dim_link_type"]}[Data],
+				  RenamedColumns = Table.TransformColumnNames(gold_dim_link_type, each Text.Replace(_, "_", " "))
 				in
-				    gold_dim_link_type
+				    RenamedColumns
 
 	annotation PBI_NavigationStepName = Navigation
 

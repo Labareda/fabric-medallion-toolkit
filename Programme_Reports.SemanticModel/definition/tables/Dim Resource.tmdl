@@ -13,9 +13,12 @@ table 'Dim Resource'
 
 	column 'Resource Id'
 		dataType: string
+		isHidden
 		lineageTag: 02025524-35f2-4c89-be05-45f0cd9d8316
 		summarizeBy: none
 		sourceColumn: Resource Id
+
+		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
 

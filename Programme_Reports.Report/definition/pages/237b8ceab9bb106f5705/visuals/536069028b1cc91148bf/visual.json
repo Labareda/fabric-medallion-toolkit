@@ -1,13 +1,13 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.10.0/schema.json",
-  "name": "50ca9291a8f26e5d2aa2",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
+  "name": "536069028b1cc91148bf",
   "position": {
-    "x": 30,
-    "y": 410,
-    "z": 8000,
-    "height": 35.555555555555557,
+    "x": 28.012443346950395,
+    "y": 411.41485275288073,
+    "z": 12000,
+    "height": 35,
     "width": 225.55555555555554,
-    "tabOrder": 8000
+    "tabOrder": 12000
   },
   "visual": {
     "visualType": "slicer",
@@ -20,18 +20,21 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Dim Issue Type"
+                      "Entity": "Dim Issue"
                     }
                   },
-                  "Property": "Issue Type Name"
+                  "Property": "Issue Code"
                 }
               },
-              "queryRef": "Dim Issue Type.Issue Type Name",
-              "nativeQueryRef": "Issue Type Name",
+              "queryRef": "Dim Issue.Issue Code",
+              "nativeQueryRef": "Issue Code",
               "active": true
             }
           ]
         }
+      },
+      "sortDefinition": {
+        "isDefaultSort": true
       }
     },
     "objects": {
@@ -50,13 +53,100 @@
       ],
       "general": [
         {
-          "properties": {}
+          "properties": {
+            "orientation": {
+              "expr": {
+                "Literal": {
+                  "Value": "1D"
+                }
+              }
+            },
+            "selfFilterEnabled": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "selfFilter": {
+              "filter": {
+                "Version": 2,
+                "From": [
+                  {
+                    "Name": "d1",
+                    "Entity": "Dim Issue",
+                    "Type": 0
+                  }
+                ],
+                "Where": [
+                  {
+                    "Condition": {
+                      "Contains": {
+                        "Left": {
+                          "Column": {
+                            "Expression": {
+                              "SourceRef": {
+                                "Source": "d1"
+                              }
+                            },
+                            "Property": "Issue Code"
+                          }
+                        },
+                        "Right": {
+                          "Literal": {
+                            "Value": "'TF-18118'"
+                          }
+                        }
+                      }
+                    },
+                    "Annotations": {
+                      "PowerBI.MParameterBehavior": 1
+                    }
+                  }
+                ]
+              }
+            }
+          }
         }
       ],
       "header": [
         {
           "properties": {
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Project'"
+                }
+              }
+            },
+            "fontFamily": {
+              "expr": {
+                "Literal": {
+                  "Value": "'''Segoe UI'', wf_segoe-ui_normal, helvetica, arial, sans-serif'"
+                }
+              }
+            },
+            "textSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "10D"
+                }
+              }
+            },
             "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "selection": [
+        {
+          "properties": {
+            "strictSingleSelect": {
               "expr": {
                 "Literal": {
                   "Value": "false"
@@ -76,6 +166,18 @@
                 }
               }
             },
+            "fontColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 1,
+                      "Percent": 0
+                    }
+                  }
+                }
+              }
+            },
             "background": {
               "solid": {
                 "color": {
@@ -88,7 +190,27 @@
                 }
               }
             },
-            "fontColor": {
+            "outlineStyle": {
+              "expr": {
+                "Literal": {
+                  "Value": "0D"
+                }
+              }
+            },
+            "padding": {
+              "expr": {
+                "Literal": {
+                  "Value": "4D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "selectionIcon": [
+        {
+          "properties": {
+            "color": {
               "solid": {
                 "color": {
                   "expr": {
@@ -105,6 +227,19 @@
       ]
     },
     "visualContainerObjects": {
+      "background": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
       "padding": [
         {
           "properties": {
@@ -122,30 +257,17 @@
                 }
               }
             },
-            "right": {
-              "expr": {
-                "Literal": {
-                  "Value": "0D"
-                }
-              }
-            },
             "bottom": {
               "expr": {
                 "Literal": {
                   "Value": "0D"
                 }
               }
-            }
-          }
-        }
-      ],
-      "background": [
-        {
-          "properties": {
-            "show": {
+            },
+            "right": {
               "expr": {
                 "Literal": {
-                  "Value": "false"
+                  "Value": "0D"
                 }
               }
             }
@@ -158,7 +280,7 @@
   "filterConfig": {
     "filters": [
       {
-        "name": "5341f721350da47e36d8",
+        "name": "9b85dcc39a6f7ef93ed6",
         "field": {
           "Column": {
             "Expression": {
@@ -213,6 +335,7 @@
             }
           ]
         },
+        "howCreated": "User",
         "objects": {
           "general": [
             {

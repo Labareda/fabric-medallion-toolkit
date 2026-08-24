@@ -47,9 +47,12 @@ table 'Fact Resource Allocation'
 
 	column 'Resource Id'
 		dataType: string
+		isHidden
 		lineageTag: 9cf6dd48-7a2a-4c24-b9e3-cc3a8f1acb02
 		summarizeBy: none
 		sourceColumn: Resource Id
+
+		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
 
@@ -63,7 +66,6 @@ table 'Fact Resource Allocation'
 		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
-
 
 	column 'Allocation Weight'
 		dataType: double

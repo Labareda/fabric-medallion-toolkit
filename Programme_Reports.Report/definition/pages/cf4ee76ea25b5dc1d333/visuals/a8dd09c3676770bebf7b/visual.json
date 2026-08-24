@@ -1,13 +1,13 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.11.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
   "name": "a8dd09c3676770bebf7b",
   "position": {
     "x": 285.55555555555554,
     "y": 85.555555555555557,
-    "z": 7000,
+    "z": 6000,
     "height": 605,
     "width": 965.55555555555554,
-    "tabOrder": 7000
+    "tabOrder": 6000
   },
   "visual": {
     "visualType": "GanttChart4C3653EFFFEB4E7DA5A699CE198391E2",

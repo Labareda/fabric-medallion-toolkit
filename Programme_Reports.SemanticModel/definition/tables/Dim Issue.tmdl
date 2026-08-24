@@ -25,9 +25,12 @@ table 'Dim Issue'
 
 	column 'Parent Issue Id'
 		dataType: string
+		isHidden
 		lineageTag: 2ac98fae-3ff5-4231-b730-cbe6b4243f95
 		summarizeBy: none
 		sourceColumn: Parent Issue Id
+
+		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
 
@@ -150,33 +153,9 @@ table 'Dim Issue'
 
 		annotation SummarizationSetBy = Automatic
 
-	column 'Issue Summary'
-		dataType: string
-		lineageTag: 302e84c0-e284-4229-b143-daca0dd84353
-		summarizeBy: none
-		sourceColumn: Issue Summary
-
-		annotation SummarizationSetBy = Automatic
-
-	column 'Issue Display Label'
-		dataType: string
-		lineageTag: 5d2898d3-852e-4418-ad47-9629165db1bf
-		summarizeBy: none
-		sourceColumn: Issue Display Label
-
-		annotation SummarizationSetBy = Automatic
-
-	column 'Test Acceptance Criteria'
-		dataType: string
-		lineageTag: 14ec7534-b978-4d18-9341-9006c11a9cb4
-		summarizeBy: none
-		sourceColumn: Test Acceptance Criteria
-
-		annotation SummarizationSetBy = Automatic
-
 	column 'Issue Type Name'
 		dataType: string
-		lineageTag: ce47cd1d-db30-401c-8a37-d34cf90d62fe
+		lineageTag: 3bbae582-655d-48ba-b368-095bf9ac36fe
 		summarizeBy: none
 		sourceColumn: Issue Type Name
 
@@ -184,7 +163,7 @@ table 'Dim Issue'
 
 	column 'Status Name'
 		dataType: string
-		lineageTag: dd0f7033-30c9-45ee-8f2a-919cbfabf6c2
+		lineageTag: 1028db72-577d-4307-ade0-43e899c94bba
 		summarizeBy: none
 		sourceColumn: Status Name
 
@@ -192,40 +171,16 @@ table 'Dim Issue'
 
 	column 'Priority Name'
 		dataType: string
-		lineageTag: 5cc476bb-5242-401e-aa93-b5e678d76883
+		lineageTag: ed33c2c2-bac7-44ea-8591-614f3217d13a
 		summarizeBy: none
 		sourceColumn: Priority Name
-
-		annotation SummarizationSetBy = Automatic
-
-	column Description
-		dataType: string
-		lineageTag: c2f6a46b-edc5-447a-9bca-0632af86d9e3
-		summarizeBy: none
-		sourceColumn: Description
-
-		annotation SummarizationSetBy = Automatic
-
-	column 'Test Type'
-		dataType: string
-		lineageTag: a4e75f9b-1832-4813-8bd5-75064747841d
-		summarizeBy: none
-		sourceColumn: Test Type
-
-		annotation SummarizationSetBy = Automatic
-
-	column 'Test Steps'
-		dataType: string
-		lineageTag: 4a44a731-1406-41d4-852e-928e9683518c
-		summarizeBy: none
-		sourceColumn: Test Steps
 
 		annotation SummarizationSetBy = Automatic
 
 	column 'Created Date'
 		dataType: dateTime
 		formatString: Long Date
-		lineageTag: 851b5dbf-fcf6-40bd-bd50-39a87c2d548c
+		lineageTag: 56c0e5e4-750a-4ad7-a5b8-11262ded477a
 		summarizeBy: none
 		sourceColumn: Created Date
 
@@ -236,7 +191,7 @@ table 'Dim Issue'
 	column 'Updated Date'
 		dataType: dateTime
 		formatString: Long Date
-		lineageTag: 251406ee-513f-4446-bf96-740dd2eec338
+		lineageTag: faedf7c1-65b5-47a2-9c74-7a7fd3979b39
 		summarizeBy: none
 		sourceColumn: Updated Date
 
@@ -244,17 +199,59 @@ table 'Dim Issue'
 
 		annotation UnderlyingDateTimeDataType = Date
 
+	column Summary
+		dataType: string
+		lineageTag: dc145ac3-9d35-47c3-8686-4a730bd65d36
+		summarizeBy: none
+		sourceColumn: Summary
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Display Label'
+		dataType: string
+		lineageTag: e5d127ab-1143-4dda-a27d-8a29370c7238
+		summarizeBy: none
+		sourceColumn: Display Label
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Acceptance Criteria'
+		dataType: string
+		lineageTag: e2cc496e-12d9-461e-bfdc-5ac9a9dc039c
+		summarizeBy: none
+		sourceColumn: Acceptance Criteria
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Jira URL'
+		dataType: string
+		lineageTag: 39e45a23-6419-488a-8d31-e2a140e3e895
+		dataCategory: WebUrl
+		summarizeBy: none
+		sourceColumn: Jira URL
+
+		annotation SummarizationSetBy = Automatic
+
+	column Description
+		dataType: string
+		lineageTag: 20b75368-88ba-420a-9469-87511e1166d9
+		summarizeBy: none
+		sourceColumn: Description
+
+		annotation SummarizationSetBy = Automatic
+
 	partition 'Dim Issue' = m
 		mode: import
 		source =
 				let
 				  Source = Sql.Database("cekvmk67pvoetale6vvoo5wfji-brlvcnhvridetpgxmhh6wmlcw4.datawarehouse.fabric.microsoft.com", "gold"),
 				    gold_dim_issue = Source{[Schema="gold",Item="dim_issue"]}[Data],
-				    RenamedColumns = Table.TransformColumnNames( gold_dim_issue, each Text.Replace(_, "_", " "))
+				    RenamedColumns = Table.TransformColumnNames( gold_dim_issue, each Text.Replace(_, "_", " ")),
+				    #"Removed Columns" = Table.RemoveColumns(RenamedColumns,{"Test Steps", "Test Type"})
 				in
-				    RenamedColumns
+				    #"Removed Columns"
 
-	annotation PBI_ResultType = Table
+	annotation PBI_ResultType = Exception
 
 	annotation PBI_NavigationStepName = Navigation
 

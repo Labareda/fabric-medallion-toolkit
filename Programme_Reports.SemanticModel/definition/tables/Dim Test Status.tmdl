@@ -76,8 +76,17 @@ table 'Dim Test Status'
 		dataType: int64
 		formatString: 0
 		lineageTag: f295111a-0112-4819-bf34-231958e4e324
-		summarizeBy: none
+		summarizeBy: sum
 		sourceColumn: Test Status Sort Order
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Final'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 616ec84e-e649-4be0-b294-6ab669268f21
+		summarizeBy: none
+		sourceColumn: Is Final
 
 		annotation SummarizationSetBy = Automatic
 
@@ -87,9 +96,6 @@ table 'Dim Test Status'
 				let
 				  Source = Sql.Database("cekvmk67pvoetale6vvoo5wfji-brlvcnhvridetpgxmhh6wmlcw4.datawarehouse.fabric.microsoft.com", "gold"),
 				    gold_dim_test_status = Source{[Schema="gold",Item="dim_test_status"]}[Data],
-				    // Test Status Name / Coverage Status now arrive already sentence
-				    // case straight from Gold (Gold - Dim Test Status.py) -- no
-				    // reformatting needed here any more.
 				    RenamedColumns = Table.TransformColumnNames( gold_dim_test_status, each Text.Replace(_, "_", " "))
 				in
 				    RenamedColumns

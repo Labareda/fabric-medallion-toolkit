@@ -1,13 +1,13 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
-  "name": "7fac4956da804557981d",
+  "name": "ff43571ae5c338fa422f",
   "position": {
     "x": 30,
-    "y": 615.55555555555554,
-    "z": 2000,
+    "y": 546.66666666666663,
+    "z": 14000,
     "height": 34.444444444444443,
-    "width": 224.44444444444443,
-    "tabOrder": 2000
+    "width": 225.55555555555554,
+    "tabOrder": 14000
   },
   "visual": {
     "visualType": "slicer",
@@ -20,14 +20,14 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Bridge Issue Link"
+                      "Entity": "Dim Status"
                     }
                   },
-                  "Property": "Linked Issue Type"
+                  "Property": "Status Category"
                 }
               },
-              "queryRef": "Bridge Issue Link.Linked Issue Type",
-              "nativeQueryRef": "Linked Issue Type",
+              "queryRef": "Dim Status.Status Category",
+              "nativeQueryRef": "Status Category",
               "active": true
             }
           ]
@@ -58,13 +58,6 @@
               "expr": {
                 "Literal": {
                   "Value": "1D"
-                }
-              }
-            },
-            "selfFilterEnabled": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
                 }
               }
             }
@@ -238,82 +231,5 @@
       ]
     },
     "drillFilterOtherVisuals": true
-  },
-  "filterConfig": {
-    "filters": [
-      {
-        "name": "c24b00a3cacbda702c10",
-        "field": {
-          "Column": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "Dim Resource"
-              }
-            },
-            "Property": "Resource Name"
-          }
-        },
-        "type": "Categorical",
-        "filter": {
-          "Version": 2,
-          "From": [
-            {
-              "Name": "d",
-              "Entity": "Dim Resource",
-              "Type": 0
-            }
-          ],
-          "Where": [
-            {
-              "Condition": {
-                "Not": {
-                  "Expression": {
-                    "In": {
-                      "Expressions": [
-                        {
-                          "Column": {
-                            "Expression": {
-                              "SourceRef": {
-                                "Source": "d"
-                              }
-                            },
-                            "Property": "Resource Name"
-                          }
-                        }
-                      ],
-                      "Values": [
-                        [
-                          {
-                            "Literal": {
-                              "Value": "'Unknown'"
-                            }
-                          }
-                        ]
-                      ]
-                    }
-                  }
-                }
-              }
-            }
-          ]
-        },
-        "howCreated": "User",
-        "objects": {
-          "general": [
-            {
-              "properties": {
-                "isInvertedSelectionMode": {
-                  "expr": {
-                    "Literal": {
-                      "Value": "true"
-                    }
-                  }
-                }
-              }
-            }
-          ]
-        }
-      }
-    ]
   }
 }

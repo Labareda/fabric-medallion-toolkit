@@ -47,28 +47,6 @@ table 'Fact Issue History'
 
 		annotation SummarizationSetBy = Automatic
 
-	column 'Valid From Date'
-		dataType: dateTime
-		formatString: Long Date
-		lineageTag: 654d140c-e63a-43dd-937d-e2f3b9cc6a0c
-		summarizeBy: none
-		sourceColumn: Valid From Date
-
-		annotation SummarizationSetBy = Automatic
-
-		annotation UnderlyingDateTimeDataType = Date
-
-	column 'Valid To Date'
-		dataType: dateTime
-		formatString: Long Date
-		lineageTag: 867ec080-3061-418b-bd43-5100a540bc9c
-		summarizeBy: none
-		sourceColumn: Valid To Date
-
-		annotation SummarizationSetBy = Automatic
-
-		annotation UnderlyingDateTimeDataType = Date
-
 	column 'Is Current'
 		dataType: boolean
 		formatString: """TRUE"";""TRUE"";""FALSE"""

@@ -11,9 +11,12 @@ table 'Dim Team'
 
 	column 'Team Id'
 		dataType: string
+		isHidden
 		lineageTag: a962090c-1f29-44ef-bc8d-028403d95cb0
 		summarizeBy: none
 		sourceColumn: Team Id
+
+		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
 

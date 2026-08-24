@@ -1,13 +1,13 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.10.0/schema.json",
-  "name": "5a9256d759935d9ae8de",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
+  "name": "3c6a3bf55b0b3cb4277f",
   "position": {
-    "x": 30,
-    "y": 546.66666666666663,
-    "z": 16000,
-    "height": 34.444444444444443,
+    "x": 29.344387029246192,
+    "y": 414.07881633233728,
+    "z": 13000,
+    "height": 35,
     "width": 225.55555555555554,
-    "tabOrder": 15000
+    "tabOrder": 13000
   },
   "visual": {
     "visualType": "slicer",
@@ -20,14 +20,14 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Dim Status"
+                      "Entity": "Dim Issue"
                     }
                   },
-                  "Property": "Status Category"
+                  "Property": "Issue Code"
                 }
               },
-              "queryRef": "Dim Status.Status Category",
-              "nativeQueryRef": "Status Category",
+              "queryRef": "Dim Issue.Issue Code",
+              "nativeQueryRef": "Issue Code",
               "active": true
             }
           ]
@@ -59,6 +59,51 @@
                 "Literal": {
                   "Value": "1D"
                 }
+              }
+            },
+            "selfFilterEnabled": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "selfFilter": {
+              "filter": {
+                "Version": 2,
+                "From": [
+                  {
+                    "Name": "d1",
+                    "Entity": "Dim Issue",
+                    "Type": 0
+                  }
+                ],
+                "Where": [
+                  {
+                    "Condition": {
+                      "Contains": {
+                        "Left": {
+                          "Column": {
+                            "Expression": {
+                              "SourceRef": {
+                                "Source": "d1"
+                              }
+                            },
+                            "Property": "Issue Code"
+                          }
+                        },
+                        "Right": {
+                          "Literal": {
+                            "Value": "'TF-18118'"
+                          }
+                        }
+                      }
+                    },
+                    "Annotations": {
+                      "PowerBI.MParameterBehavior": 1
+                    }
+                  }
+                ]
               }
             }
           }
@@ -235,15 +280,15 @@
   "filterConfig": {
     "filters": [
       {
-        "name": "7041261a3ed22579d86d",
+        "name": "9b85dcc39a6f7ef93ed6",
         "field": {
           "Column": {
             "Expression": {
               "SourceRef": {
-                "Entity": "Dim Status"
+                "Entity": "Dim Issue Type"
               }
             },
-            "Property": "Status Category"
+            "Property": "Issue Type Name"
           }
         },
         "type": "Categorical",
@@ -252,7 +297,7 @@
           "From": [
             {
               "Name": "d",
-              "Entity": "Dim Status",
+              "Entity": "Dim Issue Type",
               "Type": 0
             }
           ],
@@ -270,7 +315,7 @@
                                 "Source": "d"
                               }
                             },
-                            "Property": "Status Category"
+                            "Property": "Issue Type Name"
                           }
                         }
                       ],
@@ -290,6 +335,7 @@
             }
           ]
         },
+        "howCreated": "User",
         "objects": {
           "general": [
             {

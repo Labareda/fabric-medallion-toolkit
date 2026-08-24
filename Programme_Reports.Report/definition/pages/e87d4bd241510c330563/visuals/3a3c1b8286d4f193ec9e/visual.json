@@ -1,0 +1,389 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
+  "name": "3a3c1b8286d4f193ec9e",
+  "position": {
+    "x": 284.7045911834644,
+    "y": 103.22622604312745,
+    "z": 15004,
+    "height": 582.72869540475176,
+    "width": 965.66469524216,
+    "tabOrder": 14000
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Bridge Issue Link"
+                    }
+                  },
+                  "Property": "Issue Code"
+                }
+              },
+              "queryRef": "Bridge Issue Link.Issue Code",
+              "nativeQueryRef": "Issue Code"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Bridge Issue Link"
+                    }
+                  },
+                  "Property": "Linked Issue Type"
+                }
+              },
+              "queryRef": "Bridge Issue Link.Linked Issue Type",
+              "nativeQueryRef": "Linked Issue Type"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Bridge Issue Link"
+                    }
+                  },
+                  "Property": "Linked Issue Code"
+                }
+              },
+              "queryRef": "Bridge Issue Link.Linked Issue Code",
+              "nativeQueryRef": "Linked",
+              "displayName": "Linked"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Bridge Issue Link"
+                    }
+                  },
+                  "Property": "Link Label"
+                }
+              },
+              "queryRef": "Bridge Issue Link.Link Label",
+              "nativeQueryRef": "Link Label"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Bridge Issue Link"
+                    }
+                  },
+                  "Property": "Linked Issue Summary"
+                }
+              },
+              "queryRef": "Bridge Issue Link.Linked Issue Summary",
+              "nativeQueryRef": "Summary",
+              "displayName": "Summary"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Bridge Issue Link"
+                    }
+                  },
+                  "Property": "Linked Issue Acceptance Criteria"
+                }
+              },
+              "queryRef": "Bridge Issue Link.Linked Issue Acceptance Criteria",
+              "nativeQueryRef": "Acceptance Criteria",
+              "displayName": "Acceptance Criteria"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Bridge Issue Link"
+                    }
+                  },
+                  "Property": "Linked Test Status"
+                }
+              },
+              "queryRef": "Bridge Issue Link.Linked Test Status",
+              "nativeQueryRef": "Test Status",
+              "displayName": "Test Status"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Bridge Issue Link"
+                    }
+                  },
+                  "Property": "Linked Issue URL"
+                }
+              },
+              "queryRef": "Bridge Issue Link.Linked Issue URL",
+              "nativeQueryRef": "Linked Issue URL"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "Bridge Issue Link"
+                  }
+                },
+                "Property": "Linked Issue Type"
+              }
+            },
+            "direction": "Descending"
+          }
+        ]
+      }
+    },
+    "objects": {
+      "columnWidth": [
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "220D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Bridge Issue Link.Linked Issue Summary"
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "215D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Bridge Issue Link.Linked Issue URL"
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "85D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Bridge Issue Link.Linked Issue Acceptance Criteria"
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "85D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Bridge Issue Link.Linked Issue Type"
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "85D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Bridge Issue Link.Issue Code"
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "85D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Bridge Issue Link.Linked Issue Code"
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "85D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Bridge Issue Link.Linked Test Status"
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "86D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Bridge Issue Link.Link Label"
+          }
+        }
+      ],
+      "columnHeaders": [
+        {
+          "properties": {
+            "fontColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 1,
+                      "Percent": 0
+                    }
+                  }
+                }
+              }
+            },
+            "backColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 0,
+                      "Percent": 0
+                    }
+                  }
+                }
+              }
+            },
+            "alignment": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Center'"
+                }
+              }
+            },
+            "bold": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "grid": [
+        {
+          "properties": {
+            "gridHorizontalWeight": {
+              "expr": {
+                "Literal": {
+                  "Value": "2D"
+                }
+              }
+            },
+            "outlineColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#B21C1A'"
+                    }
+                  }
+                }
+              }
+            },
+            "outlineWeight": {
+              "expr": {
+                "Literal": {
+                  "Value": "3D"
+                }
+              }
+            },
+            "rowPadding": {
+              "expr": {
+                "Literal": {
+                  "Value": "4D"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "stylePreset": [
+        {
+          "properties": {
+            "name": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Minimal'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "55df65caded6bf82907d",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Fact Test"
+              }
+            },
+            "Property": "Is Latest"
+          }
+        },
+        "type": "Categorical",
+        "howCreated": "User"
+      }
+    ]
+  }
+}

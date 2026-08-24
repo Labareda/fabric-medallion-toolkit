@@ -8,7 +8,7 @@ model Model
 
 annotation __PBI_TimeIntelligenceEnabled = 0
 
-annotation PBI_QueryOrder = ["Dim Due Date","Dim Date","Dim Issue","Dim Issue Type","Dim Link Type","Dim Priority","Dim Project","Dim Resource","Dim Resource Role","Dim Status","Dim Team","Dim Test Status","Bridge Issue Link","Fact Issue","Fact Issue History","Fact Resource Allocation","Fact Worklog","Fact Resource Day Allocation","Fact Test"]
+annotation PBI_QueryOrder = ["Dim Due Date","Dim Date","Dim Issue","Dim Issue Type","Dim Link Type","Dim Priority","Dim Project","Dim Resource","Dim Resource Role","Dim Status","Dim Team","Dim Test Status","Bridge Issue Link","Fact Issue","Fact Issue History","Fact Resource Allocation","Fact Worklog","Fact Test","Fact Resource Day Allocation"]
 
 annotation PBI_ProTooling = ["DevMode"]
 
@@ -27,10 +27,10 @@ ref table 'Dim Team'
 ref table 'Fact Issue History'
 ref table 'Fact Worklog'
 ref table 'Dim Due Date'
+ref table 'Fact Test'
 ref table 'Dim Link Type'
 ref table 'Bridge Issue Link'
 ref table 'Fact Resource Day Allocation'
-ref table 'Fact Test'
 
 ref cultureInfo en-GB
 

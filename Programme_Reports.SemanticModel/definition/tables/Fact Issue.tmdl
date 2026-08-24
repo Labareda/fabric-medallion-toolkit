@@ -2,45 +2,9 @@
 table 'Fact Issue'
 	lineageTag: 0a82a02f-4e70-449c-9b64-53e532045d7d
 
-	measure 'Story Points Committed' = SUM ( 'Fact Issue'[Story Points] )
-		lineageTag: 19b85fc4-da44-4e79-a4a4-70de72ebea35
-
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
-
-	measure 'Story Points Delivered' =
-			
-			CALCULATE (
-			    SUM ( 'Fact Issue'[Story Points] ),
-			    'Dim Status'[Status Category] = "Done"
-			)
-		lineageTag: 48604c40-5e0e-4a29-8487-1a4a61047eec
-
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
-
-	measure 'Open Issues' = ```
-			
-			CALCULATE(
-			    [Total Issues], 
-			    'Fact Issue History'[Is Done]= False)
-			```
-		lineageTag: 9e123aea-29a7-4d92-b3d5-75877097beb4
-
-	measure 'Overdue Issues' = CALCULATE([Total Issues], 'Fact Issue'[Is Overdue] = True)
-		lineageTag: 733ba7e4-5c4d-43c7-a225-c665f960ff84
-
 	measure 'Total Issues' = COUNTROWS('Fact Issue')
 		formatString: 0
 		lineageTag: 610252c6-4bd4-4582-bb13-1badf2adb0d6
-
-	measure 'Total Story Points' = SUM('Fact Issue'[Story Points])
-		lineageTag: ef1618d5-92b6-46af-a16b-bf8861f7b9cb
-
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
-
-	measure 'Total Time Spent (Hrs)' = SUM('Fact Issue'[Time Spent Hours])
-		lineageTag: e97cf59e-af14-4a70-8d6b-00fb3a1c445e
-
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	column 'Issue Id'
 		dataType: string

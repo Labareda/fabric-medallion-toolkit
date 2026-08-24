@@ -91,6 +91,9 @@ table 'Dim Date'
 		lineageTag: 64622f74-c2d0-4755-b445-06627d9bf480
 		summarizeBy: none
 		sourceColumn: Day Name
+		sortByColumn: 'Day Of Week'
+
+		changedProperty = SortByColumn
 
 		annotation SummarizationSetBy = Automatic
 

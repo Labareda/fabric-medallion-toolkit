@@ -1,13 +1,13 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.11.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
   "name": "9e3363682faf40bd0d26",
   "position": {
-    "x": 285.55555555555554,
-    "y": 160,
-    "z": 7000,
-    "height": 530,
-    "width": 965.5555555555555,
-    "tabOrder": 7000
+    "x": 286,
+    "y": 86,
+    "z": 6000,
+    "height": 360,
+    "width": 965,
+    "tabOrder": 6000
   },
   "visual": {
     "visualType": "pivotTable",
@@ -23,11 +23,41 @@
                       "Entity": "Dim Date"
                     }
                   },
-                  "Property": "Week Start Date"
+                  "Property": "Week Label"
                 }
               },
-              "queryRef": "Dim Date.Week Start Date",
-              "nativeQueryRef": "Week",
+              "queryRef": "Dim Date.Week Label",
+              "nativeQueryRef": "Week Label",
+              "active": true
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Date"
+                    }
+                  },
+                  "Property": "Day Name"
+                }
+              },
+              "queryRef": "Dim Date.Day Name",
+              "nativeQueryRef": "Day Name",
+              "active": true
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Date"
+                    }
+                  },
+                  "Property": "Day Of Month"
+                }
+              },
+              "queryRef": "Dim Date.Day Of Month",
+              "nativeQueryRef": "Day Of Month",
               "active": true
             }
           ]
@@ -65,57 +95,65 @@
                 }
               },
               "queryRef": "Fact Resource Day Allocation.Allocated Items",
-              "nativeQueryRef": "Items"
-            },
-            {
-              "field": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Fact Resource Day Allocation"
-                    }
-                  },
-                  "Property": "Allocated Hours (Total)"
-                }
-              },
-              "queryRef": "Fact Resource Day Allocation.Allocated Hours (Total)",
-              "nativeQueryRef": "Load (Hrs)"
-            },
-            {
-              "field": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Fact Resource Day Allocation"
-                    }
-                  },
-                  "Property": "Overallocated"
-                }
-              },
-              "queryRef": "Fact Resource Day Allocation.Overallocated",
-              "nativeQueryRef": "Overallocated"
+              "nativeQueryRef": "Allocated Items"
             }
           ]
         }
       },
       "sortDefinition": {
-        "sort": [
-          {
-            "field": {
-              "Column": {
-                "Expression": {
-                  "SourceRef": {
-                    "Entity": "Dim Date"
-                  }
-                },
-                "Property": "Week Start Date"
-              }
-            },
-            "direction": "Ascending"
-          }
-        ],
         "isDefaultSort": true
       }
+    },
+    "expansionStates": [
+      {
+        "roles": [
+          "Columns"
+        ],
+        "levels": [
+          {
+            "queryRefs": [
+              "Dim Date.Week Label"
+            ],
+            "isPinned": true
+          },
+          {
+            "queryRefs": [
+              "Dim Date.Day Name"
+            ],
+            "isPinned": true
+          },
+          {
+            "queryRefs": [
+              "Dim Date.Day Of Month"
+            ],
+            "isCollapsed": true,
+            "isPinned": true
+          }
+        ],
+        "root": {}
+      }
+    ],
+    "objects": {
+      "subTotals": [
+        {
+          "properties": {
+            "columnSubtotals": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "rowSubtotals": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "visualContainerObjects": {
       "title": [
@@ -258,6 +296,86 @@
                         }
                       },
                       "TimeUnit": 0
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "howCreated": "User"
+      },
+      {
+        "name": "fead94049e33b6536844",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Dim Date"
+              }
+            },
+            "Property": "Day Name"
+          }
+        },
+        "type": "Categorical",
+        "filter": {
+          "Version": 2,
+          "From": [
+            {
+              "Name": "d",
+              "Entity": "Dim Date",
+              "Type": 0
+            }
+          ],
+          "Where": [
+            {
+              "Condition": {
+                "Not": {
+                  "Expression": {
+                    "In": {
+                      "Expressions": [
+                        {
+                          "Column": {
+                            "Expression": {
+                              "SourceRef": {
+                                "Source": "d"
+                              }
+                            },
+                            "Property": "Day Name"
+                          }
+                        }
+                      ],
+                      "Values": [
+                        [
+                          {
+                            "Literal": {
+                              "Value": "'Sunday'"
+                            }
+                          }
+                        ],
+                        [
+                          {
+                            "Literal": {
+                              "Value": "'Saturday'"
+                            }
+                          }
+                        ]
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "objects": {
+          "general": [
+            {
+              "properties": {
+                "isInvertedSelectionMode": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "true"
                     }
                   }
                 }

@@ -1,13 +1,13 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.10.0/schema.json",
-  "name": "b622e0984948ff7de5a6",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
+  "name": "d22e645d760fa4584d45",
   "position": {
-    "x": 30,
-    "y": 380,
-    "z": 5000,
+    "x": 29.344387029246192,
+    "y": 384.07881633233728,
+    "z": 14000,
     "height": 30,
     "width": 230,
-    "tabOrder": 5000
+    "tabOrder": 14000
   },
   "visual": {
     "visualType": "actionButton",
@@ -56,7 +56,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Hierarchy Levels'"
+                  "Value": "'Issue Code'"
                 }
               }
             },

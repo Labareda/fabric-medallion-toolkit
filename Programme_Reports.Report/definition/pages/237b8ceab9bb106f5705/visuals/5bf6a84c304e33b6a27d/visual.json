@@ -1,0 +1,51 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
+  "name": "5bf6a84c304e33b6a27d",
+  "position": {
+    "x": 286,
+    "y": 515,
+    "z": 14001,
+    "height": 150,
+    "width": 965
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Fact Resource Day Allocation"
+                    }
+                  },
+                  "Property": "Issue Key"
+                }
+              },
+              "queryRef": "Fact Resource Day Allocation.Issue Key",
+              "nativeQueryRef": "Issue Key"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Fact Resource Day Allocation"
+                    }
+                  },
+                  "Property": "Allocated Items"
+                }
+              },
+              "queryRef": "Fact Resource Day Allocation.Allocated Items",
+              "nativeQueryRef": "Allocated Items"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

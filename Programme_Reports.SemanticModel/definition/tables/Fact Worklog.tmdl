@@ -63,17 +63,6 @@ table 'Fact Worklog'
 
 		annotation SummarizationSetBy = Automatic
 
-	column 'Author Key'
-		dataType: string
-		isHidden
-		lineageTag: 97fbeca9-cc03-4607-b4ef-f990ea71c870
-		summarizeBy: none
-		sourceColumn: Author Key
-
-		changedProperty = IsHidden
-
-		annotation SummarizationSetBy = Automatic
-
 	column 'Worklog Fact Key'
 		dataType: string
 		isHidden
@@ -91,6 +80,17 @@ table 'Fact Worklog'
 		lineageTag: 14411ef4-a13a-4b34-87d4-f6a997505716
 		summarizeBy: none
 		sourceColumn: Resource Role Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Resource Key'
+		dataType: string
+		isHidden
+		lineageTag: 8b20fa46-ab3b-4892-abee-cb0103555c4a
+		summarizeBy: none
+		sourceColumn: Resource Key
 
 		changedProperty = IsHidden
 
