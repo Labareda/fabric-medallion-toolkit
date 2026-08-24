@@ -57,7 +57,8 @@ schema = fmt.TableSchema(
         # for "current status", drops it for full history.
         "Is_Latest":  {"type": "boolean", "default": False},
 
-        "Test_Type":      {"type": "string", "default": "Unknown"},
+        # Test_Type moved to Dim_Test -- it's a descriptive attribute of the
+        # test, not of a run, so it doesn't belong on this run-grain fact.
         "Started_On":     {"type": "timestamp"},
         "Finished_On":    {"type": "timestamp"},
         "Executed_Date":  {"type": "date"},
@@ -136,7 +137,6 @@ df = spark.sql(f"""
             ORDER BY r.started_on DESC NULLS LAST
         ) = 1 AS Is_Latest,
 
-        r.test_type AS Test_Type,
         r.started_on AS Started_On,
         r.finished_on AS Finished_On,
         CAST(r.finished_on AS date) AS Executed_Date,

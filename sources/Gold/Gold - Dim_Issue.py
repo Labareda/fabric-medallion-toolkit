@@ -71,6 +71,7 @@ GOLD_SCHEMA = "Gold.gold"
 FINAL_COLUMNS = [
     "Issue_Id", "Issue_Code", "Summary", "Display_Label", "Is_Milestone",
     "Acceptance_Criteria",
+    "Issue_Type_Name", "Status_Name", "Priority_Name", "Created_Date", "Updated_Date",
     "Parent_Issue_Id",
     "Sort_Path",
     "Level_1", "Level_2", "Level_3", "Level_4", "Level_5", "Level_6", "Level_7",
@@ -104,6 +105,17 @@ schema = fmt.TableSchema(
         # display, and any test-level fact can pull it through a relationship
         # instead of carrying its own copy.
         "Acceptance_Criteria": {"type": "string", "default": ""},
+        # Descriptive attributes every issue has -- carried here so "select
+        # an issue, see what it IS" needs no hop through Fact_Issue. These
+        # are the issue's CURRENT values (a point-in-time snapshot); trend/
+        # history still lives in Fact_Issue_History. Status/Priority/Type are
+        # ALSO available as proper dimensions off Fact_Issue for measure
+        # slicing -- these text copies are for display on the issue itself.
+        "Issue_Type_Name":  {"type": "string", "default": "Unknown"},
+        "Status_Name":      {"type": "string", "default": "Unknown"},
+        "Priority_Name":    {"type": "string", "default": "Unknown"},
+        "Created_Date":     {"type": "date"},
+        "Updated_Date":     {"type": "date"},
         # Kept for Fact_Issue's date-rollup join -- not a reporting column.
         "Parent_Issue_Id":  {"type": "string"},
         "Sort_Path":        {"type": "string", "default": ""},
@@ -148,6 +160,11 @@ df = spark.sql("""
         LOWER(it.name) = 'milestone' AS Is_Milestone,
         COALESCE(i.fields_customfield_acceptance_criteria,
                  i.fields_acceptance_criteria, '') AS Acceptance_Criteria,
+        COALESCE(it.name, 'Unknown')               AS Issue_Type_Name,
+        COALESCE(i.fields_status_name, 'Unknown')   AS Status_Name,
+        COALESCE(i.fields_priority_name, 'Unknown') AS Priority_Name,
+        CAST(i.fields_created AS date)              AS Created_Date,
+        CAST(i.fields_updated AS date)             AS Updated_Date,
         i.fields_rank AS Rank,
         i.fields_parent_id AS Parent_Issue_Id,
         i.fields_project_id AS Project_Id,

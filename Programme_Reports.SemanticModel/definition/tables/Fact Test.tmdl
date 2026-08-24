@@ -126,14 +126,6 @@ table 'Fact Test'
 
 		annotation SummarizationSetBy = Automatic
 
-	column 'Test Type'
-		dataType: string
-		lineageTag: 1e6c2b7a-4f3d-4a91-9b8e-2d5f7a9c1b0e
-		summarizeBy: none
-		sourceColumn: Test Type
-
-		annotation SummarizationSetBy = Automatic
-
 	column 'Started On'
 		dataType: dateTime
 		formatString: General Date

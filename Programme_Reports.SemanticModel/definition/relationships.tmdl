@@ -157,5 +157,9 @@ relationship 9f5e1a72-4b3d-4e62-a0af-5d71ae1f3a42
 	fromColumn: 'Fact Test'.'Team Key'
 	toColumn: 'Dim Team'.'Team Key'
 
+relationship eb63140b-2584-4be9-bd36-07e184b2ef29
+	fromColumn: 'Dim Test'.'Test Code'
+	toColumn: 'Dim Issue'.'Issue Code'
+
 
 
