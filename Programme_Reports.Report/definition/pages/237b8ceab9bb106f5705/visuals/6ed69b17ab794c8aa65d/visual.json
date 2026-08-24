@@ -1,0 +1,38 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.11.0/schema.json",
+  "name": "6ed69b17ab794c8aa65d",
+  "position": {
+    "x": 285.55555555555554,
+    "y": 90,
+    "z": 7100,
+    "height": 62,
+    "width": 300,
+    "tabOrder": 7100
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Fact Resource Day Allocation"
+                    }
+                  },
+                  "Property": "Overallocated People"
+                }
+              },
+              "queryRef": "Fact Resource Day Allocation.Overallocated People",
+              "nativeQueryRef": "Overallocated People"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

@@ -14,6 +14,18 @@ table 'Fact Resource Day Allocation'
 		formatString: """Over"";""Over"";""OK"""
 		lineageTag: 93e10636-1da6-4600-a695-880592108949
 
+	measure 'Overallocated People' = ```
+
+			    COUNTROWS(
+			        FILTER(
+			            VALUES('Dim Resource'[Resource Name]),
+			            [Conflict Resource Days] > 0
+			        )
+			    )
+			```
+		formatString: 0
+		lineageTag: 039e6a29-44df-4ece-ad60-bc3dcacc5fbd
+
 	measure 'Conflict Resource Days' = ```
 			
 			    VAR ResourceDayTable =  
