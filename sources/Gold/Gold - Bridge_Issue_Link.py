@@ -66,7 +66,16 @@ schema = fmt.TableSchema(
         "Linked_Issue_Code": {"type": "string", "merge_field": True},
         "Link_Type_Name":    {"type": "string", "merge_field": True},
         "Direction":         {"type": "string", "merge_field": True},
+        # Link_Label = the phrase for THIS row's direction (reads correctly
+        # from the anchor's side: "is blocked by" / "blocks" / "tests" ...).
         "Link_Label":        {"type": "string", "default": "Unknown"},
+        # BOTH directional names of the link TYPE, on every row -- so a
+        # report can show either phrasing regardless of which side it's
+        # viewing from, and it's never hardcoded to "blocks". Jira gives
+        # both on every issue_links row; the Xray containment types get
+        # "belongs to" (inward) / "contains" (outward).
+        "Inward_Label":      {"type": "string", "default": ""},
+        "Outward_Label":     {"type": "string", "default": ""},
         # DENORMALISED linked-issue attributes -- this is what makes the
         # bridge a drag-and-drop fact with NO measures for the "select an
         # issue, see what's linked to it" view. The bridge relates to
@@ -169,29 +178,32 @@ df = spark.sql(f"""
             COALESCE(il.outward_issue_key, il.inward_issue_key) AS Linked_Issue_Code,
             il.link_type AS Link_Type_Name,
             CASE WHEN il.outward_issue_key IS NOT NULL THEN 'Outward' ELSE 'Inward' END AS Direction,
-            COALESCE(il.outward_label, il.inward_label) AS Link_Label
+            COALESCE(il.outward_label, il.inward_label) AS Link_Label,
+            -- both directional names of the type, carried on every row
+            il.inward_label  AS Inward_Label,
+            il.outward_label AS Outward_Label
         FROM Silver.jira.issue_links il
         WHERE COALESCE(il.outward_issue_key, il.inward_issue_key) IS NOT NULL
 
         UNION ALL
-        SELECT test_set_issue_key, test_issue_key, 'Test Set', 'Outward', 'contains'
+        SELECT test_set_issue_key, test_issue_key, 'Test Set', 'Outward', 'contains', 'belongs to', 'contains'
         FROM Silver.xray.test_sets WHERE test_issue_key IS NOT NULL
         UNION ALL
-        SELECT test_issue_key, test_set_issue_key, 'Test Set', 'Inward', 'belongs to'
+        SELECT test_issue_key, test_set_issue_key, 'Test Set', 'Inward', 'belongs to', 'belongs to', 'contains'
         FROM Silver.xray.test_sets WHERE test_issue_key IS NOT NULL
 
         UNION ALL
-        SELECT test_plan_issue_key, test_issue_key, 'Test Plan', 'Outward', 'contains'
+        SELECT test_plan_issue_key, test_issue_key, 'Test Plan', 'Outward', 'contains', 'belongs to', 'contains'
         FROM Silver.xray.test_plans WHERE test_issue_key IS NOT NULL
         UNION ALL
-        SELECT test_issue_key, test_plan_issue_key, 'Test Plan', 'Inward', 'belongs to'
+        SELECT test_issue_key, test_plan_issue_key, 'Test Plan', 'Inward', 'belongs to', 'belongs to', 'contains'
         FROM Silver.xray.test_plans WHERE test_issue_key IS NOT NULL
 
         UNION ALL
-        SELECT DISTINCT execution_issue_key, test_issue_key, 'Test Execution', 'Outward', 'contains'
+        SELECT DISTINCT execution_issue_key, test_issue_key, 'Test Execution', 'Outward', 'contains', 'belongs to', 'contains'
         FROM Silver.xray.test_runs WHERE test_issue_key IS NOT NULL
         UNION ALL
-        SELECT DISTINCT test_issue_key, execution_issue_key, 'Test Execution', 'Inward', 'belongs to'
+        SELECT DISTINCT test_issue_key, execution_issue_key, 'Test Execution', 'Inward', 'belongs to', 'belongs to', 'contains'
         FROM Silver.xray.test_runs WHERE test_issue_key IS NOT NULL
     ),
     latest_status_per_test AS (
@@ -210,6 +222,7 @@ df = spark.sql(f"""
     )
     SELECT DISTINCT
         a.Issue_Code, a.Linked_Issue_Code, a.Link_Type_Name, a.Direction, a.Link_Label,
+        a.Inward_Label, a.Outward_Label,
         linked_di.Summary       AS Linked_Issue_Summary,
         lsp.Test_Status_Name    AS Linked_Test_Status,
         di.Issue_Key,
