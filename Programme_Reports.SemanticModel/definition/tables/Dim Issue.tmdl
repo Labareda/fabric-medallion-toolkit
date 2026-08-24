@@ -198,6 +198,30 @@ table 'Dim Issue'
 
 		annotation SummarizationSetBy = Automatic
 
+	column Description
+		dataType: string
+		lineageTag: c2f6a46b-edc5-447a-9bca-0632af86d9e3
+		summarizeBy: none
+		sourceColumn: Description
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Type'
+		dataType: string
+		lineageTag: a4e75f9b-1832-4813-8bd5-75064747841d
+		summarizeBy: none
+		sourceColumn: Test Type
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Steps'
+		dataType: string
+		lineageTag: 4a44a731-1406-41d4-852e-928e9683518c
+		summarizeBy: none
+		sourceColumn: Test Steps
+
+		annotation SummarizationSetBy = Automatic
+
 	column 'Created Date'
 		dataType: dateTime
 		formatString: Long Date

@@ -57,8 +57,8 @@ schema = fmt.TableSchema(
         # for "current status", drops it for full history.
         "Is_Latest":  {"type": "boolean", "default": False},
 
-        # Test_Type moved to Dim_Test -- it's a descriptive attribute of the
-        # test, not of a run, so it doesn't belong on this run-grain fact.
+        # Test_Type lives on Dim_Issue (Test issues) -- it's a descriptive
+        # attribute of the test, not of a run, so it's not on this run fact.
         "Started_On":     {"type": "timestamp"},
         "Finished_On":    {"type": "timestamp"},
         "Executed_Date":  {"type": "date"},

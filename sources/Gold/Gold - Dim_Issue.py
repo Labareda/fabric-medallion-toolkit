@@ -71,7 +71,9 @@ GOLD_SCHEMA = "Gold.gold"
 FINAL_COLUMNS = [
     "Issue_Id", "Issue_Code", "Summary", "Display_Label", "Is_Milestone",
     "Acceptance_Criteria",
-    "Issue_Type_Name", "Status_Name", "Priority_Name", "Created_Date", "Updated_Date",
+    "Issue_Type_Name", "Status_Name", "Priority_Name", "Description",
+    "Created_Date", "Updated_Date",
+    "Test_Type", "Test_Steps",
     "Parent_Issue_Id",
     "Sort_Path",
     "Level_1", "Level_2", "Level_3", "Level_4", "Level_5", "Level_6", "Level_7",
@@ -114,8 +116,17 @@ schema = fmt.TableSchema(
         "Issue_Type_Name":  {"type": "string", "default": "Unknown"},
         "Status_Name":      {"type": "string", "default": "Unknown"},
         "Priority_Name":    {"type": "string", "default": "Unknown"},
+        "Description":      {"type": "string", "default": ""},
         "Created_Date":     {"type": "date"},
         "Updated_Date":     {"type": "date"},
+        # Xray test-specific attributes -- populated ONLY for issuetype=Test
+        # (null for every other issue), joined in below from Silver.xray.tests.
+        # A test IS an issue, so its Xray attributes are integrated into the
+        # ONE issue dimension rather than snowflaked into a separate Dim_Test:
+        # "the Test table" is simply this dimension filtered to Issue_Type_Name
+        # = 'Test', and every fact still links straight to Dim_Issue (star).
+        "Test_Type":        {"type": "string", "default": ""},
+        "Test_Steps":       {"type": "string", "default": ""},
         # Kept for Fact_Issue's date-rollup join -- not a reporting column.
         "Parent_Issue_Id":  {"type": "string"},
         "Sort_Path":        {"type": "string", "default": ""},
@@ -163,6 +174,7 @@ df = spark.sql("""
         COALESCE(it.name, 'Unknown')               AS Issue_Type_Name,
         COALESCE(i.fields_status_name, 'Unknown')   AS Status_Name,
         COALESCE(i.fields_priority_name, 'Unknown') AS Priority_Name,
+        COALESCE(i.fields_description, '')          AS Description,
         CAST(i.fields_created AS date)              AS Created_Date,
         CAST(i.fields_updated AS date)             AS Updated_Date,
         i.fields_rank AS Rank,
@@ -203,6 +215,41 @@ df = fmt.enrich_issue_hierarchy(
     build_dense_levels=True,
     # No typed walk (typed_level_names omitted) -- see header note.
 )
+
+# MARKDOWN ********************
+
+# ## Integrate Xray test attributes (Test_Type, Test_Steps)
+# A test IS an issue, so its Xray-specific attributes belong on the ONE
+# issue dimension -- not a separate Dim_Test (that would be a dimension-to-
+# dimension snowflake, not a star). Guarded: Silver.xray.tests is optional
+# (Xray may not have run), and Dim_Issue is a required Jira dimension that
+# must still build without it -- so the join only happens if the table
+# exists; otherwise these columns stay their defaults (empty).
+
+# CELL ********************
+from pyspark.sql import functions as F
+
+def _table_exists(name: str) -> bool:
+    # spark.sql (DESCRIBE), not spark.catalog/spark.table -- only the SQL
+    # parser resolves 3-part Fabric names (Lakehouse.schema.table).
+    try:
+        spark.sql(f"DESCRIBE TABLE {name}")
+        return True
+    except Exception:
+        return False
+
+if _table_exists("Silver.xray.tests"):
+    xray_tests = spark.sql("""
+        SELECT test_issue_id AS Issue_Id,
+               test_type     AS Test_Type,
+               steps_json    AS Test_Steps
+        FROM Silver.xray.tests
+        WHERE test_issue_id IS NOT NULL
+    """)
+    df = df.join(xray_tests, on="Issue_Id", how="left")
+else:
+    print("No Silver.xray.tests -- Test_Type/Test_Steps left empty this run.")
+    df = df.withColumn("Test_Type", F.lit("")).withColumn("Test_Steps", F.lit(""))
 
 # Trim to the final persisted shape -- drops Rank, Depth, Project_Id,
 # Parent_Issue_Key (all working columns the wheel/base query needed but the

@@ -91,10 +91,6 @@ DIMENSION_NOTEBOOKS = {
     # The alphabet actively gets this WRONG (I < P), and it's the exact
     # TABLE_OR_VIEW_NOT_FOUND this pipeline used to die on.
     "Gold - Dim_Issue": ["Gold - Dim_Project"],
-    # Dim_Test = all descriptive attributes of a Test in one table (Jira
-    # issue attrs + Xray test_type/steps). Joins Dim_Project for the project
-    # name. Xray-dependent (reads Silver.xray.tests) -> OPTIONAL below.
-    "Gold - Dim_Test": ["Gold - Dim_Project"],
 }
 
 # Facts declare dependencies on OTHER FACTS only -- depending on every
@@ -139,7 +135,6 @@ OPTIONAL_STEPS = {
     "S2B - Xray",
     "B2S - Xray",
     "Gold - Dim Test Status",
-    "Gold - Dim_Test",
     "Gold - Fact_Test",
 }
 
