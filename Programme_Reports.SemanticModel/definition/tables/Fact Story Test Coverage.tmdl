@@ -1,4 +1,4 @@
-/// Story -> Test traceability tree (Story -> Test Set/Plan -> Test -> Blocker)
+/// Story -> Test traceability tree (Story -> Test Set/Plan -> Test -> Linked item, any link type)
 table 'Fact Story Test Coverage'
 	lineageTag: 8f2c1a44-6b7d-4e91-a0c2-1d3e5f7a9b21
 
@@ -42,11 +42,27 @@ table 'Fact Story Test Coverage'
 
 		annotation SummarizationSetBy = Automatic
 
-	column 'Blocker Link Label'
+	column 'Link Type Name'
+		dataType: string
+		lineageTag: 7c8d9e0f-1a2b-4c3d-9e4f-5a6b7c8d9e0f
+		summarizeBy: none
+		sourceColumn: Link Type Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Link Direction'
+		dataType: string
+		lineageTag: 8d9e0f1a-2b3c-4d4e-8f5a-6b7c8d9e0f1a
+		summarizeBy: none
+		sourceColumn: Link Direction
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Link Label'
 		dataType: string
 		lineageTag: 6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d9e
 		summarizeBy: none
-		sourceColumn: Blocker Link Label
+		sourceColumn: Link Label
 
 		annotation SummarizationSetBy = Automatic
 
@@ -98,35 +114,35 @@ table 'Fact Story Test Coverage'
 
 		annotation SummarizationSetBy = Automatic
 
-	column 'Blocker Code'
+	column 'Linked Code'
 		dataType: string
 		lineageTag: aa3b4c5d-6e7f-4809-1380-940516273849
 		summarizeBy: none
-		sourceColumn: Blocker Code
+		sourceColumn: Linked Code
 
 		annotation SummarizationSetBy = Automatic
 
-	column 'Blocker Type'
+	column 'Linked Issue Type'
 		dataType: string
 		lineageTag: bb4c5d6e-7f80-491a-2491-051627384950
 		summarizeBy: none
-		sourceColumn: Blocker Type
+		sourceColumn: Linked Issue Type
 
 		annotation SummarizationSetBy = Automatic
 
-	column 'Blocker Summary'
+	column 'Linked Summary'
 		dataType: string
 		lineageTag: cc5d6e7f-8091-4a2b-35a2-162738495061
 		summarizeBy: none
-		sourceColumn: Blocker Summary
+		sourceColumn: Linked Summary
 
 		annotation SummarizationSetBy = Automatic
 
-	column 'Blocker Status'
+	column 'Linked Status'
 		dataType: string
 		lineageTag: dd6e7f80-91a2-4b3c-46b3-273849506172
 		summarizeBy: none
-		sourceColumn: Blocker Status
+		sourceColumn: Linked Status
 
 		annotation SummarizationSetBy = Automatic
 

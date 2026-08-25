@@ -50,11 +50,21 @@
               "field": {
                 "Column": {
                   "Expression": { "SourceRef": { "Entity": "Fact Story Test Coverage" } },
-                  "Property": "Blocker Code"
+                  "Property": "Link Type Name"
                 }
               },
-              "queryRef": "Fact Story Test Coverage.Blocker Code",
-              "nativeQueryRef": "Blocked by"
+              "queryRef": "Fact Story Test Coverage.Link Type Name",
+              "nativeQueryRef": "Link type"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": { "SourceRef": { "Entity": "Fact Story Test Coverage" } },
+                  "Property": "Linked Code"
+                }
+              },
+              "queryRef": "Fact Story Test Coverage.Linked Code",
+              "nativeQueryRef": "Linked item"
             }
           ]
         },
@@ -89,7 +99,7 @@
         {
           "properties": {
             "show": { "expr": { "Literal": { "Value": "true" } } },
-            "text": { "expr": { "Literal": { "Value": "'Story → Test Set/Plan → Test → Blocked by (expand a story)'" } } }
+            "text": { "expr": { "Literal": { "Value": "'Story → Test Set/Plan → Test → Link type → Linked item (expand a story)'" } } }
           }
         }
       ]

@@ -64,7 +64,9 @@ schema = fmt.TableSchema(
     columns={
 
         # -------------------------------------------------------------------
-        # Grain (all four resolved together define the row)
+        # Grain -- one row per resolved Story -> Container -> Test -> Linked
+        # item, per link type and direction. The leaf is ANY link type (not
+        # just Blocks); the client filters Link_Type_Name in the report.
         # -------------------------------------------------------------------
 
         "Story_Code": {
@@ -83,7 +85,19 @@ schema = fmt.TableSchema(
             "merge_field": True
         },
 
-        "Blocker_Code": {
+        "Linked_Code": {
+            "type": "string",
+            "merge_field": True,
+            "default": "None"
+        },
+
+        "Link_Type_Name": {
+            "type": "string",
+            "merge_field": True,
+            "default": "None"
+        },
+
+        "Link_Direction": {
             "type": "string",
             "merge_field": True,
             "default": "None"
@@ -111,10 +125,10 @@ schema = fmt.TableSchema(
             "default": "Unknown"
         },
 
-        # Both directional labels of the Test <-> Blocker link, e.g.
-        # "is blocked by / blocks". "None" when there is no blocker,
-        # "Unknown" when a blocker exists but Jira supplies no label.
-        "Blocker_Link_Label": {
+        # Both directional labels of the Test <-> Linked-item link, e.g.
+        # "is blocked by / blocks" or "relates to / relates to". "None" when
+        # the test has no links, "Unknown" when Jira supplies no label.
+        "Link_Label": {
             "type": "string",
             "default": "None"
         },
@@ -139,17 +153,19 @@ schema = fmt.TableSchema(
             "default": "Unknown"
         },
 
-        "Blocker_Type": {
+        # Attributes of the linked item (any link type). "None" when the test
+        # has no links at all.
+        "Linked_Issue_Type": {
             "type": "string",
             "default": "None"
         },
 
-        "Blocker_Summary": {
+        "Linked_Summary": {
             "type": "string",
             "default": "None"
         },
 
-        "Blocker_Status": {
+        "Linked_Status": {
             "type": "string",
             "default": "None"
         },
@@ -325,30 +341,62 @@ df = spark.sql(f"""
 
 
     # --------------------------------------------------------------------
-    # Test <-> Blocker.
+    # Test <-> any linked issue, for EVERY link type.
     #
-    # Same key-driven orientation:
-    #   inward  row : issue_key is the Test, inward_issue_key is the Blocker
-    #   outward row : outward_issue_key is the Test, issue_key is the Blocker
+    # Not filtered to a single link type -- the client chooses the type in
+    # the report (slicer on Link_Type_Name). Every relationship a test has
+    # is captured, from whichever side the row was exported on, so the leaf
+    # is complete regardless of how Jira stored each direction.
+    #
+    # Link_Direction is from the TEST's point of view for that row:
+    #   Inward  = the test is the inward party  (e.g. "is blocked by")
+    #   Outward = the test is the outward party (e.g. "blocks")
+    # The displayed label pair is added later from link_labels.
     # --------------------------------------------------------------------
 
-    test_blocker AS (
+    test_link AS (
 
+        -- test is the inward-row anchor
         SELECT
             il.issue_key        AS Test_Code,
-            il.inward_issue_key AS Blocker_Code
+            il.inward_issue_key AS Linked_Code,
+            il.link_type        AS Link_Type_Name,
+            'Inward'            AS Link_Direction
         FROM Silver.jira.issue_links il
-        WHERE il.link_type = 'Blocks'
-          AND il.inward_issue_key IS NOT NULL
+        WHERE il.inward_issue_key IS NOT NULL
 
         UNION
 
+        -- test is the outward-row anchor
+        SELECT
+            il.issue_key         AS Test_Code,
+            il.outward_issue_key AS Linked_Code,
+            il.link_type         AS Link_Type_Name,
+            'Outward'            AS Link_Direction
+        FROM Silver.jira.issue_links il
+        WHERE il.outward_issue_key IS NOT NULL
+
+        UNION
+
+        -- test is the counterpart on someone else's inward row
+        SELECT
+            il.inward_issue_key AS Test_Code,
+            il.issue_key        AS Linked_Code,
+            il.link_type        AS Link_Type_Name,
+            'Outward'           AS Link_Direction
+        FROM Silver.jira.issue_links il
+        WHERE il.inward_issue_key IS NOT NULL
+
+        UNION
+
+        -- test is the counterpart on someone else's outward row
         SELECT
             il.outward_issue_key AS Test_Code,
-            il.issue_key         AS Blocker_Code
+            il.issue_key         AS Linked_Code,
+            il.link_type         AS Link_Type_Name,
+            'Inward'             AS Link_Direction
         FROM Silver.jira.issue_links il
-        WHERE il.link_type = 'Blocks'
-          AND il.outward_issue_key IS NOT NULL
+        WHERE il.outward_issue_key IS NOT NULL
     ),
 
 
@@ -393,7 +441,11 @@ df = spark.sql(f"""
 
         st.Test_Code,
 
-        COALESCE(tb.Blocker_Code, 'None')     AS Blocker_Code,
+        COALESCE(tl.Linked_Code, 'None')      AS Linked_Code,
+
+        COALESCE(tl.Link_Type_Name, 'None')   AS Link_Type_Name,
+
+        COALESCE(tl.Link_Direction, 'None')   AS Link_Direction,
 
 
         # ================================================================
@@ -420,14 +472,15 @@ df = spark.sql(f"""
             'Unknown'
         ) AS Test_Link_Label,
 
+        # Both directional labels for whatever link type this leaf row is.
         CASE
-            WHEN tb.Blocker_Code IS NOT NULL THEN
+            WHEN tl.Linked_Code IS NOT NULL THEN
                 COALESCE(
-                    CONCAT(blk_ll.inward_label, ' / ', blk_ll.outward_label),
+                    CONCAT(link_ll.inward_label, ' / ', link_ll.outward_label),
                     'Unknown'
                 )
             ELSE 'None'
-        END AS Blocker_Link_Label,
+        END AS Link_Label,
 
         COALESCE(tc.Container_Type, 'Direct') AS Container_Type,
 
@@ -444,17 +497,17 @@ df = spark.sql(f"""
 
 
         # ================================================================
-        # Blocker
+        # Linked item (any link type)
         # ================================================================
 
-        CASE WHEN tb.Blocker_Code IS NULL THEN 'None'
-             ELSE COALESCE(blocker.Issue_Type_Name, 'Unknown') END AS Blocker_Type,
+        CASE WHEN tl.Linked_Code IS NULL THEN 'None'
+             ELSE COALESCE(linked.Issue_Type_Name, 'Unknown') END AS Linked_Issue_Type,
 
-        CASE WHEN tb.Blocker_Code IS NULL THEN 'None'
-             ELSE COALESCE(blocker.Summary, 'Unknown') END AS Blocker_Summary,
+        CASE WHEN tl.Linked_Code IS NULL THEN 'None'
+             ELSE COALESCE(linked.Summary, 'Unknown') END AS Linked_Summary,
 
-        CASE WHEN tb.Blocker_Code IS NULL THEN 'None'
-             ELSE COALESCE(blocker.Status_Name, 'Unknown') END AS Blocker_Status,
+        CASE WHEN tl.Linked_Code IS NULL THEN 'None'
+             ELSE COALESCE(linked.Status_Name, 'Unknown') END AS Linked_Status,
 
 
         # ================================================================
@@ -491,11 +544,11 @@ df = spark.sql(f"""
 
 
     # --------------------------------------------------------------------
-    # Test's blocker(s) -- kept even when the test has no blocker
+    # Test's links, any type -- kept even when the test has no links
     # --------------------------------------------------------------------
 
-    LEFT JOIN test_blocker tb
-        ON tb.Test_Code = st.Test_Code
+    LEFT JOIN test_link tl
+        ON tl.Test_Code = st.Test_Code
 
 
     # --------------------------------------------------------------------
@@ -511,19 +564,21 @@ df = spark.sql(f"""
     LEFT JOIN {GOLD_SCHEMA}.dim_issue container
         ON container.Issue_Code = tc.Container_Code
 
-    LEFT JOIN {GOLD_SCHEMA}.dim_issue blocker
-        ON blocker.Issue_Code = tb.Blocker_Code
+    LEFT JOIN {GOLD_SCHEMA}.dim_issue linked
+        ON linked.Issue_Code = tl.Linked_Code
 
 
     # --------------------------------------------------------------------
-    # Canonical directional labels for each edge (by link type, not text)
+    # Canonical directional labels (by link type, not text)
+    #   test_ll : the Story <-> Test coverage link
+    #   link_ll : whatever link type this leaf row is
     # --------------------------------------------------------------------
 
     LEFT JOIN link_labels test_ll
         ON test_ll.link_type = 'Test'
 
-    LEFT JOIN link_labels blk_ll
-        ON blk_ll.link_type = 'Blocks'
+    LEFT JOIN link_labels link_ll
+        ON link_ll.link_type = tl.Link_Type_Name
 
 
     # --------------------------------------------------------------------
