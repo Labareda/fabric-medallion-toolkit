@@ -1,0 +1,99 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
+  "name": "a1f0b2c3d4e5f6a7b8c9",
+  "position": {
+    "x": 30,
+    "y": 60,
+    "z": 0,
+    "height": 380,
+    "width": 620,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "pivotTable",
+    "query": {
+      "queryState": {
+        "Rows": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": { "SourceRef": { "Entity": "Fact Story Test Coverage" } },
+                  "Property": "Story Code"
+                }
+              },
+              "queryRef": "Fact Story Test Coverage.Story Code",
+              "nativeQueryRef": "Story",
+              "active": true
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": { "SourceRef": { "Entity": "Fact Story Test Coverage" } },
+                  "Property": "Container Code"
+                }
+              },
+              "queryRef": "Fact Story Test Coverage.Container Code",
+              "nativeQueryRef": "Test Set / Plan"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": { "SourceRef": { "Entity": "Fact Story Test Coverage" } },
+                  "Property": "Test Code"
+                }
+              },
+              "queryRef": "Fact Story Test Coverage.Test Code",
+              "nativeQueryRef": "Test"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": { "SourceRef": { "Entity": "Fact Story Test Coverage" } },
+                  "Property": "Blocker Code"
+                }
+              },
+              "queryRef": "Fact Story Test Coverage.Blocker Code",
+              "nativeQueryRef": "Blocked by"
+            }
+          ]
+        },
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": { "SourceRef": { "Entity": "Fact Story Test Coverage" } },
+                  "Property": "Test Count"
+                }
+              },
+              "queryRef": "Fact Story Test Coverage.Test Count",
+              "nativeQueryRef": "Tests"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "subTotals": [
+        {
+          "properties": {
+            "rowSubtotals": { "expr": { "Literal": { "Value": "false" } } },
+            "columnSubtotals": { "expr": { "Literal": { "Value": "false" } } }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": { "expr": { "Literal": { "Value": "true" } } },
+            "text": { "expr": { "Literal": { "Value": "'Story → Test Set/Plan → Test → Blocked by (expand a story)'" } } }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

@@ -30,7 +30,7 @@ schema = fmt.TableSchema(
     key_column="Resource_Role_Key",
     columns={
         "Role_Name":             {"type": "string", "merge_field": True, "missing": "Unknown"},
-        "Role_Description":      {"type": "string", "default": ""},
+        "Role_Description":      {"type": "string", "default": "Unknown"},
         "Is_Lead":               {"type": "boolean", "default": False},
         "Contributes_To_Effort": {"type": "boolean", "default": False},
         "Sort_Order":            {"type": "int", "default": 9},

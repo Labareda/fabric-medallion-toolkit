@@ -112,22 +112,22 @@ schema = fmt.TableSchema(
 
         "Linked_Issue_Type": {
             "type": "string",
-            "default": ""
+            "default": "Unknown"
         },
 
         "Linked_Issue_Summary": {
             "type": "string",
-            "default": ""
+            "default": "Unknown"
         },
 
         "Linked_Issue_Acceptance_Criteria": {
             "type": "string",
-            "default": ""
+            "default": "Unknown"
         },
 
         "Linked_Issue_URL": {
             "type": "string",
-            "default": ""
+            "default": "Unknown"
         },
 
         # -------------------------------------------------------------------
@@ -138,7 +138,7 @@ schema = fmt.TableSchema(
 
         "Linked_Test_Status": {
             "type": "string",
-            "default": ""
+            "default": "Unknown"
         },
 
         # -------------------------------------------------------------------
@@ -465,17 +465,17 @@ df = spark.sql(f"""
 
         COALESCE(
             linked_di.Issue_Type_Name,
-            ''
+            'Unknown'
         ) AS Linked_Issue_Type,
 
         COALESCE(
             linked_di.Summary,
-            ''
+            'Unknown'
         ) AS Linked_Issue_Summary,
 
         COALESCE(
             linked_di.Acceptance_Criteria,
-            ''
+            'Unknown'
         ) AS Linked_Issue_Acceptance_Criteria,
 
         CONCAT(
@@ -491,7 +491,7 @@ df = spark.sql(f"""
 
         COALESCE(
             lsp.Test_Status_Name,
-            ''
+            'Unknown'
         ) AS Linked_Test_Status,
 
 

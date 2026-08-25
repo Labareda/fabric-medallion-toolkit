@@ -35,7 +35,7 @@ schema = fmt.TableSchema(
     columns={
         "Resource_Id":   {"type": "string", "merge_field": True, "missing": "Unknown"},
         "Resource_Name":         {"type": "string", "default": "Unassigned"},
-        "Email":                 {"type": "string", "default": ""},
+        "Email":                 {"type": "string", "default": "Unknown"},
         "Is_Active":             {"type": "boolean", "default": True},
         "Daily_Capacity_Hours":  {"type": "double", "default": 5.0},
     },

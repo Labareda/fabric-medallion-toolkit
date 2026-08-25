@@ -142,7 +142,7 @@ schema = fmt.TableSchema(
         # -------------------------------------------------------------------
         "Acceptance_Criteria": {
             "type": "string",
-            "default": ""
+            "default": "Unknown"
         },
 
         # -------------------------------------------------------------------
@@ -150,7 +150,7 @@ schema = fmt.TableSchema(
         # -------------------------------------------------------------------
         "Jira_URL": {
             "type": "string",
-            "default": ""
+            "default": "Unknown"
         },
 
         # -------------------------------------------------------------------
@@ -173,7 +173,7 @@ schema = fmt.TableSchema(
 
         "Description": {
             "type": "string",
-            "default": ""
+            "default": "Unknown"
         },
 
         "Created_Date": {
@@ -191,19 +191,23 @@ schema = fmt.TableSchema(
         # additive rollup/Gantt logic; these are the descriptive versions.
         # -------------------------------------------------------------------
         "Planned_Start_Date": {
-            "type": "date"
+            "type": "date",
+            "default": "1900-01-01"
         },
 
         "Planned_End_Date": {
-            "type": "date"
+            "type": "date",
+            "default": "1900-01-01"
         },
 
         "Actual_Start_Date": {
-            "type": "date"
+            "type": "date",
+            "default": "1900-01-01"
         },
 
         "Actual_End_Date": {
-            "type": "date"
+            "type": "date",
+            "default": "1900-01-01"
         },
 
         # TRUE when a planned start OR end is missing -- drives the
@@ -220,12 +224,12 @@ schema = fmt.TableSchema(
         # -------------------------------------------------------------------
         "Test_Type": {
             "type": "string",
-            "default": ""
+            "default": "Unknown"
         },
 
         "Test_Steps": {
             "type": "string",
-            "default": ""
+            "default": "Unknown"
         },
 
         # -------------------------------------------------------------------
@@ -237,7 +241,7 @@ schema = fmt.TableSchema(
 
         "Sort_Path": {
             "type": "string",
-            "default": ""
+            "default": "Unknown"
         },
 
         "Level_1": {"type": "string"},
@@ -258,7 +262,7 @@ schema = fmt.TableSchema(
 
         "Resource_Names": {
             "type": "string",
-            "default": ""
+            "default": "Unknown"
         },
 
         # -------------------------------------------------------------------
@@ -266,7 +270,7 @@ schema = fmt.TableSchema(
         # -------------------------------------------------------------------
         "Predecessor_Issue_Code": {
             "type": "string",
-            "default": ""
+            "default": "Unknown"
         },
     },
 )
@@ -349,7 +353,7 @@ df = spark.sql(f"""
         COALESCE(
             i.fields_customfield_acceptance_criteria,
             i.fields_acceptance_criteria,
-            ''
+            'Unknown'
         ) AS Acceptance_Criteria,
 
         # -------------------------------------------------------------------
@@ -381,7 +385,7 @@ df = spark.sql(f"""
 
         COALESCE(
             i.fields_description,
-            ''
+            'Unknown'
         ) AS Description,
 
         CAST(
@@ -392,10 +396,16 @@ df = spark.sql(f"""
             i.fields_updated AS date
         ) AS Updated_Date,
 
-        CAST(i.fields_start_date AS date) AS Planned_Start_Date,
-        CAST(i.fields_duedate AS date)    AS Planned_End_Date,
-        CAST(i.fields_actual_start AS date) AS Actual_Start_Date,
-        CAST(COALESCE(i.fields_actual_end, i.fields_resolutiondate) AS date) AS Actual_End_Date,
+        # Missing dates land on a 1900-01-01 sentinel so no date cell is
+        # ever blank. These are display-only copies -- the additive date
+        # math and the Dim Date relationships live on Fact_Issue, which
+        # keeps its dates nullable, and the Missing_Planned_Dates flag below
+        # is computed from the raw Silver fields, so this sentinel does not
+        # affect either.
+        COALESCE(CAST(i.fields_start_date AS date), DATE '1900-01-01') AS Planned_Start_Date,
+        COALESCE(CAST(i.fields_duedate AS date), DATE '1900-01-01')    AS Planned_End_Date,
+        COALESCE(CAST(i.fields_actual_start AS date), DATE '1900-01-01') AS Actual_Start_Date,
+        COALESCE(CAST(COALESCE(i.fields_actual_end, i.fields_resolutiondate) AS date), DATE '1900-01-01') AS Actual_End_Date,
         (i.fields_start_date IS NULL OR i.fields_duedate IS NULL) AS Missing_Planned_Dates,
 
         # -------------------------------------------------------------------
@@ -437,7 +447,7 @@ df = spark.sql(f"""
         # -------------------------------------------------------------------
         COALESCE(
             pre.Predecessor_Issue_Code,
-            ''
+            'None'
         ) AS Predecessor_Issue_Code
 
     FROM Silver.jira.issues i

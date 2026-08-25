@@ -30,7 +30,7 @@ schema = fmt.TableSchema(
     columns={
         "Priority_Id":    {"type": "string", "merge_field": True, "missing": "Unknown"},
         "Priority_Name":  {"type": "string", "default": "Unknown"},
-        "Description":    {"type": "string", "default": ""},
+        "Description":    {"type": "string", "default": "Unknown"},
         "Sort_Order":     {"type": "int", "default": 9},
     },
 )

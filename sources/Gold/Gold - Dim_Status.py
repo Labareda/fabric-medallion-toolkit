@@ -26,7 +26,7 @@ schema = fmt.TableSchema(
     columns={
         "Status_Id":       {"type": "string", "merge_field": True, "missing": "Unknown"},
         "Status_Name":     {"type": "string", "default": "Unknown"},
-        "Description":     {"type": "string", "default": ""},
+        "Description":     {"type": "string", "default": "Unknown"},
         "Status_Category": {"type": "string", "default": "Unknown"},
         "Status_Group":    {"type": "string", "default": "Unknown"},
         "Flow_State":      {"type": "string", "default": "Unknown"},

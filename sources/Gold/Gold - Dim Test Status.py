@@ -47,7 +47,7 @@ schema = fmt.TableSchema(
     key_column="Test_Status_Key",
     columns={
         "Test_Status_Name":     {"type": "string", "merge_field": True, "missing": "Unknown"},
-        "Description":          {"type": "string", "default": ""},
+        "Description":          {"type": "string", "default": "Unknown"},
         "Is_Final":             {"type": "boolean", "default": False},
         "Coverage_Status":      {"type": "string", "default": "Not run"},
         "Is_Pass":              {"type": "boolean", "default": False},
@@ -62,7 +62,7 @@ schema = fmt.TableSchema(
 from_xray = spark.sql("""
     SELECT
         CONCAT(UPPER(SUBSTRING(s.name, 1, 1)), LOWER(SUBSTRING(s.name, 2))) AS Test_Status_Name,
-        COALESCE(s.description, '')                   AS Description,
+        COALESCE(s.description, 'Unknown')            AS Description,
         s.name IN ('PASSED', 'FAILED')                AS Is_Final,
         CASE s.name WHEN 'PASSED'  THEN 'Passed'
                     WHEN 'FAILED'  THEN 'Failed'

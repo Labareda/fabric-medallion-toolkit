@@ -1,0 +1,220 @@
+/// Story -> Test traceability tree (Story -> Test Set/Plan -> Test -> Blocker)
+table 'Fact Story Test Coverage'
+	lineageTag: 8f2c1a44-6b7d-4e91-a0c2-1d3e5f7a9b21
+
+	measure 'Test Count' = DISTINCTCOUNT('Fact Story Test Coverage'[Test Code])
+		formatString: 0
+		lineageTag: c71a2f38-4d90-4a12-9e64-5b8c0d2e6f43
+
+	measure 'Blocked Test Count' = CALCULATE(DISTINCTCOUNT('Fact Story Test Coverage'[Test Code]), 'Fact Story Test Coverage'[Test Status] = "BLOCKED")
+		formatString: 0
+		lineageTag: a2b9c4d1-7e35-4f80-b1a6-2c7d9e0f5a12
+
+	column 'Story Code'
+		dataType: string
+		lineageTag: 11a2b3c4-d5e6-4f70-8a91-0b1c2d3e4f50
+		summarizeBy: none
+		sourceColumn: Story Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Story Summary'
+		dataType: string
+		lineageTag: 22b3c4d5-e6f7-4081-9b02-1c2d3e4f5061
+		summarizeBy: none
+		sourceColumn: Story Summary
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Coverage Path'
+		dataType: string
+		lineageTag: 33c4d5e6-f708-4192-ac13-2d3e4f506172
+		summarizeBy: none
+		sourceColumn: Coverage Path
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Link Label'
+		dataType: string
+		lineageTag: 5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d
+		summarizeBy: none
+		sourceColumn: Test Link Label
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Blocker Link Label'
+		dataType: string
+		lineageTag: 6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d9e
+		summarizeBy: none
+		sourceColumn: Blocker Link Label
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Container Type'
+		dataType: string
+		lineageTag: 44d5e6f7-0819-42a3-bd24-3e4f50617283
+		summarizeBy: none
+		sourceColumn: Container Type
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Container Code'
+		dataType: string
+		lineageTag: 55e6f708-192a-43b4-ce35-4f5061728394
+		summarizeBy: none
+		sourceColumn: Container Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Container Summary'
+		dataType: string
+		lineageTag: 66f70819-2a3b-44c5-df46-506172839405
+		summarizeBy: none
+		sourceColumn: Container Summary
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Code'
+		dataType: string
+		lineageTag: 7708192a-3b4c-45d6-e057-617283940516
+		summarizeBy: none
+		sourceColumn: Test Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Summary'
+		dataType: string
+		lineageTag: 88192a3b-4c5d-46e7-f168-728394051627
+		summarizeBy: none
+		sourceColumn: Test Summary
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Status'
+		dataType: string
+		lineageTag: 992a3b4c-5d6e-47f8-0279-839405162738
+		summarizeBy: none
+		sourceColumn: Test Status
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Blocker Code'
+		dataType: string
+		lineageTag: aa3b4c5d-6e7f-4809-1380-940516273849
+		summarizeBy: none
+		sourceColumn: Blocker Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Blocker Type'
+		dataType: string
+		lineageTag: bb4c5d6e-7f80-491a-2491-051627384950
+		summarizeBy: none
+		sourceColumn: Blocker Type
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Blocker Summary'
+		dataType: string
+		lineageTag: cc5d6e7f-8091-4a2b-35a2-162738495061
+		summarizeBy: none
+		sourceColumn: Blocker Summary
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Blocker Status'
+		dataType: string
+		lineageTag: dd6e7f80-91a2-4b3c-46b3-273849506172
+		summarizeBy: none
+		sourceColumn: Blocker Status
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test URL'
+		dataType: string
+		lineageTag: ee7f8091-a2b3-4c4d-57c4-384950617283
+		dataCategory: WebUrl
+		summarizeBy: none
+		sourceColumn: Test URL
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Story Issue Key'
+		dataType: string
+		isHidden
+		lineageTag: ff8091a2-b3c4-4d5e-68d5-495061728394
+		summarizeBy: none
+		sourceColumn: Story Issue Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Issue Key'
+		dataType: string
+		isHidden
+		lineageTag: 019102b3-c4d5-4e6f-79e6-506172839405
+		summarizeBy: none
+		sourceColumn: Test Issue Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Test Status Key'
+		dataType: string
+		isHidden
+		lineageTag: 12a213c4-d5e6-4f70-8af7-617283940516
+		summarizeBy: none
+		sourceColumn: Test Status Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Project Key'
+		dataType: string
+		isHidden
+		lineageTag: 23b324d5-e6f7-4081-9b08-728394051627
+		summarizeBy: none
+		sourceColumn: Project Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Team Key'
+		dataType: string
+		isHidden
+		lineageTag: 34c435e6-f708-4192-ac19-839405162738
+		summarizeBy: none
+		sourceColumn: Team Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Story Test Coverage Key'
+		dataType: string
+		isHidden
+		lineageTag: 45d546f7-0819-42a3-bd2a-940516273849
+		summarizeBy: none
+		sourceColumn: Story Test Coverage Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Fact Story Test Coverage' = m
+		mode: import
+		source =
+				let
+				  Source = Sql.Database("cekvmk67pvoetale6vvoo5wfji-brlvcnhvridetpgxmhh6wmlcw4.datawarehouse.fabric.microsoft.com", "gold"),
+				  #"Navigation 1" = Source{[Schema = "gold", Item = "fact_story_test_coverage"]}[Data],
+				  RenamedColumns = Table.TransformColumnNames( #"Navigation 1", each Text.Replace(_, "_", " "))
+				in
+				    RenamedColumns
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation

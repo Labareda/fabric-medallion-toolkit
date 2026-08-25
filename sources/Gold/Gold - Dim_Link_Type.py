@@ -21,8 +21,8 @@ schema = fmt.TableSchema(
     columns={
         "Link_Type_Id":   {"type": "string", "merge_field": True, "missing": "Unknown"},
         "Link_Type_Name": {"type": "string", "default": "Unknown"},
-        "Inward_Label":   {"type": "string", "default": ""},
-        "Outward_Label":  {"type": "string", "default": ""},
+        "Inward_Label":   {"type": "string", "default": "Unknown"},
+        "Outward_Label":  {"type": "string", "default": "Unknown"},
     },
 )
 
