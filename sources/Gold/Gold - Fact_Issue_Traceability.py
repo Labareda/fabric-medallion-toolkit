@@ -26,14 +26,18 @@
 #   * LINKS     = every link type / direction (read straight from
 #                 Bridge_Issue_Link, which already holds both directions of
 #                 every Jira link plus Xray containment).
-#   * CYCLES    = "show once, stop": when a link points back to an issue
-#                 already on the current branch, that node is shown once and
-#                 NOT expanded again -- which also guarantees termination.
-#   * MAX_DEPTH = a safety cap on top of the cycle rule.
+#   * TRAVERSAL = breadth-first, FIRST VISIT ONLY. Each node is placed once
+#                 per root, at its shortest path. This keeps the table small
+#                 and the build fast, and handles cycles for free: a link
+#                 back to an ancestor is already-visited, so it is not
+#                 expanded again (and the reciprocal link is not repeated).
+#   * MAX_DEPTH = a safety cap on top of the first-visit rule.
 #
 # Grain:
-#   ONE ROW PER (Root, path-to-node). A node reachable by two different
-#   routes appears once per route, so every distinct path is visible.
+#   ONE ROW PER (Root, Node). A node reachable several ways is shown once,
+#   under its shortest route -- not duplicated once per route. (If the
+#   client later needs every distinct route, that is the slower all-paths
+#   variant; ask before switching back.)
 #
 # Reads Gold.gold.bridge_issue_link (a fact) -- declared as a dependency in
 # the orchestrator (fact-reads-fact, like Fact_Resource_Day_Allocation).
@@ -123,6 +127,10 @@ schema = fmt.TableSchema(
     table_type="fact",
     key_column="Issue_Traceability_Key",
     columns=schema_columns,
+    # Fully recomputed from the graph every run -- there is nothing to
+    # preserve, so replace the whole table instead of MERGE-comparing every
+    # rebuilt row against the old one (MERGE here is pure overhead).
+    write_mode="overwrite",
 )
 
 
@@ -162,8 +170,22 @@ nodes = spark.sql(f"""
 
 
 # MARKDOWN ********************
-# ## Walk the graph, level by level, with cycle prevention
+# ## Walk the graph breadth-first, one visit per (root, node)
+#
+# FIRST-VISIT BFS (not all-paths). Each node is recorded ONCE per root, at
+# its shortest path from that root. This is what keeps the table small and
+# the build fast:
+#   * a node reachable by several routes is not duplicated once per route;
+#   * a link back to an ancestor is simply already-visited, so it is not
+#     expanded again -- cycles handled with no per-path array scan at all.
+# Going strictly level by level means the first time a node is reached IS its
+# shortest path, so the retained parent/label is the shortest-route one.
+#
+# `edges` is broadcast: it is small relative to the growing frontier, and
+# broadcasting turns each level into a map-side join with no shuffle.
 # CELL ********************
+
+edges_b = F.broadcast(edges)
 
 # Level 1: every issue is the root of its own tree.
 frontier = nodes.select(
@@ -179,12 +201,15 @@ frontier.count()
 
 levels = [frontier]
 
+# Every (root, node) already placed -- used to drop re-visits (which also
+# drops cycles, since an ancestor is by definition already visited).
+visited = frontier.select("Root_Code", "Node_Code").persist()
+visited.count()
+
 for depth in range(2, MAX_DEPTH + 1):
-    nxt = (
+    candidates = (
         frontier.alias("f")
-        .join(edges.alias("e"), F.col("f.Node_Code") == F.col("e.src"), "inner")
-        # cycle rule: never step onto an issue already on this branch
-        .filter(~F.array_contains(F.col("f.Path"), F.col("e.dst")))
+        .join(edges_b.alias("e"), F.col("f.Node_Code") == F.col("e.src"), "inner")
         .select(
             F.col("f.Root_Code").alias("Root_Code"),
             F.col("e.dst").alias("Node_Code"),
@@ -194,12 +219,26 @@ for depth in range(2, MAX_DEPTH + 1):
             F.col("e.Link_Label").alias("Link_Label"),
             F.col("e.Link_Type_Name").alias("Link_Type_Name"),
         )
+        # one row per (root, node) this level -- collapse multiple parents
+        .dropDuplicates(["Root_Code", "Node_Code"])
+    )
+
+    # keep only genuinely new (root, node) pairs
+    nxt = (
+        candidates.alias("c")
+        .join(visited.alias("v"),
+              (F.col("c.Root_Code") == F.col("v.Root_Code")) & (F.col("c.Node_Code") == F.col("v.Node_Code")),
+              "left_anti")
         .persist()
     )
+
     if nxt.limit(1).count() == 0:
         nxt.unpersist()
         break
+
     levels.append(nxt)
+    visited = visited.unionByName(nxt.select("Root_Code", "Node_Code")).persist()
+    visited.count()
     frontier = nxt
 
 walk = reduce(lambda a, b: a.unionByName(b), levels)
