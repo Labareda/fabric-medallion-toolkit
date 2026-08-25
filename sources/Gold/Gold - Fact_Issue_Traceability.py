@@ -58,13 +58,23 @@ JIRA_BASE_URL = "https://yourcompany.atlassian.net"
 # revisit a node), so this only bounds how deep the tree is allowed to go.
 # Traceability chains here are shallow (Task -> Test -> Execution/Set); raise
 # it if a genuinely deeper chain gets cut off.
-MAX_DEPTH = 8
+MAX_DEPTH = 6
+
+# Number of dense Level_* columns emitted (fixed, matches the semantic model
+# and the report matrix). Kept separate from MAX_DEPTH so the traversal depth
+# can be tuned without changing the table shape -- levels beyond the deepest
+# path are simply trailing nulls. MAX_DEPTH must never exceed this.
+LEVEL_COLUMNS = 8
+
+# Above this edge count, don't broadcast the edge list (broadcasting a large
+# table collects it to the driver and stalls); Spark picks a shuffle join.
+BROADCAST_EDGE_LIMIT = 300000
 
 
 # MARKDOWN ********************
 # ## Declare the table schema
 #
-# Level_1..Level_MAX_DEPTH are the DENSE, depth-placed hierarchy columns the
+# Level_1..Level_{LEVEL_COLUMNS} are the DENSE, depth-placed hierarchy columns the
 # matrix nests on. They are contiguous with only TRAILING nulls -- this is
 # the same convention as Dim_Issue's Gantt Level columns, and the deliberate
 # exception to the no-blanks rule (a hierarchy needs trailing nulls to know
@@ -119,7 +129,7 @@ schema_columns = {
 
 # Dense hierarchy levels -- string, nullable, NO default (trailing nulls are
 # expected and required for the matrix to stop nesting).
-for _k in range(1, MAX_DEPTH + 1):
+for _k in range(1, LEVEL_COLUMNS + 1):
     schema_columns[f"Level_{_k}"] = {"type": "string"}
 
 schema = fmt.TableSchema(
@@ -142,21 +152,22 @@ schema = fmt.TableSchema(
 # so the walk never has to reason about direction itself.
 # CELL ********************
 
-edges = (
-    spark.sql(f"""
-        SELECT
-            Issue_Code        AS src,
-            Linked_Issue_Code AS dst,
-            Link_Label,
-            Link_Type_Name
-        FROM {GOLD_SCHEMA}.bridge_issue_link
-        WHERE Linked_Issue_Code IS NOT NULL
-          AND Linked_Issue_Code <> Issue_Code
-    """)
-    .dropDuplicates(["src", "dst", "Link_Type_Name", "Link_Label"])
-    .persist()
-)
-edges.count()
+# The Bridge is already deduplicated (its own final SELECT is DISTINCT), so
+# no dropDuplicates here -- that would be a redundant shuffle, and the walk
+# collapses duplicate edges per (root, node) anyway. This cell is then just a
+# 4-column, column-pruned read of the Bridge: as cheap as the read gets.
+edges = spark.sql(f"""
+    SELECT
+        Issue_Code        AS src,
+        Linked_Issue_Code AS dst,
+        Link_Label,
+        Link_Type_Name
+    FROM {GOLD_SCHEMA}.bridge_issue_link
+    WHERE Linked_Issue_Code IS NOT NULL
+      AND Linked_Issue_Code <> Issue_Code
+""").persist()
+edge_count = edges.count()
+print(f"edges: {edge_count} rows")
 
 nodes = spark.sql(f"""
     SELECT
@@ -185,7 +196,9 @@ nodes = spark.sql(f"""
 # broadcasting turns each level into a map-side join with no shuffle.
 # CELL ********************
 
-edges_b = F.broadcast(edges)
+# Broadcast only when the edge list is small enough; otherwise let Spark
+# shuffle-join (broadcasting a large edge set stalls the driver).
+edges_b = F.broadcast(edges) if edge_count <= BROADCAST_EDGE_LIMIT else edges
 
 # Level 1: every issue is the root of its own tree.
 frontier = nodes.select(
@@ -248,8 +261,8 @@ walk = reduce(lambda a, b: a.unionByName(b), levels)
 # ## Flatten the path into dense Level columns + denormalise node attributes
 # CELL ********************
 
-# Path array -> Level_1..Level_MAX_DEPTH (trailing nulls beyond this node's depth)
-for k in range(1, MAX_DEPTH + 1):
+# Path array -> Level_1..Level_{LEVEL_COLUMNS} (trailing nulls beyond depth)
+for k in range(1, LEVEL_COLUMNS + 1):
     walk = walk.withColumn(
         f"Level_{k}",
         F.when(F.size(F.col("Path")) >= k, F.col("Path").getItem(k - 1)).otherwise(F.lit(None).cast("string")),
@@ -257,7 +270,7 @@ for k in range(1, MAX_DEPTH + 1):
 
 walk = walk.withColumn("Path_String", F.array_join(F.col("Path"), " > "))
 
-level_cols = [f"Level_{k}" for k in range(1, MAX_DEPTH + 1)]
+level_cols = [f"Level_{k}" for k in range(1, LEVEL_COLUMNS + 1)]
 
 df = (
     walk.alias("r")
