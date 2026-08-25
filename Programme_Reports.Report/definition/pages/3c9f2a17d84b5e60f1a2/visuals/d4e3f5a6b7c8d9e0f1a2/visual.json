@@ -1,14 +1,7 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
   "name": "d4e3f5a6b7c8d9e0f1a2",
-  "position": {
-    "x": 890,
-    "y": 60,
-    "z": 1500,
-    "height": 380,
-    "width": 200,
-    "tabOrder": 1500
-  },
+  "position": { "x": 890, "y": 60, "z": 1500, "height": 380, "width": 200, "tabOrder": 1500 },
   "visual": {
     "visualType": "slicer",
     "query": {
@@ -16,13 +9,8 @@
         "Values": {
           "projections": [
             {
-              "field": {
-                "Column": {
-                  "Expression": { "SourceRef": { "Entity": "Fact Story Test Coverage" } },
-                  "Property": "Link Type Name"
-                }
-              },
-              "queryRef": "Fact Story Test Coverage.Link Type Name",
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Fact Issue Traceability" } }, "Property": "Link Type Name" } },
+              "queryRef": "Fact Issue Traceability.Link Type Name",
               "nativeQueryRef": "Link Type Name"
             }
           ]

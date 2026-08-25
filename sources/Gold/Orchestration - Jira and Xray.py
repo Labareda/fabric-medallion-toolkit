@@ -113,12 +113,11 @@ FACT_NOTEBOOKS = {
     # Silver.xray.test_runs plus dimensions. (Consolidated the old
     # Fact_Test_Run + Fact_Test_Coverage into this single table.)
     "Gold - Fact_Test": [],
-    # Story -> Test traceability tree (Story -> Test Set/Plan -> Test ->
-    # Blocker), resolved once in Gold so Power BI shows a plain matrix
-    # hierarchy. Reads Silver (jira.issue_links, xray.test_sets/plans/runs)
-    # plus dimensions -- no other fact. Xray-dependent, so it is optional
-    # for the same reason Fact_Test is.
-    "Gold - Fact_Story_Test_Coverage": [],
+    # Full recursive link tree: sit on ANY issue and expand through every
+    # link (any type/direction) down to the leaves, cycle-safe, flattened to
+    # dense Level columns for the matrix. Reads Gold.gold.bridge_issue_link
+    # (a fact) -- so it must run AFTER the bridge, declared here.
+    "Gold - Fact_Issue_Traceability": ["Gold - Bridge_Issue_Link"],
     # Reads Gold.gold.fact_resource_allocation AND fact_issue -- the other
     # exception. Must run after both.
     "Gold - Fact_Resource_Day_Allocation": ["Gold - Fact_Resource_Allocation", "Gold - Fact_Issue"],
@@ -142,7 +141,6 @@ OPTIONAL_STEPS = {
     "B2S - Xray",
     "Gold - Dim Test Status",
     "Gold - Fact_Test",
-    "Gold - Fact_Story_Test_Coverage",
 }
 
 LAKEHOUSES_TO_REFRESH = ["Silver", "Gold"]

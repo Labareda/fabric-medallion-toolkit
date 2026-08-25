@@ -1,0 +1,264 @@
+# Fabric notebook source
+
+# MARKDOWN ********************
+# ## Fact_Issue_Traceability -- the full recursive link tree
+#
+# Purpose:
+#   Let the client sit on ANY issue and expand a single tree that keeps
+#   drilling through every link, of every type, down to the leaves:
+#
+#     TRAN-3574 (Task)
+#       -> TRAN-2425 (Test)        [Blocks]
+#            -> TRAN-2827 (Exec)   [Belongs to]
+#            -> TRAN-2770 (Set)    [Belongs to]
+#            -> TRAN-3574 (Task)   [Blocks]   <- loops back: shown once, not re-expanded
+#       -> TRAN-2415 (Test)        [Blocks]
+#       -> ...
+#
+#   This is arbitrary-depth graph traversal, which Power BI cannot do in a
+#   matrix and Spark SQL cannot express as a recursive CTE, so it is resolved
+#   here in Gold by iteratively walking the Bridge and flattened into dense
+#   Level_1..Level_N columns for the report's matrix.
+#
+# Design (confirmed with the client):
+#   * ROOT      = every issue can be the top of a tree; the report picks one
+#                 via a slicer on Root_Code.
+#   * LINKS     = every link type / direction (read straight from
+#                 Bridge_Issue_Link, which already holds both directions of
+#                 every Jira link plus Xray containment).
+#   * CYCLES    = "show once, stop": when a link points back to an issue
+#                 already on the current branch, that node is shown once and
+#                 NOT expanded again -- which also guarantees termination.
+#   * MAX_DEPTH = a safety cap on top of the cycle rule.
+#
+# Grain:
+#   ONE ROW PER (Root, path-to-node). A node reachable by two different
+#   routes appears once per route, so every distinct path is visible.
+#
+# Reads Gold.gold.bridge_issue_link (a fact) -- declared as a dependency in
+# the orchestrator (fact-reads-fact, like Fact_Resource_Day_Allocation).
+# CELL ********************
+
+import fabric_medallion_toolkit as fmt
+from functools import reduce
+from pyspark.sql import functions as F
+
+GOLD_SCHEMA = "Gold.gold"
+
+# ---------------------------------------------------------------------------
+# Replace with the client's actual Jira base URL (no trailing slash).
+# ---------------------------------------------------------------------------
+JIRA_BASE_URL = "https://yourcompany.atlassian.net"
+
+# Safety cap. The cycle rule already guarantees termination (a path can never
+# revisit a node), so this only bounds how deep the tree is allowed to go.
+# Traceability chains here are shallow (Task -> Test -> Execution/Set); raise
+# it if a genuinely deeper chain gets cut off.
+MAX_DEPTH = 8
+
+
+# MARKDOWN ********************
+# ## Declare the table schema
+#
+# Level_1..Level_MAX_DEPTH are the DENSE, depth-placed hierarchy columns the
+# matrix nests on. They are contiguous with only TRAILING nulls -- this is
+# the same convention as Dim_Issue's Gantt Level columns, and the deliberate
+# exception to the no-blanks rule (a hierarchy needs trailing nulls to know
+# where to stop nesting; leave the visual's "Hide Blanks" OFF).
+# CELL ********************
+
+schema_columns = {
+
+    # Grain -- one row per distinct root->node path.
+    "Path_String": {"type": "string", "merge_field": True},
+
+    # The top of this row's tree.
+    "Root_Code":   {"type": "string", "default": "Unknown"},
+
+    # Depth of this node (1 = the root itself).
+    "Level":       {"type": "int", "default": 0},
+
+    # This node and how it hangs off its parent.
+    "Node_Code":      {"type": "string", "default": "Unknown"},
+    "Parent_Code":    {"type": "string", "default": "None"},
+    "Link_Label":     {"type": "string", "default": "None"},
+    "Link_Type_Name": {"type": "string", "default": "None"},
+
+    # Denormalised attributes of this node.
+    "Node_Issue_Type": {"type": "string", "default": "Unknown"},
+    "Node_Summary":    {"type": "string", "default": "Unknown"},
+    "Node_Status":     {"type": "string", "default": "Unknown"},
+    "Node_URL":        {"type": "string", "default": "Unknown"},
+
+    # Active relationship is on the ROOT, so selecting an issue elsewhere in
+    # the model scopes the tree to that issue's root rows.
+    "Root_Issue_Key": {
+        "type": "string",
+        "lookup_missing_from": {
+            "table": f"{GOLD_SCHEMA}.dim_issue",
+            "natural_key_column": "Issue_Code",
+            "key_column": "Issue_Key",
+            "unknown_value": "Unknown",
+        },
+    },
+
+    "Node_Issue_Key": {
+        "type": "string",
+        "lookup_missing_from": {
+            "table": f"{GOLD_SCHEMA}.dim_issue",
+            "natural_key_column": "Issue_Code",
+            "key_column": "Issue_Key",
+            "unknown_value": "Unknown",
+        },
+    },
+}
+
+# Dense hierarchy levels -- string, nullable, NO default (trailing nulls are
+# expected and required for the matrix to stop nesting).
+for _k in range(1, MAX_DEPTH + 1):
+    schema_columns[f"Level_{_k}"] = {"type": "string"}
+
+schema = fmt.TableSchema(
+    table_name=f"{GOLD_SCHEMA}.fact_issue_traceability",
+    table_type="fact",
+    key_column="Issue_Traceability_Key",
+    columns=schema_columns,
+)
+
+
+# MARKDOWN ********************
+# ## Build the edge list and the node attributes
+#
+# Edges come from the Bridge, which already carries BOTH directions of every
+# Jira link plus Xray containment, with the label and type on each edge --
+# so the walk never has to reason about direction itself.
+# CELL ********************
+
+edges = (
+    spark.sql(f"""
+        SELECT
+            Issue_Code        AS src,
+            Linked_Issue_Code AS dst,
+            Link_Label,
+            Link_Type_Name
+        FROM {GOLD_SCHEMA}.bridge_issue_link
+        WHERE Linked_Issue_Code IS NOT NULL
+          AND Linked_Issue_Code <> Issue_Code
+    """)
+    .dropDuplicates(["src", "dst", "Link_Type_Name", "Link_Label"])
+    .persist()
+)
+edges.count()
+
+nodes = spark.sql(f"""
+    SELECT
+        Issue_Code      AS code,
+        Issue_Key,
+        Issue_Type_Name,
+        Summary,
+        Status_Name
+    FROM {GOLD_SCHEMA}.dim_issue
+""")
+
+
+# MARKDOWN ********************
+# ## Walk the graph, level by level, with cycle prevention
+# CELL ********************
+
+# Level 1: every issue is the root of its own tree.
+frontier = nodes.select(
+    F.col("code").alias("Root_Code"),
+    F.col("code").alias("Node_Code"),
+    F.lit(1).alias("Level"),
+    F.array(F.col("code")).alias("Path"),
+    F.lit(None).cast("string").alias("Parent_Code"),
+    F.lit(None).cast("string").alias("Link_Label"),
+    F.lit(None).cast("string").alias("Link_Type_Name"),
+).persist()
+frontier.count()
+
+levels = [frontier]
+
+for depth in range(2, MAX_DEPTH + 1):
+    nxt = (
+        frontier.alias("f")
+        .join(edges.alias("e"), F.col("f.Node_Code") == F.col("e.src"), "inner")
+        # cycle rule: never step onto an issue already on this branch
+        .filter(~F.array_contains(F.col("f.Path"), F.col("e.dst")))
+        .select(
+            F.col("f.Root_Code").alias("Root_Code"),
+            F.col("e.dst").alias("Node_Code"),
+            F.lit(depth).alias("Level"),
+            F.concat(F.col("f.Path"), F.array(F.col("e.dst"))).alias("Path"),
+            F.col("f.Node_Code").alias("Parent_Code"),
+            F.col("e.Link_Label").alias("Link_Label"),
+            F.col("e.Link_Type_Name").alias("Link_Type_Name"),
+        )
+        .persist()
+    )
+    if nxt.limit(1).count() == 0:
+        nxt.unpersist()
+        break
+    levels.append(nxt)
+    frontier = nxt
+
+walk = reduce(lambda a, b: a.unionByName(b), levels)
+
+
+# MARKDOWN ********************
+# ## Flatten the path into dense Level columns + denormalise node attributes
+# CELL ********************
+
+# Path array -> Level_1..Level_MAX_DEPTH (trailing nulls beyond this node's depth)
+for k in range(1, MAX_DEPTH + 1):
+    walk = walk.withColumn(
+        f"Level_{k}",
+        F.when(F.size(F.col("Path")) >= k, F.col("Path").getItem(k - 1)).otherwise(F.lit(None).cast("string")),
+    )
+
+walk = walk.withColumn("Path_String", F.array_join(F.col("Path"), " > "))
+
+level_cols = [f"Level_{k}" for k in range(1, MAX_DEPTH + 1)]
+
+df = (
+    walk.alias("r")
+    .join(nodes.alias("n"), F.col("r.Node_Code") == F.col("n.code"), "left")
+    .select(
+        F.col("r.Path_String"),
+        F.col("r.Root_Code"),
+        F.col("r.Level"),
+        F.col("r.Node_Code"),
+        F.coalesce(F.col("r.Parent_Code"), F.lit("None")).alias("Parent_Code"),
+        F.coalesce(F.col("r.Link_Label"), F.lit("None")).alias("Link_Label"),
+        F.coalesce(F.col("r.Link_Type_Name"), F.lit("None")).alias("Link_Type_Name"),
+        F.coalesce(F.col("n.Issue_Type_Name"), F.lit("Unknown")).alias("Node_Issue_Type"),
+        F.coalesce(F.col("n.Summary"), F.lit("Unknown")).alias("Node_Summary"),
+        F.coalesce(F.col("n.Status_Name"), F.lit("Unknown")).alias("Node_Status"),
+        F.concat(F.lit(f"{JIRA_BASE_URL}/browse/"), F.col("r.Node_Code")).alias("Node_URL"),
+        # Root_Issue_Key resolved by lookup_missing_from at merge time; supply
+        # the natural key so the fallback has something to resolve.
+        F.lit(None).cast("string").alias("Root_Issue_Key"),
+        F.col("n.Issue_Key").alias("Node_Issue_Key"),
+        *[F.col(f"r.{c}").alias(c) for c in level_cols],
+    )
+)
+
+# Root_Issue_Key: resolve the root's own key directly (its own dim_issue row).
+df = (
+    df.alias("d")
+    .join(nodes.select(F.col("code").alias("_rc"), F.col("Issue_Key").alias("_rk")).alias("rt"),
+          F.col("d.Root_Code") == F.col("rt._rc"), "left")
+    .drop("Root_Issue_Key", "_rc")
+    .withColumnRenamed("_rk", "Root_Issue_Key")
+)
+
+
+# MARKDOWN ********************
+# ## Merge into Gold
+# CELL ********************
+
+fmt.merge(spark, df, schema)
+
+edges.unpersist()
+
+print("Fact_Issue_Traceability built successfully")
