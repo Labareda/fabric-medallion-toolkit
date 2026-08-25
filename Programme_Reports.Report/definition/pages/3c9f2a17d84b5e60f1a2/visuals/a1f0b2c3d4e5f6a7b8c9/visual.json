@@ -1,83 +1,63 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
   "name": "a1f0b2c3d4e5f6a7b8c9",
-  "position": { "x": 30, "y": 60, "z": 0, "height": 380, "width": 620, "tabOrder": 0 },
+  "position": { "x": 510, "y": 70, "z": 0, "height": 600, "width": 740, "tabOrder": 0 },
   "visual": {
-    "visualType": "pivotTable",
+    "visualType": "tableEx",
     "query": {
       "queryState": {
-        "Rows": {
-          "projections": [
-            {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Fact Issue Traceability" } }, "Property": "Level 1" } },
-              "queryRef": "Fact Issue Traceability.Level 1",
-              "nativeQueryRef": "Level 1",
-              "active": true
-            },
-            {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Fact Issue Traceability" } }, "Property": "Level 2" } },
-              "queryRef": "Fact Issue Traceability.Level 2",
-              "nativeQueryRef": "Level 2"
-            },
-            {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Fact Issue Traceability" } }, "Property": "Level 3" } },
-              "queryRef": "Fact Issue Traceability.Level 3",
-              "nativeQueryRef": "Level 3"
-            },
-            {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Fact Issue Traceability" } }, "Property": "Level 4" } },
-              "queryRef": "Fact Issue Traceability.Level 4",
-              "nativeQueryRef": "Level 4"
-            },
-            {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Fact Issue Traceability" } }, "Property": "Level 5" } },
-              "queryRef": "Fact Issue Traceability.Level 5",
-              "nativeQueryRef": "Level 5"
-            },
-            {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Fact Issue Traceability" } }, "Property": "Level 6" } },
-              "queryRef": "Fact Issue Traceability.Level 6",
-              "nativeQueryRef": "Level 6"
-            },
-            {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Fact Issue Traceability" } }, "Property": "Level 7" } },
-              "queryRef": "Fact Issue Traceability.Level 7",
-              "nativeQueryRef": "Level 7"
-            },
-            {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Fact Issue Traceability" } }, "Property": "Level 8" } },
-              "queryRef": "Fact Issue Traceability.Level 8",
-              "nativeQueryRef": "Level 8"
-            }
-          ]
-        },
         "Values": {
           "projections": [
             {
-              "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "Fact Issue Traceability" } }, "Property": "Linked Items" } },
-              "queryRef": "Fact Issue Traceability.Linked Items",
-              "nativeQueryRef": "Linked items"
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Dim Issue" } }, "Property": "Issue Code" } },
+              "queryRef": "Dim Issue.Issue Code",
+              "nativeQueryRef": "Issue"
+            },
+            {
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link" } }, "Property": "Link Type Name" } },
+              "queryRef": "Bridge Issue Link.Link Type Name",
+              "nativeQueryRef": "Link Type"
+            },
+            {
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link" } }, "Property": "Link Label" } },
+              "queryRef": "Bridge Issue Link.Link Label",
+              "nativeQueryRef": "Link"
+            },
+            {
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Linked Issue" } }, "Property": "Issue Code" } },
+              "queryRef": "Linked Issue.Issue Code",
+              "nativeQueryRef": "Linked"
+            },
+            {
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Linked Issue" } }, "Property": "Issue Type Name" } },
+              "queryRef": "Linked Issue.Issue Type Name",
+              "nativeQueryRef": "Linked Type"
+            },
+            {
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Linked Issue" } }, "Property": "Summary" } },
+              "queryRef": "Linked Issue.Summary",
+              "nativeQueryRef": "Linked Summary"
+            },
+            {
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Linked Issue" } }, "Property": "Status Name" } },
+              "queryRef": "Linked Issue.Status Name",
+              "nativeQueryRef": "Linked Status"
+            },
+            {
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Linked Issue" } }, "Property": "Jira URL" } },
+              "queryRef": "Linked Issue.Jira URL",
+              "nativeQueryRef": "URL"
             }
           ]
         }
       }
-    },
-    "objects": {
-      "subTotals": [
-        {
-          "properties": {
-            "rowSubtotals": { "expr": { "Literal": { "Value": "false" } } },
-            "columnSubtotals": { "expr": { "Literal": { "Value": "false" } } }
-          }
-        }
-      ]
     },
     "visualContainerObjects": {
       "title": [
         {
           "properties": {
             "show": { "expr": { "Literal": { "Value": "true" } } },
-            "text": { "expr": { "Literal": { "Value": "'Link tree - pick an issue, expand down to every linked item'" } } }
+            "text": { "expr": { "Literal": { "Value": "'Everything the selected issue links to (both directions)'" } } }
           }
         }
       ]
