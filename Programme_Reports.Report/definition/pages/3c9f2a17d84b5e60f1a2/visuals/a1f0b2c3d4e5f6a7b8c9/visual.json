@@ -9,55 +9,51 @@
         "Values": {
           "projections": [
             {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Traceability" } }, "Property": "Level" } },
-              "queryRef": "Bridge Issue Traceability.Level",
-              "nativeQueryRef": "Level"
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link" } }, "Property": "Issue Code" } },
+              "queryRef": "Bridge Issue Link.Issue Code",
+              "nativeQueryRef": "Issue"
             },
             {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Traceability" } }, "Property": "Parent Code" } },
-              "queryRef": "Bridge Issue Traceability.Parent Code",
-              "nativeQueryRef": "Parent"
-            },
-            {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Traceability" } }, "Property": "Link Type Name" } },
-              "queryRef": "Bridge Issue Traceability.Link Type Name",
-              "nativeQueryRef": "Link Type"
-            },
-            {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Traceability" } }, "Property": "Link Label" } },
-              "queryRef": "Bridge Issue Traceability.Link Label",
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link" } }, "Property": "Link Label" } },
+              "queryRef": "Bridge Issue Link.Link Label",
               "nativeQueryRef": "Link"
             },
             {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Linked Issue" } }, "Property": "Issue Code" } },
-              "queryRef": "Linked Issue.Issue Code",
-              "nativeQueryRef": "Linked"
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link" } }, "Property": "Linked Issue Code" } },
+              "queryRef": "Bridge Issue Link.Linked Issue Code",
+              "nativeQueryRef": "Links to"
             },
             {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Linked Issue" } }, "Property": "Issue Type Name" } },
-              "queryRef": "Linked Issue.Issue Type Name",
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link" } }, "Property": "Linked Issue Type" } },
+              "queryRef": "Bridge Issue Link.Linked Issue Type",
               "nativeQueryRef": "Type"
             },
             {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Linked Issue" } }, "Property": "Summary" } },
-              "queryRef": "Linked Issue.Summary",
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link" } }, "Property": "Linked Issue Summary" } },
+              "queryRef": "Bridge Issue Link.Linked Issue Summary",
               "nativeQueryRef": "Summary"
             },
             {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Linked Issue" } }, "Property": "Status Name" } },
-              "queryRef": "Linked Issue.Status Name",
-              "nativeQueryRef": "Status"
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link (2)" } }, "Property": "Link Label" } },
+              "queryRef": "Bridge Issue Link (2).Link Label",
+              "nativeQueryRef": "Then via"
+            },
+            {
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link (2)" } }, "Property": "Linked Issue Code" } },
+              "queryRef": "Bridge Issue Link (2).Linked Issue Code",
+              "nativeQueryRef": "Then links to"
+            },
+            {
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link (2)" } }, "Property": "Linked Issue Type" } },
+              "queryRef": "Bridge Issue Link (2).Linked Issue Type",
+              "nativeQueryRef": "Type "
+            },
+            {
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link (2)" } }, "Property": "Linked Issue Summary" } },
+              "queryRef": "Bridge Issue Link (2).Linked Issue Summary",
+              "nativeQueryRef": "Summary "
             }
           ]
-        },
-        "sortDefinition": {
-          "sort": [
-            {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Traceability" } }, "Property": "Level" } },
-              "direction": "Ascending"
-            }
-          ],
-          "isDefaultSort": true
         }
       }
     },
@@ -66,7 +62,7 @@
         {
           "properties": {
             "show": { "expr": { "Literal": { "Value": "true" } } },
-            "text": { "expr": { "Literal": { "Value": "'Everything downstream of the selected issue (Level 1 = direct links, 2 = their links, ...)'" } } }
+            "text": { "expr": { "Literal": { "Value": "'What the selected issue links to, and what those link to (2 hops)'" } } }
           }
         }
       ]

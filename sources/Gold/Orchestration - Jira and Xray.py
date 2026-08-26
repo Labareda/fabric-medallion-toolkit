@@ -116,11 +116,6 @@ FACT_NOTEBOOKS = {
     # Reads Gold.gold.fact_resource_allocation AND fact_issue -- the other
     # exception. Must run after both.
     "Gold - Fact_Resource_Day_Allocation": ["Gold - Fact_Resource_Allocation", "Gold - Fact_Issue"],
-    # Issue-to-issue relationship model (recursive reach): one row per
-    # (root, reachable descendant), so Power BI can show multi-hop link
-    # trees that its live relationships cannot. Reads Gold.gold.
-    # bridge_issue_link -- must run AFTER the bridge.
-    "Gold - Bridge_Issue_Traceability": ["Gold - Bridge_Issue_Link"],
 }
 
 # --- Steps allowed to fail without killing the run -------------------------

@@ -157,18 +157,10 @@ relationship d3903bdf-59f5-c2d1-c6af-46d2b1d87529
 	toColumn: 'Dim Link Type'.'Link Type Key'
 
 relationship 5c1d7a90-3f28-4b6e-9c14-7a2d8e0f61b3
-	fromColumn: 'Bridge Issue Link'.'Linked Issue Key'
-	toColumn: 'Linked Issue'.'Issue Key'
+	fromColumn: 'Bridge Issue Link'.'Linked Issue Code'
+	toColumn: 'Bridge Issue Link (2)'.'Issue Code'
+	fromCardinality: many
+	toCardinality: many
+	crossFilteringBehavior: bothDirections
 
-relationship 6d2e8b01-4039-4c7f-ad25-8b3e9f1072c4
-	fromColumn: 'Bridge Issue Traceability'.'Root Issue Key'
-	toColumn: 'Dim Issue'.'Issue Key'
-
-relationship 7e3f9c12-5140-4d80-be36-9c4f0a2183d5
-	fromColumn: 'Bridge Issue Traceability'.'Node Issue Key'
-	toColumn: 'Linked Issue'.'Issue Key'
-
-relationship 8f40ad23-6251-4e91-cf47-ad5f1b3294e6
-	fromColumn: 'Bridge Issue Traceability'.'Link Type Key'
-	toColumn: 'Dim Link Type'.'Link Type Key'
 
