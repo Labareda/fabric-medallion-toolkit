@@ -9,8 +9,8 @@
         "Values": {
           "projections": [
             {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link" } }, "Property": "Link Type Name" } },
-              "queryRef": "Bridge Issue Link.Link Type Name",
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Traceability" } }, "Property": "Link Type Name" } },
+              "queryRef": "Bridge Issue Traceability.Link Type Name",
               "nativeQueryRef": "Link Type Name"
             }
           ]
