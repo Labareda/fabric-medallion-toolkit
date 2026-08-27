@@ -9,9 +9,9 @@
         "Values": {
           "projections": [
             {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Issue Traceability" } }, "Property": "Root Code" } },
-              "queryRef": "Issue Traceability.Root Code",
-              "nativeQueryRef": "Root Code"
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link" } }, "Property": "Link Label" } },
+              "queryRef": "Bridge Issue Link.Link Label",
+              "nativeQueryRef": "Link Label"
             }
           ]
         }
@@ -22,7 +22,7 @@
         {
           "properties": {
             "show": { "expr": { "Literal": { "Value": "true" } } },
-            "text": { "expr": { "Literal": { "Value": "'Pick an issue'" } } }
+            "text": { "expr": { "Literal": { "Value": "'Relationship (e.g. is blocked by)'" } } }
           }
         }
       ]

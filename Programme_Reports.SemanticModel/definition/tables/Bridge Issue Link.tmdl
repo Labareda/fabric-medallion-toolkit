@@ -93,11 +93,27 @@ table 'Bridge Issue Link'
 
 		annotation SummarizationSetBy = Automatic
 
+	column 'Linked Issue Status'
+		dataType: string
+		lineageTag: 5f2a1b6c-7d8e-4901-a2b3-c4d5e6f70812
+		summarizeBy: none
+		sourceColumn: Linked Issue Status
+
+		annotation SummarizationSetBy = Automatic
+
 	column 'Linked Test Status'
 		dataType: string
 		lineageTag: 43467fe6-72fd-4d1f-8eec-8bc421ac468d
 		summarizeBy: none
 		sourceColumn: Linked Test Status
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Issue Test Status'
+		dataType: string
+		lineageTag: 6a3b2c7d-8e9f-4012-b3c4-d5e6f7081923
+		summarizeBy: none
+		sourceColumn: Issue Test Status
 
 		annotation SummarizationSetBy = Automatic
 

@@ -9,9 +9,9 @@
         "Values": {
           "projections": [
             {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Issue Traceability" } }, "Property": "Link Type Name" } },
-              "queryRef": "Issue Traceability.Link Type Name",
-              "nativeQueryRef": "Link Type Name"
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Dim Issue" } }, "Property": "Issue Type Name" } },
+              "queryRef": "Dim Issue.Issue Type Name",
+              "nativeQueryRef": "Issue Type Name"
             }
           ]
         }
@@ -22,7 +22,7 @@
         {
           "properties": {
             "show": { "expr": { "Literal": { "Value": "true" } } },
-            "text": { "expr": { "Literal": { "Value": "'Choose link type'" } } }
+            "text": { "expr": { "Literal": { "Value": "'Issue type (e.g. Test)'" } } }
           }
         }
       ]

@@ -120,6 +120,14 @@ schema = fmt.TableSchema(
             "default": "Unknown"
         },
 
+        # Jira workflow status of the linked issue (e.g. Draft / To Do /
+        # Done). This is the linked issue's OWN status -- drives the
+        # "Is Blocked By Status" column on the blocked-tests report.
+        "Linked_Issue_Status": {
+            "type": "string",
+            "default": "Unknown"
+        },
+
         "Linked_Issue_Acceptance_Criteria": {
             "type": "string",
             "default": "Unknown"
@@ -139,6 +147,13 @@ schema = fmt.TableSchema(
         "Linked_Test_Status": {
             "type": "string",
             "default": "Unknown"
+        },
+
+        # Latest test result of the ANCHOR issue (when it is a Test);
+        # "N/A" for non-test anchors.
+        "Issue_Test_Status": {
+            "type": "string",
+            "default": "N/A"
         },
 
         # -------------------------------------------------------------------
@@ -474,6 +489,11 @@ df = spark.sql(f"""
         ) AS Linked_Issue_Summary,
 
         COALESCE(
+            linked_di.Status_Name,
+            'Unknown'
+        ) AS Linked_Issue_Status,
+
+        COALESCE(
             linked_di.Acceptance_Criteria,
             'Unknown'
         ) AS Linked_Issue_Acceptance_Criteria,
@@ -493,6 +513,18 @@ df = spark.sql(f"""
             lsp.Test_Status_Name,
             'Unknown'
         ) AS Linked_Test_Status,
+
+
+        # ----------------------------------------------------------------
+        # Latest result of the ANCHOR issue when it is a Test -- so a
+        # blocked-tests report can show each test's own result status
+        # alongside what it is blocked by.
+        # ----------------------------------------------------------------
+
+        COALESCE(
+            lsp_anchor.Test_Status_Name,
+            'N/A'
+        ) AS Issue_Test_Status,
 
 
         # ----------------------------------------------------------------
@@ -555,6 +587,15 @@ df = spark.sql(f"""
     LEFT JOIN latest_status_per_test lsp
 
         ON lsp.Test_Code = a.Linked_Issue_Code
+
+
+    # --------------------------------------------------------------------
+    # Latest anchor Test status (anchor issue's own result)
+    # --------------------------------------------------------------------
+
+    LEFT JOIN latest_status_per_test lsp_anchor
+
+        ON lsp_anchor.Test_Code = a.Issue_Code
 
 
     # --------------------------------------------------------------------

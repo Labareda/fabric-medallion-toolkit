@@ -116,12 +116,6 @@ FACT_NOTEBOOKS = {
     # Reads Gold.gold.fact_resource_allocation AND fact_issue -- the other
     # exception. Must run after both.
     "Gold - Fact_Resource_Day_Allocation": ["Gold - Fact_Resource_Allocation", "Gold - Fact_Issue"],
-    # ONE self-contained table for the client's issue-link explorer: pick an
-    # issue, see the whole chain of what it links to, down to the last link,
-    # with each linked item's summary / link type / acceptance criteria /
-    # test status. Recursion is resolved here because Power BI can't follow
-    # multiple hops live. Reads Gold.gold.bridge_issue_link -- runs AFTER it.
-    "Gold - Issue_Traceability": ["Gold - Bridge_Issue_Link"],
 }
 
 # --- Steps allowed to fail without killing the run -------------------------
