@@ -1,58 +1,77 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
   "name": "a1f0b2c3d4e5f6a7b8c9",
-  "position": { "x": 510, "y": 70, "z": 0, "height": 600, "width": 740, "tabOrder": 0 },
+  "position": { "x": 300, "y": 70, "z": 0, "height": 600, "width": 950, "tabOrder": 0 },
   "visual": {
-    "visualType": "pivotTable",
+    "visualType": "tableEx",
     "query": {
       "queryState": {
-        "Rows": {
-          "projections": [
-            {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link" } }, "Property": "Linked Issue Code" } },
-              "queryRef": "Bridge Issue Link.Linked Issue Code",
-              "nativeQueryRef": "Links to",
-              "active": true
-            },
-            {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link (2)" } }, "Property": "Linked Issue Code" } },
-              "queryRef": "Bridge Issue Link (2).Linked Issue Code",
-              "nativeQueryRef": "Then links to"
-            }
-          ]
-        },
         "Values": {
           "projections": [
             {
-              "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link (2)" } }, "Property": "Linked Type" } },
-              "queryRef": "Bridge Issue Link (2).Linked Type",
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Issue Traceability" } }, "Property": "Relationship" } },
+              "queryRef": "Issue Traceability.Relationship",
+              "nativeQueryRef": "Relationship"
+            },
+            {
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Issue Traceability" } }, "Property": "Parent Code" } },
+              "queryRef": "Issue Traceability.Parent Code",
+              "nativeQueryRef": "Linked from"
+            },
+            {
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Issue Traceability" } }, "Property": "Link Label" } },
+              "queryRef": "Issue Traceability.Link Label",
+              "nativeQueryRef": "Link"
+            },
+            {
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Issue Traceability" } }, "Property": "Node Code" } },
+              "queryRef": "Issue Traceability.Node Code",
+              "nativeQueryRef": "Linked issue"
+            },
+            {
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Issue Traceability" } }, "Property": "Node Issue Type" } },
+              "queryRef": "Issue Traceability.Node Issue Type",
               "nativeQueryRef": "Type"
             },
             {
-              "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link (2)" } }, "Property": "Linked Summary" } },
-              "queryRef": "Bridge Issue Link (2).Linked Summary",
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Issue Traceability" } }, "Property": "Node Summary" } },
+              "queryRef": "Issue Traceability.Node Summary",
               "nativeQueryRef": "Summary"
+            },
+            {
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Issue Traceability" } }, "Property": "Node Acceptance Criteria" } },
+              "queryRef": "Issue Traceability.Node Acceptance Criteria",
+              "nativeQueryRef": "Acceptance Criteria"
+            },
+            {
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Issue Traceability" } }, "Property": "Node Test Status" } },
+              "queryRef": "Issue Traceability.Node Test Status",
+              "nativeQueryRef": "Test Status"
+            },
+            {
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Issue Traceability" } }, "Property": "Path String" } },
+              "queryRef": "Issue Traceability.Path String",
+              "nativeQueryRef": "Chain"
             }
           ]
+        },
+        "sortDefinition": {
+          "sort": [
+            {
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Issue Traceability" } }, "Property": "Path String" } },
+              "direction": "Ascending"
+            }
+          ],
+          "isDefaultSort": true
         }
       }
-    },
-    "objects": {
-      "subTotals": [
-        {
-          "properties": {
-            "rowSubtotals": { "expr": { "Literal": { "Value": "false" } } },
-            "columnSubtotals": { "expr": { "Literal": { "Value": "false" } } }
-          }
-        }
-      ]
     },
     "visualContainerObjects": {
       "title": [
         {
           "properties": {
             "show": { "expr": { "Literal": { "Value": "true" } } },
-            "text": { "expr": { "Literal": { "Value": "'Links grouped - expand an issue to see what it links to (2 hops)'" } } }
+            "text": { "expr": { "Literal": { "Value": "'Everything the selected issue links to, expanded to the last link'" } } }
           }
         }
       ]
