@@ -3,66 +3,56 @@
   "name": "a1f0b2c3d4e5f6a7b8c9",
   "position": { "x": 510, "y": 70, "z": 0, "height": 600, "width": 740, "tabOrder": 0 },
   "visual": {
-    "visualType": "tableEx",
+    "visualType": "pivotTable",
     "query": {
       "queryState": {
-        "Values": {
+        "Rows": {
           "projections": [
-            {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link" } }, "Property": "Issue Code" } },
-              "queryRef": "Bridge Issue Link.Issue Code",
-              "nativeQueryRef": "Issue"
-            },
-            {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link" } }, "Property": "Link Label" } },
-              "queryRef": "Bridge Issue Link.Link Label",
-              "nativeQueryRef": "Link"
-            },
             {
               "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link" } }, "Property": "Linked Issue Code" } },
               "queryRef": "Bridge Issue Link.Linked Issue Code",
-              "nativeQueryRef": "Links to"
-            },
-            {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link" } }, "Property": "Linked Issue Type" } },
-              "queryRef": "Bridge Issue Link.Linked Issue Type",
-              "nativeQueryRef": "Type"
-            },
-            {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link" } }, "Property": "Linked Issue Summary" } },
-              "queryRef": "Bridge Issue Link.Linked Issue Summary",
-              "nativeQueryRef": "Summary"
-            },
-            {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link (2)" } }, "Property": "Link Label" } },
-              "queryRef": "Bridge Issue Link (2).Link Label",
-              "nativeQueryRef": "Then via"
+              "nativeQueryRef": "Links to",
+              "active": true
             },
             {
               "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link (2)" } }, "Property": "Linked Issue Code" } },
               "queryRef": "Bridge Issue Link (2).Linked Issue Code",
               "nativeQueryRef": "Then links to"
+            }
+          ]
+        },
+        "Values": {
+          "projections": [
+            {
+              "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link (2)" } }, "Property": "Linked Type" } },
+              "queryRef": "Bridge Issue Link (2).Linked Type",
+              "nativeQueryRef": "Type"
             },
             {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link (2)" } }, "Property": "Linked Issue Type" } },
-              "queryRef": "Bridge Issue Link (2).Linked Issue Type",
-              "nativeQueryRef": "Type "
-            },
-            {
-              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link (2)" } }, "Property": "Linked Issue Summary" } },
-              "queryRef": "Bridge Issue Link (2).Linked Issue Summary",
-              "nativeQueryRef": "Summary "
+              "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "Bridge Issue Link (2)" } }, "Property": "Linked Summary" } },
+              "queryRef": "Bridge Issue Link (2).Linked Summary",
+              "nativeQueryRef": "Summary"
             }
           ]
         }
       }
+    },
+    "objects": {
+      "subTotals": [
+        {
+          "properties": {
+            "rowSubtotals": { "expr": { "Literal": { "Value": "false" } } },
+            "columnSubtotals": { "expr": { "Literal": { "Value": "false" } } }
+          }
+        }
+      ]
     },
     "visualContainerObjects": {
       "title": [
         {
           "properties": {
             "show": { "expr": { "Literal": { "Value": "true" } } },
-            "text": { "expr": { "Literal": { "Value": "'What the selected issue links to, and what those link to (2 hops)'" } } }
+            "text": { "expr": { "Literal": { "Value": "'Links grouped - expand an issue to see what it links to (2 hops)'" } } }
           }
         }
       ]
