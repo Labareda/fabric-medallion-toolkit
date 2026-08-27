@@ -32,8 +32,15 @@ GOLD_SCHEMA = "Gold.gold"
 JIRA_BASE_URL = "https://yourcompany.atlassian.net"
 
 # How many hops deep to expand. First-visit already guarantees termination;
-# this bounds depth (and is the number of dense Level_* indent columns).
-MAX_DEPTH = 8
+# this only bounds depth. 7 hops fill the 8 dense Level_* columns exactly
+# (Level_1 is the selected issue itself, Level_2 the 1st link, ...). Rows
+# always show every depth regardless; only the optional wide/matrix Level
+# columns are capped by this.
+MAX_DEPTH = 7
+
+# Number of dense Level_* columns (Issue + hops). Fixed at 8 to match the
+# schema and the semantic model; keep in step with them if ever changed.
+LEVEL_COLUMNS = 8
 
 # Don't broadcast an edge list bigger than this (broadcasting a huge table
 # stalls the driver); Spark shuffle-joins instead.
@@ -44,45 +51,52 @@ BROADCAST_EDGE_LIMIT = 300000
 # ## Schema -- one flat, denormalised table
 # CELL ********************
 
-schema_columns = {
-
-    # Grain.
-    "Path_String": {"type": "string", "merge_field": True},
-
-    # The issue the user picks (the top of this row's chain).
-    "Root_Code": {"type": "string", "default": "Unknown"},
-
-    # Where this linked issue sits in the chain.
-    "Level":       {"type": "int", "default": 0},
-    "Parent_Code": {"type": "string", "default": "Unknown"},
-
-    # The link from the parent to this issue.
-    "Link_Type_Name": {"type": "string", "default": "None"},
-    "Link_Label":     {"type": "string", "default": "None"},
-
-    # The linked issue itself, everything the client asked to see.
-    "Node_Code":                {"type": "string", "default": "Unknown"},
-    "Node_Issue_Type":          {"type": "string", "default": "Unknown"},
-    "Node_Summary":             {"type": "string", "default": "Unknown"},
-    "Node_Acceptance_Criteria": {"type": "string", "default": "None"},
-    "Node_Test_Status":         {"type": "string", "default": "N/A"},
-    "Node_URL":                 {"type": "string", "default": "Unknown"},
-
-    # Friendly name for how far down the chain this issue sits (Level 1 =
-    # directly linked, Level 2 = sub-linked, ...).
-    "Node_Relationship":        {"type": "string", "default": "Linked"},
-}
-
-# Dense indent columns for an optional expandable matrix (trailing nulls).
-for _k in range(1, MAX_DEPTH + 1):
-    schema_columns[f"Level_{_k}"] = {"type": "string"}
-
 schema = fmt.TableSchema(
     table_name=f"{GOLD_SCHEMA}.issue_traceability",
     table_type="fact",
     key_column="Issue_Traceability_Key",
-    columns=schema_columns,
     write_mode="overwrite",
+
+    columns={
+
+        # Grain.
+        "Path_String": {"type": "string", "merge_field": True},
+
+        # The issue the user picks (the top of this row's chain).
+        "Root_Code": {"type": "string", "default": "Unknown"},
+
+        # Where this linked issue sits in the chain.
+        "Level":       {"type": "int", "default": 0},
+        "Parent_Code": {"type": "string", "default": "Unknown"},
+
+        # The link from the parent to this issue.
+        "Link_Type_Name": {"type": "string", "default": "None"},
+        "Link_Label":     {"type": "string", "default": "None"},
+
+        # The linked issue itself, everything the client asked to see.
+        "Node_Code":                {"type": "string", "default": "Unknown"},
+        "Node_Issue_Type":          {"type": "string", "default": "Unknown"},
+        "Node_Summary":             {"type": "string", "default": "Unknown"},
+        "Node_Acceptance_Criteria": {"type": "string", "default": "None"},
+        "Node_Test_Status":         {"type": "string", "default": "N/A"},
+        "Node_URL":                 {"type": "string", "default": "Unknown"},
+
+        # Friendly name for how far down the chain this issue sits (Level 1 =
+        # directly linked, Level 2 = sub-linked, ...).
+        "Node_Relationship":        {"type": "string", "default": "Linked"},
+
+        # Dense indent columns for an optional expandable matrix (trailing
+        # nulls). MAX_DEPTH is fixed at 8, matching Level_1..Level_8 here and
+        # in the semantic model.
+        "Level_1": {"type": "string"},
+        "Level_2": {"type": "string"},
+        "Level_3": {"type": "string"},
+        "Level_4": {"type": "string"},
+        "Level_5": {"type": "string"},
+        "Level_6": {"type": "string"},
+        "Level_7": {"type": "string"},
+        "Level_8": {"type": "string"},
+    },
 )
 
 
@@ -191,14 +205,14 @@ walk = reduce(lambda a, b: a.unionByName(b), levels)
 # ## Flatten path + denormalise everything the report shows
 # CELL ********************
 
-for k in range(1, MAX_DEPTH + 1):
+for k in range(1, LEVEL_COLUMNS + 1):
     walk = walk.withColumn(
         f"Level_{k}",
         F.when(F.size(F.col("Path")) >= k, F.col("Path").getItem(k - 1)).otherwise(F.lit(None).cast("string")),
     )
 walk = walk.withColumn("Path_String", F.array_join(F.col("Path"), " > "))
 
-level_cols = [f"Level_{k}" for k in range(1, MAX_DEPTH + 1)]
+level_cols = [f"Level_{k}" for k in range(1, LEVEL_COLUMNS + 1)]
 
 df = (
     walk.alias("w")
