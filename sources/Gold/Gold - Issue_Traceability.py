@@ -42,6 +42,13 @@ MAX_DEPTH = 7
 # schema and the semantic model; keep in step with them if ever changed.
 LEVEL_COLUMNS = 8
 
+# Issue types that are NOT offered as a starting point (the client picks an
+# issue / task / bug / test, never one of these Xray container artifacts).
+# They still appear as LINKED nodes -- only excluded as ROOTS. This is the
+# main speed lever: the closure size is ~linear in the number of roots, and
+# these containers are high-fan-out hubs that would blow it up.
+EXCLUDE_ROOT_TYPES = ["Test Set", "Test Plan", "Test Execution"]
+
 # Don't broadcast an edge list bigger than this (broadcasting a huge table
 # stalls the driver); Spark shuffle-joins instead.
 BROADCAST_EDGE_LIMIT = 300000
@@ -152,18 +159,23 @@ test_status = spark.sql(f"""
 
 edges_b = F.broadcast(edges) if edge_count <= BROADCAST_EDGE_LIMIT else edges
 
-# Level 0 seed: each issue as its own root (NOT emitted -- the root is the
-# filter, not a descendant). Seeds go into `visited` so a link back to the
-# root is dropped.
-seed = issues.select(
-    F.col("code").alias("Root_Code"),
-    F.col("code").alias("Node_Code"),
-    F.array(F.col("code")).alias("Path"),
-).persist()
-seed.count()
+# Level 0 seed: each ALLOWED issue as its own root (NOT emitted -- the root
+# is the filter, not a descendant). Seeds go into `visited` so a link back to
+# the root is dropped. localCheckpoint() materializes and TRUNCATES lineage
+# each step -- without it the growing union chain re-plans from scratch every
+# iteration, which is the main reason an iterative walk crawls.
+seed = (
+    issues
+    .filter(~F.col("Issue_Type_Name").isin(EXCLUDE_ROOT_TYPES))
+    .select(
+        F.col("code").alias("Root_Code"),
+        F.col("code").alias("Node_Code"),
+        F.array(F.col("code")).alias("Path"),
+    )
+    .localCheckpoint()
+)
 
-visited = seed.select("Root_Code", "Node_Code").persist()
-visited.count()
+visited = seed.select("Root_Code", "Node_Code").localCheckpoint()
 
 frontier = seed
 levels = []
@@ -188,14 +200,12 @@ for depth in range(1, MAX_DEPTH + 1):
         .join(visited.alias("v"),
               (F.col("c.Root_Code") == F.col("v.Root_Code")) & (F.col("c.Node_Code") == F.col("v.Node_Code")),
               "left_anti")
-        .persist()
+        .localCheckpoint()
     )
     if nxt.limit(1).count() == 0:
-        nxt.unpersist()
         break
     levels.append(nxt)
-    visited = visited.unionByName(nxt.select("Root_Code", "Node_Code")).persist()
-    visited.count()
+    visited = visited.unionByName(nxt.select("Root_Code", "Node_Code")).localCheckpoint()
     frontier = nxt.select("Root_Code", "Node_Code", "Path")
 
 walk = reduce(lambda a, b: a.unionByName(b), levels)
