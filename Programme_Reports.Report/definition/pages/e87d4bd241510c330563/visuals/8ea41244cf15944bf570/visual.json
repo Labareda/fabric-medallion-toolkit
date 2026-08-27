@@ -1,0 +1,77 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
+  "name": "8ea41244cf15944bf570",
+  "position": {
+    "x": 626.67692510606491,
+    "y": 135.05968213492778,
+    "z": 15008,
+    "height": 149.46604822932008,
+    "width": 185.48196346530082,
+    "tabOrder": 14001
+  },
+  "visual": {
+    "visualType": "slicer",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Bridge Issue Link"
+                    }
+                  },
+                  "Property": "Linked Issue Code"
+                }
+              },
+              "queryRef": "Bridge Issue Link.Linked Issue Code",
+              "nativeQueryRef": "Linked Issue Code",
+              "active": true
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "data": [
+        {
+          "properties": {
+            "mode": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Basic'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "general": [
+        {
+          "properties": {}
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "229e9d9d090d5dcc9166",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Bridge Issue Link"
+              }
+            },
+            "Property": "Linked Issue Code"
+          }
+        },
+        "type": "Categorical"
+      }
+    ]
+  }
+}

@@ -199,59 +199,6 @@ table 'Dim Issue'
 
 		annotation UnderlyingDateTimeDataType = Date
 
-	column 'Planned Start Date'
-		dataType: dateTime
-		formatString: Long Date
-		lineageTag: 483603bb-2fdf-4eed-931d-cb75c25878ce
-		summarizeBy: none
-		sourceColumn: Planned Start Date
-
-		annotation SummarizationSetBy = Automatic
-
-		annotation UnderlyingDateTimeDataType = Date
-
-	column 'Planned End Date'
-		dataType: dateTime
-		formatString: Long Date
-		lineageTag: d7b80457-dbd6-488e-bbf7-91b785fcf0a9
-		summarizeBy: none
-		sourceColumn: Planned End Date
-
-		annotation SummarizationSetBy = Automatic
-
-		annotation UnderlyingDateTimeDataType = Date
-
-	column 'Actual Start Date'
-		dataType: dateTime
-		formatString: Long Date
-		lineageTag: 3130ebc5-0cda-4487-b061-8b8e3c9f2522
-		summarizeBy: none
-		sourceColumn: Actual Start Date
-
-		annotation SummarizationSetBy = Automatic
-
-		annotation UnderlyingDateTimeDataType = Date
-
-	column 'Actual End Date'
-		dataType: dateTime
-		formatString: Long Date
-		lineageTag: b171308d-50da-4ada-acc6-18e0b6514320
-		summarizeBy: none
-		sourceColumn: Actual End Date
-
-		annotation SummarizationSetBy = Automatic
-
-		annotation UnderlyingDateTimeDataType = Date
-
-	column 'Missing Planned Dates'
-		dataType: boolean
-		formatString: """TRUE"";""TRUE"";""FALSE"""
-		lineageTag: 1e1220d8-dc05-4bf3-84cf-4bc259750788
-		summarizeBy: none
-		sourceColumn: Missing Planned Dates
-
-		annotation SummarizationSetBy = Automatic
-
 	column Summary
 		dataType: string
 		lineageTag: dc145ac3-9d35-47c3-8686-4a730bd65d36
@@ -293,6 +240,59 @@ table 'Dim Issue'
 
 		annotation SummarizationSetBy = Automatic
 
+	column 'Planned Start Date'
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: d5ed6fa6-3880-4ef7-a442-4f2a54487e2d
+		summarizeBy: none
+		sourceColumn: Planned Start Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Planned End Date'
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: c70f4051-34cb-41e8-bcfb-6ea5f9e0e5ad
+		summarizeBy: none
+		sourceColumn: Planned End Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Actual Start Date'
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 525c1304-055d-4c16-af88-95fc2a87303f
+		summarizeBy: none
+		sourceColumn: Actual Start Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Actual End Date'
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 18a7d8e1-d830-40b2-8e99-f3876191cbcf
+		summarizeBy: none
+		sourceColumn: Actual End Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Missing Planned Dates'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 70d5aebd-65b7-47b0-92a9-a4059c4f42f2
+		summarizeBy: none
+		sourceColumn: Missing Planned Dates
+
+		annotation SummarizationSetBy = Automatic
+
 	partition 'Dim Issue' = m
 		mode: import
 		source =
@@ -304,7 +304,7 @@ table 'Dim Issue'
 				in
 				    #"Removed Columns"
 
-	annotation PBI_ResultType = Exception
+	annotation PBI_ResultType = Table
 
 	annotation PBI_NavigationStepName = Navigation
 

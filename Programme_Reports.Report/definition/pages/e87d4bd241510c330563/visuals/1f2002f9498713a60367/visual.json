@@ -1,0 +1,77 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
+  "name": "1f2002f9498713a60367",
+  "position": {
+    "x": 997.6408520366665,
+    "y": 54.023872853971113,
+    "z": 15010,
+    "height": 390.772680310391,
+    "width": 185.48196346530082,
+    "tabOrder": 14003
+  },
+  "visual": {
+    "visualType": "slicer",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Bridge Issue Link"
+                    }
+                  },
+                  "Property": "Linked Issue Status"
+                }
+              },
+              "queryRef": "Bridge Issue Link.Linked Issue Status",
+              "nativeQueryRef": "Linked Issue Status",
+              "active": true
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "data": [
+        {
+          "properties": {
+            "mode": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Basic'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "general": [
+        {
+          "properties": {}
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "93e5eed335c1bf67f30e",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Bridge Issue Link"
+              }
+            },
+            "Property": "Linked Issue Status"
+          }
+        },
+        "type": "Categorical"
+      }
+    ]
+  }
+}

@@ -317,6 +317,9 @@ cultureInfo en-GB
 			        }
 			      },
 			      "State": "Generated",
+			      "Visibility": {
+			        "Value": "Hidden"
+			      },
 			      "Terms": [
 			        {
 			          "parent issue id": {
@@ -1701,92 +1704,6 @@ cultureInfo en-GB
 			      ],
 			      "NameType": "Name"
 			    },
-			    "dim_priority.priority_description": {
-			      "Definition": {
-			        "Binding": {
-			          "ConceptualEntity": "Dim Priority",
-			          "ConceptualProperty": "Priority Description"
-			        }
-			      },
-			      "State": "Generated",
-			      "Terms": [
-			        {
-			          "priority description": {
-			            "State": "Generated"
-			          }
-			        },
-			        {
-			          "priority appearance": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.75
-			          }
-			        },
-			        {
-			          "priority descriptor": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.75
-			          }
-			        },
-			        {
-			          "priority explanation": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.75
-			          }
-			        },
-			        {
-			          "priority specification": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.75
-			          }
-			        },
-			        {
-			          "priority account": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.727
-			          }
-			        },
-			        {
-			          "priority overview": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.727
-			          }
-			        },
-			        {
-			          "priority report": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.727
-			          }
-			        }
-			      ]
-			    },
 			    "dim_priority.priority_key": {
 			      "Definition": {
 			        "Binding": {
@@ -2779,16 +2696,13 @@ cultureInfo en-GB
 			        }
 			      },
 			      "State": "Generated",
+			      "Visibility": {
+			        "Value": "Hidden"
+			      },
 			      "Terms": [
 			        {
 			          "resource id": {
 			            "State": "Generated"
-			          }
-			        },
-			        {
-			          "id": {
-			            "State": "Generated",
-			            "Weight": 0.97
 			          }
 			        },
 			        {
@@ -2887,8 +2801,7 @@ cultureInfo en-GB
 			            "Weight": 0.476
 			          }
 			        }
-			      ],
-			      "NameType": "Identifier"
+			      ]
 			    },
 			    "dim_resource.resource_name": {
 			      "Definition": {
@@ -3008,88 +2921,6 @@ cultureInfo en-GB
 			        }
 			      ],
 			      "NameType": "Name"
-			    },
-			    "dim_resource.resource_email": {
-			      "Definition": {
-			        "Binding": {
-			          "ConceptualEntity": "Dim Resource",
-			          "ConceptualProperty": "Resource Email"
-			        }
-			      },
-			      "State": "Generated",
-			      "Terms": [
-			        {
-			          "resource email": {
-			            "State": "Generated"
-			          }
-			        },
-			        {
-			          "email": {
-			            "State": "Generated",
-			            "Weight": 0.97
-			          }
-			        },
-			        {
-			          "resource correspondence": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.485
-			          }
-			        },
-			        {
-			          "correspondence": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.476
-			          }
-			        },
-			        {
-			          "resource message": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.461
-			          }
-			        },
-			        {
-			          "resource communication": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.461
-			          }
-			        },
-			        {
-			          "message": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.452
-			          }
-			        },
-			        {
-			          "communication": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.452
-			          }
-			        }
-			      ]
 			    },
 			    "dim_resource.is_active": {
 			      "Definition": {
@@ -3662,122 +3493,6 @@ cultureInfo en-GB
 			        }
 			      ],
 			      "NameType": "Name"
-			    },
-			    "dim_status.status_description": {
-			      "Definition": {
-			        "Binding": {
-			          "ConceptualEntity": "Dim Status",
-			          "ConceptualProperty": "Status Description"
-			        }
-			      },
-			      "State": "Generated",
-			      "Terms": [
-			        {
-			          "status description": {
-			            "State": "Generated"
-			          }
-			        },
-			        {
-			          "status appearance": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.75
-			          }
-			        },
-			        {
-			          "status descriptor": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.75
-			          }
-			        },
-			        {
-			          "status explanation": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.75
-			          }
-			        },
-			        {
-			          "status specification": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.75
-			          }
-			        },
-			        {
-			          "status account": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.727
-			          }
-			        },
-			        {
-			          "status overview": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.727
-			          }
-			        },
-			        {
-			          "status report": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.727
-			          }
-			        },
-			        {
-			          "category description": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.6
-			          }
-			        },
-			        {
-			          "importance description": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.6
-			          }
-			        },
-			        {
-			          "prestige description": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.6
-			          }
-			        }
-			      ]
 			    },
 			    "dim_status.status_key": {
 			      "Definition": {
@@ -11414,6 +11129,9 @@ cultureInfo en-GB
 			        }
 			      },
 			      "State": "Generated",
+			      "Visibility": {
+			        "Value": "Hidden"
+			      },
 			      "Terms": [
 			        {
 			          "resource id": {
@@ -11526,6 +11244,9 @@ cultureInfo en-GB
 			        }
 			      },
 			      "State": "Generated",
+			      "Visibility": {
+			        "Value": "Hidden"
+			      },
 			      "Terms": [
 			        {
 			          "issue id": {
@@ -13575,122 +13296,6 @@ cultureInfo en-GB
 			        }
 			      ]
 			    },
-			    "dim_test_status.test_status_description": {
-			      "Definition": {
-			        "Binding": {
-			          "ConceptualEntity": "Dim Test Status",
-			          "ConceptualProperty": "Test Status Description"
-			        }
-			      },
-			      "State": "Generated",
-			      "Terms": [
-			        {
-			          "test status description": {
-			            "State": "Generated"
-			          }
-			        },
-			        {
-			          "test status appearance": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.762
-			          }
-			        },
-			        {
-			          "test status descriptor": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.762
-			          }
-			        },
-			        {
-			          "test status explanation": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.762
-			          }
-			        },
-			        {
-			          "test status specification": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.762
-			          }
-			        },
-			        {
-			          "test status account": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.739
-			          }
-			        },
-			        {
-			          "test status overview": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.739
-			          }
-			        },
-			        {
-			          "test status report": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.739
-			          }
-			        },
-			        {
-			          "test category description": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.609
-			          }
-			        },
-			        {
-			          "test importance description": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.609
-			          }
-			        },
-			        {
-			          "test prestige description": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.609
-			          }
-			        }
-			      ]
-			    },
 			    "dim_test_status.is_pass": {
 			      "Definition": {
 			        "Binding": {
@@ -14447,16 +14052,13 @@ cultureInfo en-GB
 			        }
 			      },
 			      "State": "Generated",
+			      "Visibility": {
+			        "Value": "Hidden"
+			      },
 			      "Terms": [
 			        {
 			          "team id": {
 			            "State": "Generated"
-			          }
-			        },
-			        {
-			          "id": {
-			            "State": "Generated",
-			            "Weight": 0.97
 			          }
 			        },
 			        {
@@ -14565,8 +14167,7 @@ cultureInfo en-GB
 			            "Weight": 0.466
 			          }
 			        }
-			      ],
-			      "NameType": "Identifier"
+			      ]
 			    },
 			    "dim_team.team_key": {
 			      "Definition": {
@@ -14828,6 +14429,9 @@ cultureInfo en-GB
 			        }
 			      },
 			      "State": "Generated",
+			      "Visibility": {
+			        "Value": "Hidden"
+			      },
 			      "Terms": [
 			        {
 			          "issue id": {
@@ -16488,131 +16092,6 @@ cultureInfo en-GB
 			        },
 			        {
 			          "team basis": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.475
-			          }
-			        }
-			      ]
-			    },
-			    "fact_issue_history.resource_key": {
-			      "Definition": {
-			        "Binding": {
-			          "ConceptualEntity": "Fact Issue History",
-			          "ConceptualProperty": "Resource Key"
-			        }
-			      },
-			      "State": "Generated",
-			      "Visibility": {
-			        "Value": "Hidden"
-			      },
-			      "Terms": [
-			        {
-			          "resource key": {
-			            "State": "Generated"
-			          }
-			        },
-			        {
-			          "key": {
-			            "State": "Generated",
-			            "Weight": 0.97
-			          }
-			        },
-			        {
-			          "main": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.476
-			          }
-			        },
-			        {
-			          "basic": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.476
-			          }
-			        },
-			        {
-			          "fundamental": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.476
-			          }
-			        },
-			        {
-			          "central": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.476
-			          }
-			        },
-			        {
-			          "major": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.476
-			          }
-			        },
-			        {
-			          "keynote": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.476
-			          }
-			        },
-			        {
-			          "essential": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.476
-			          }
-			        },
-			        {
-			          "resource solution": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.475
-			          }
-			        },
-			        {
-			          "resource explanation": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.475
-			          }
-			        },
-			        {
-			          "resource basis": {
 			            "Type": "Noun",
 			            "State": "Suggested",
 			            "Source": {
@@ -19083,12 +18562,6 @@ cultureInfo en-GB
 			          }
 			        },
 			        {
-			          "issue key": {
-			            "State": "Generated",
-			            "Weight": 0.97
-			          }
-			        },
-			        {
 			          "test issue solution": {
 			            "Type": "Noun",
 			            "State": "Suggested",
@@ -19523,6 +18996,9 @@ cultureInfo en-GB
 			        }
 			      },
 			      "State": "Generated",
+			      "Visibility": {
+			        "Value": "Hidden"
+			      },
 			      "Terms": [
 			        {
 			          "execution issue key": {
@@ -19531,12 +19007,6 @@ cultureInfo en-GB
 			        },
 			        {
 			          "key": {
-			            "State": "Generated",
-			            "Weight": 0.97
-			          }
-			        },
-			        {
-			          "issue key": {
 			            "State": "Generated",
 			            "Weight": 0.97
 			          }
@@ -20036,6 +19506,9 @@ cultureInfo en-GB
 			        }
 			      },
 			      "State": "Generated",
+			      "Visibility": {
+			        "Value": "Hidden"
+			      },
 			      "Terms": [
 			        {
 			          "test fact key": {
@@ -20535,16 +20008,13 @@ cultureInfo en-GB
 			        }
 			      },
 			      "State": "Generated",
+			      "Visibility": {
+			        "Value": "Hidden"
+			      },
 			      "Terms": [
 			        {
 			          "link type id": {
 			            "State": "Generated"
-			          }
-			        },
-			        {
-			          "id": {
-			            "State": "Generated",
-			            "Weight": 0.97
 			          }
 			        },
 			        {
@@ -20665,8 +20135,7 @@ cultureInfo en-GB
 			            "Weight": 0.75
 			          }
 			        }
-			      ],
-			      "NameType": "Identifier"
+			      ]
 			    },
 			    "dim_link_type.link_type_name": {
 			      "Definition": {
@@ -21021,6 +20490,9 @@ cultureInfo en-GB
 			        }
 			      },
 			      "State": "Generated",
+			      "Visibility": {
+			        "Value": "Hidden"
+			      },
 			      "Terms": [
 			        {
 			          "link type key": {
@@ -21447,9 +20919,6 @@ cultureInfo en-GB
 			        }
 			      },
 			      "State": "Generated",
-			      "Visibility": {
-			        "Value": "Hidden"
-			      },
 			      "Terms": [
 			        {
 			          "link type name": {
@@ -21822,12 +21291,6 @@ cultureInfo en-GB
 			        },
 			        {
 			          "key": {
-			            "State": "Generated",
-			            "Weight": 0.97
-			          }
-			        },
-			        {
-			          "issue key": {
 			            "State": "Generated",
 			            "Weight": 0.97
 			          }
@@ -22978,6 +22441,9 @@ cultureInfo en-GB
 			        }
 			      },
 			      "State": "Generated",
+			      "Visibility": {
+			        "Value": "Hidden"
+			      },
 			      "Terms": [
 			        {
 			          "resource id": {
@@ -23090,6 +22556,9 @@ cultureInfo en-GB
 			        }
 			      },
 			      "State": "Generated",
+			      "Visibility": {
+			        "Value": "Hidden"
+			      },
 			      "Terms": [
 			        {
 			          "issue id": {
@@ -24693,529 +24162,763 @@ cultureInfo en-GB
 			          }
 			        }
 			      ]
+			    },
+			    "fact_resource_day_allocation.allocated_items": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Fact Resource Day Allocation",
+			          "ConceptualProperty": "Allocated Items"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "allocated items": {
+			            "State": "Generated"
+			          }
+			        },
+			        {
+			          "items": {
+			            "State": "Generated",
+			            "Weight": 0.97
+			          }
+			        },
+			        {
+			          "allocated substance": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.5
+			          }
+			        },
+			        {
+			          "allocated thing": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.5
+			          }
+			        },
+			        {
+			          "substance": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.491
+			          }
+			        },
+			        {
+			          "thing": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.491
+			          }
+			        },
+			        {
+			          "allocated matter": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.485
+			          }
+			        },
+			        {
+			          "allocated stuff": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.485
+			          }
+			        },
+			        {
+			          "allocated object": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.485
+			          }
+			        },
+			        {
+			          "matter": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.476
+			          }
+			        },
+			        {
+			          "stuff": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.476
+			          }
+			        },
+			        {
+			          "object": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.476
+			          }
+			        }
+			      ]
+			    },
+			    "dim_issue.planned_start_date": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Dim Issue",
+			          "ConceptualProperty": "Planned Start Date"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "planned start date": {
+			            "State": "Generated"
+			          }
+			        },
+			        {
+			          "date": {
+			            "State": "Generated",
+			            "Weight": 0.7
+			          }
+			        },
+			        {
+			          "start date": {
+			            "State": "Generated",
+			            "Weight": 0.97
+			          }
+			        },
+			        {
+			          "planned start moment": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.762
+			          }
+			        },
+			        {
+			          "start moment": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.75
+			          }
+			        },
+			        {
+			          "planned start period": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.739
+			          }
+			        },
+			        {
+			          "start period": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.727
+			          }
+			        },
+			        {
+			          "planned commencement date": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.615
+			          }
+			        },
+			        {
+			          "planned inception date": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.615
+			          }
+			        },
+			        {
+			          "planned kickoff date": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.615
+			          }
+			        },
+			        {
+			          "commencement date": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.6
+			          }
+			        },
+			        {
+			          "inception date": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.6
+			          }
+			        },
+			        {
+			          "kickoff date": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.6
+			          }
+			        }
+			      ],
+			      "SemanticType": "Time"
+			    },
+			    "dim_issue.planned_end_date": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Dim Issue",
+			          "ConceptualProperty": "Planned End Date"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "planned end date": {
+			            "State": "Generated"
+			          }
+			        },
+			        {
+			          "date": {
+			            "State": "Generated",
+			            "Weight": 0.7
+			          }
+			        },
+			        {
+			          "end date": {
+			            "State": "Generated",
+			            "Weight": 0.97
+			          }
+			        },
+			        {
+			          "planned end moment": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.762
+			          }
+			        },
+			        {
+			          "end moment": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.75
+			          }
+			        },
+			        {
+			          "planned end period": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.739
+			          }
+			        },
+			        {
+			          "end period": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.727
+			          }
+			        },
+			        {
+			          "planned culmination date": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.615
+			          }
+			        },
+			        {
+			          "planned completion date": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.609
+			          }
+			        },
+			        {
+			          "planned conclusion date": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.609
+			          }
+			        },
+			        {
+			          "planned expiration date": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.609
+			          }
+			        },
+			        {
+			          "culmination date": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.6
+			          }
+			        },
+			        {
+			          "completion date": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.6
+			          }
+			        }
+			      ],
+			      "SemanticType": "Time"
+			    },
+			    "dim_issue.actual_start_date": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Dim Issue",
+			          "ConceptualProperty": "Actual Start Date"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "actual start date": {
+			            "State": "Generated"
+			          }
+			        },
+			        {
+			          "date": {
+			            "State": "Generated",
+			            "Weight": 0.7
+			          }
+			        },
+			        {
+			          "start date": {
+			            "State": "Generated",
+			            "Weight": 0.97
+			          }
+			        },
+			        {
+			          "actual start moment": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.762
+			          }
+			        },
+			        {
+			          "start moment": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.75
+			          }
+			        },
+			        {
+			          "actual start period": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.739
+			          }
+			        },
+			        {
+			          "start period": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.727
+			          }
+			        },
+			        {
+			          "actual commencement date": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.615
+			          }
+			        },
+			        {
+			          "actual inception date": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.615
+			          }
+			        },
+			        {
+			          "actual kickoff date": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.615
+			          }
+			        },
+			        {
+			          "commencement date": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.6
+			          }
+			        },
+			        {
+			          "inception date": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.6
+			          }
+			        },
+			        {
+			          "kickoff date": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.6
+			          }
+			        }
+			      ],
+			      "SemanticType": "Time"
+			    },
+			    "dim_issue.actual_end_date": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Dim Issue",
+			          "ConceptualProperty": "Actual End Date"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "actual end date": {
+			            "State": "Generated"
+			          }
+			        },
+			        {
+			          "date": {
+			            "State": "Generated",
+			            "Weight": 0.7
+			          }
+			        },
+			        {
+			          "end date": {
+			            "State": "Generated",
+			            "Weight": 0.97
+			          }
+			        },
+			        {
+			          "actual end moment": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.762
+			          }
+			        },
+			        {
+			          "end moment": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.75
+			          }
+			        },
+			        {
+			          "actual end period": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.739
+			          }
+			        },
+			        {
+			          "end period": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.727
+			          }
+			        },
+			        {
+			          "actual culmination date": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.615
+			          }
+			        },
+			        {
+			          "actual completion date": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.609
+			          }
+			        },
+			        {
+			          "actual conclusion date": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.609
+			          }
+			        },
+			        {
+			          "actual expiration date": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.609
+			          }
+			        },
+			        {
+			          "culmination date": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.6
+			          }
+			        },
+			        {
+			          "completion date": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.6
+			          }
+			        }
+			      ],
+			      "SemanticType": "Time"
+			    },
+			    "dim_issue.missing_planned_date": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "Dim Issue",
+			          "ConceptualProperty": "Missing Planned Dates"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "missing planned date": {
+			            "State": "Generated"
+			          }
+			        },
+			        {
+			          "missing planned moment": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.762
+			          }
+			        },
+			        {
+			          "missing planned period": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.739
+			          }
+			        }
+			      ]
 			    }
 			  },
 			  "Relationships": {
-			    "fact_resource_allocation_has_dim_resource_role": {
+			    "dim_issue_has_missing_planned_date": {
 			      "Binding": {
-			        "ConceptualEntity": "Fact Resource Allocation"
+			        "ConceptualEntity": "Dim Issue"
 			      },
 			      "State": "Generated",
 			      "Roles": {
-			        "fact_resource_allocation": {
-			          "Target": {
-			            "Entity": "fact_resource_allocation"
-			          }
-			        },
-			        "dim_resource_role": {
-			          "Target": {
-			            "Entity": "dim_resource_role"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_resource_allocation"
-			            },
-			            "Object": {
-			              "Role": "dim_resource_role"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_resource_allocations_have_dim_resource_roles"
-			        },
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "dim_resource_role"
-			            },
-			            "Object": {
-			              "Role": "fact_resource_allocation"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "dim_resource_roles_have_fact_resource_allocations"
-			        }
-			      ]
-			    },
-			    "fact_resource_allocation_has_dim_team": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Resource Allocation"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_resource_allocation": {
-			          "Target": {
-			            "Entity": "fact_resource_allocation"
-			          }
-			        },
-			        "dim_team": {
-			          "Target": {
-			            "Entity": "dim_team"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_resource_allocation"
-			            },
-			            "Object": {
-			              "Role": "dim_team"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_resource_allocations_have_dim_teams"
-			        },
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "dim_team"
-			            },
-			            "Object": {
-			              "Role": "fact_resource_allocation"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "dim_teams_have_fact_resource_allocations"
-			        }
-			      ]
-			    },
-			    "fact_resource_allocation_has_dim_project": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Resource Allocation"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_resource_allocation": {
-			          "Target": {
-			            "Entity": "fact_resource_allocation"
-			          }
-			        },
-			        "dim_project": {
-			          "Target": {
-			            "Entity": "dim_project"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_resource_allocation"
-			            },
-			            "Object": {
-			              "Role": "dim_project"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_resource_allocations_have_dim_projects"
-			        },
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "dim_project"
-			            },
-			            "Object": {
-			              "Role": "fact_resource_allocation"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "dim_projects_have_fact_resource_allocations"
-			        }
-			      ]
-			    },
-			    "fact_resource_allocation_has_dim_resource": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Resource Allocation"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_resource_allocation": {
-			          "Target": {
-			            "Entity": "fact_resource_allocation"
-			          }
-			        },
-			        "dim_resource": {
-			          "Target": {
-			            "Entity": "dim_resource"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_resource_allocation"
-			            },
-			            "Object": {
-			              "Role": "dim_resource"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_resource_allocations_have_dim_resources"
-			        },
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "dim_resource"
-			            },
-			            "Object": {
-			              "Role": "fact_resource_allocation"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "dim_resources_have_fact_resource_allocations"
-			        }
-			      ]
-			    },
-			    "fact_resource_allocation_has_dim_issue": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Resource Allocation"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_resource_allocation": {
-			          "Target": {
-			            "Entity": "fact_resource_allocation"
-			          }
-			        },
 			        "dim_issue": {
 			          "Target": {
 			            "Entity": "dim_issue"
 			          }
+			        },
+			        "dim_issue.missing_planned_date": {
+			          "Target": {
+			            "Entity": "dim_issue.missing_planned_date"
+			          }
 			        }
 			      },
 			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_resource_allocation"
-			            },
-			            "Object": {
-			              "Role": "dim_issue"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_resource_allocations_have_dim_issues"
-			        },
 			        {
 			          "Attribute": {
 			            "Subject": {
 			              "Role": "dim_issue"
 			            },
 			            "Object": {
-			              "Role": "fact_resource_allocation"
+			              "Role": "dim_issue.missing_planned_date"
 			            }
 			          },
 			          "State": "Generated",
 			          "Weight": 0.99,
-			          "ID": "dim_issues_have_fact_resource_allocations"
+			          "ID": "dim_issues_have_missing_planned_dates"
 			        }
 			      ]
 			    },
-			    "fact_issue_has_dim_date": {
+			    "dim_issue_has_actual_end_date": {
 			      "Binding": {
-			        "ConceptualEntity": "Fact Issue"
+			        "ConceptualEntity": "Dim Issue"
 			      },
 			      "State": "Generated",
 			      "Roles": {
-			        "fact_issue": {
-			          "Target": {
-			            "Entity": "fact_issue"
-			          }
-			        },
-			        "dim_date": {
-			          "Target": {
-			            "Entity": "dim_date"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_issue"
-			            },
-			            "Object": {
-			              "Role": "dim_date"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_issues_have_dim_dates"
-			        },
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "dim_date"
-			            },
-			            "Object": {
-			              "Role": "fact_issue"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "dim_dates_have_fact_issues"
-			        }
-			      ]
-			    },
-			    "fact_issue_has_dim_team": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Issue"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_issue": {
-			          "Target": {
-			            "Entity": "fact_issue"
-			          }
-			        },
-			        "dim_team": {
-			          "Target": {
-			            "Entity": "dim_team"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_issue"
-			            },
-			            "Object": {
-			              "Role": "dim_team"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_issues_have_dim_teams"
-			        },
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "dim_team"
-			            },
-			            "Object": {
-			              "Role": "fact_issue"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "dim_teams_have_fact_issues"
-			        }
-			      ]
-			    },
-			    "fact_issue_has_dim_due_date": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Issue"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_issue": {
-			          "Target": {
-			            "Entity": "fact_issue"
-			          }
-			        },
-			        "dim_due_date": {
-			          "Target": {
-			            "Entity": "dim_due_date"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_issue"
-			            },
-			            "Object": {
-			              "Role": "dim_due_date"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_issues_have_dim_due_date"
-			        },
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "dim_due_date"
-			            },
-			            "Object": {
-			              "Role": "fact_issue"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "dim_due_date_have_fact_issues"
-			        }
-			      ]
-			    },
-			    "fact_issue_has_dim_issue_type": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Issue"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_issue": {
-			          "Target": {
-			            "Entity": "fact_issue"
-			          }
-			        },
-			        "dim_issue_type": {
-			          "Target": {
-			            "Entity": "dim_issue_type"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_issue"
-			            },
-			            "Object": {
-			              "Role": "dim_issue_type"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_issues_have_dim_issue_types"
-			        },
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "dim_issue_type"
-			            },
-			            "Object": {
-			              "Role": "fact_issue"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "dim_issue_types_have_fact_issues"
-			        }
-			      ]
-			    },
-			    "fact_issue_has_dim_priority": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Issue"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_issue": {
-			          "Target": {
-			            "Entity": "fact_issue"
-			          }
-			        },
-			        "dim_priority": {
-			          "Target": {
-			            "Entity": "dim_priority"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_issue"
-			            },
-			            "Object": {
-			              "Role": "dim_priority"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_issues_have_dim_priorities"
-			        },
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "dim_priority"
-			            },
-			            "Object": {
-			              "Role": "fact_issue"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "dim_priorities_have_fact_issues"
-			        }
-			      ]
-			    },
-			    "fact_issue_has_dim_issue": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Issue"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_issue": {
-			          "Target": {
-			            "Entity": "fact_issue"
-			          }
-			        },
 			        "dim_issue": {
 			          "Target": {
 			            "Entity": "dim_issue"
 			          }
+			        },
+			        "dim_issue.actual_end_date": {
+			          "Target": {
+			            "Entity": "dim_issue.actual_end_date"
+			          }
 			        }
 			      },
 			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_issue"
-			            },
-			            "Object": {
-			              "Role": "dim_issue"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_issues_have_dim_issues"
-			        },
 			        {
 			          "Attribute": {
 			            "Subject": {
 			              "Role": "dim_issue"
 			            },
 			            "Object": {
-			              "Role": "fact_issue"
+			              "Role": "dim_issue.actual_end_date"
 			            }
 			          },
 			          "State": "Generated",
 			          "Weight": 0.99,
-			          "ID": "dim_issues_have_fact_issues"
+			          "ID": "dim_issues_have_actual_end_dates"
 			        }
 			      ]
 			    },
-			    "fact_issue_has_dim_status": {
+			    "dim_issue_has_actual_start_date": {
 			      "Binding": {
-			        "ConceptualEntity": "Fact Issue"
+			        "ConceptualEntity": "Dim Issue"
 			      },
 			      "State": "Generated",
 			      "Roles": {
-			        "fact_issue": {
+			        "dim_issue": {
 			          "Target": {
-			            "Entity": "fact_issue"
+			            "Entity": "dim_issue"
 			          }
 			        },
-			        "dim_status": {
+			        "dim_issue.actual_start_date": {
 			          "Target": {
-			            "Entity": "dim_status"
+			            "Entity": "dim_issue.actual_start_date"
 			          }
 			        }
 			      },
@@ -25223,45 +24926,32 @@ cultureInfo en-GB
 			        {
 			          "Attribute": {
 			            "Subject": {
-			              "Role": "fact_issue"
+			              "Role": "dim_issue"
 			            },
 			            "Object": {
-			              "Role": "dim_status"
+			              "Role": "dim_issue.actual_start_date"
 			            }
 			          },
 			          "State": "Generated",
 			          "Weight": 0.99,
-			          "ID": "fact_issues_have_dim_statuses"
-			        },
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "dim_status"
-			            },
-			            "Object": {
-			              "Role": "fact_issue"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "dim_statuses_have_fact_issues"
+			          "ID": "dim_issues_have_actual_start_dates"
 			        }
 			      ]
 			    },
-			    "fact_issue_has_dim_project": {
+			    "dim_issue_has_planned_end_date": {
 			      "Binding": {
-			        "ConceptualEntity": "Fact Issue"
+			        "ConceptualEntity": "Dim Issue"
 			      },
 			      "State": "Generated",
 			      "Roles": {
-			        "fact_issue": {
+			        "dim_issue": {
 			          "Target": {
-			            "Entity": "fact_issue"
+			            "Entity": "dim_issue"
 			          }
 			        },
-			        "dim_project": {
+			        "dim_issue.planned_end_date": {
 			          "Target": {
-			            "Entity": "dim_project"
+			            "Entity": "dim_issue.planned_end_date"
 			          }
 			        }
 			      },
@@ -25269,28 +24959,81 @@ cultureInfo en-GB
 			        {
 			          "Attribute": {
 			            "Subject": {
-			              "Role": "fact_issue"
+			              "Role": "dim_issue"
 			            },
 			            "Object": {
-			              "Role": "dim_project"
+			              "Role": "dim_issue.planned_end_date"
 			            }
 			          },
 			          "State": "Generated",
 			          "Weight": 0.99,
-			          "ID": "fact_issues_have_dim_projects"
+			          "ID": "dim_issues_have_planned_end_dates"
+			        }
+			      ]
+			    },
+			    "dim_issue_has_planned_start_date": {
+			      "Binding": {
+			        "ConceptualEntity": "Dim Issue"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "dim_issue": {
+			          "Target": {
+			            "Entity": "dim_issue"
+			          }
 			        },
+			        "dim_issue.planned_start_date": {
+			          "Target": {
+			            "Entity": "dim_issue.planned_start_date"
+			          }
+			        }
+			      },
+			      "Phrasings": [
 			        {
 			          "Attribute": {
 			            "Subject": {
-			              "Role": "dim_project"
+			              "Role": "dim_issue"
 			            },
 			            "Object": {
-			              "Role": "fact_issue"
+			              "Role": "dim_issue.planned_start_date"
 			            }
 			          },
 			          "State": "Generated",
 			          "Weight": 0.99,
-			          "ID": "dim_projects_have_fact_issues"
+			          "ID": "dim_issues_have_planned_start_dates"
+			        }
+			      ]
+			    },
+			    "fact_resource_allocation_has_fact_resource_day_allocation_allocated_items": {
+			      "Binding": {
+			        "ConceptualEntity": "Fact Resource Allocation"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "fact_resource_allocation": {
+			          "Target": {
+			            "Entity": "fact_resource_allocation"
+			          }
+			        },
+			        "fact_resource_day_allocation.allocated_items": {
+			          "Target": {
+			            "Entity": "fact_resource_day_allocation.allocated_items"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "fact_resource_allocation"
+			            },
+			            "Object": {
+			              "Role": "fact_resource_day_allocation.allocated_items"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "fact_resource_allocations_have_allocated_items"
 			        }
 			      ]
 			    },
@@ -25723,72 +25466,6 @@ cultureInfo en-GB
 			        }
 			      ]
 			    },
-			    "fact_resource_day_allocation_has_issue_id": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Resource Day Allocation"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_resource_day_allocation": {
-			          "Target": {
-			            "Entity": "fact_resource_day_allocation"
-			          }
-			        },
-			        "fact_resource_day_allocation.issue_id": {
-			          "Target": {
-			            "Entity": "fact_resource_day_allocation.issue_id"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_resource_day_allocation"
-			            },
-			            "Object": {
-			              "Role": "fact_resource_day_allocation.issue_id"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_resource_day_allocations_have_issue_ids"
-			        }
-			      ]
-			    },
-			    "fact_resource_day_allocation_has_resource_id": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Resource Day Allocation"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_resource_day_allocation": {
-			          "Target": {
-			            "Entity": "fact_resource_day_allocation"
-			          }
-			        },
-			        "fact_resource_day_allocation.resource_id": {
-			          "Target": {
-			            "Entity": "fact_resource_day_allocation.resource_id"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_resource_day_allocation"
-			            },
-			            "Object": {
-			              "Role": "fact_resource_day_allocation.resource_id"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_resource_day_allocations_have_resource_ids"
-			        }
-			      ]
-			    },
 			    "bridge_issue_link_has_linked_test_status": {
 			      "Binding": {
 			        "ConceptualEntity": "Bridge Issue Link"
@@ -25888,6 +25565,39 @@ cultureInfo en-GB
 			        }
 			      ]
 			    },
+			    "bridge_issue_link_has_link_type_name": {
+			      "Binding": {
+			        "ConceptualEntity": "Bridge Issue Link"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "bridge_issue_link": {
+			          "Target": {
+			            "Entity": "bridge_issue_link"
+			          }
+			        },
+			        "bridge_issue_link.link_type_name": {
+			          "Target": {
+			            "Entity": "bridge_issue_link.link_type_name"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "bridge_issue_link"
+			            },
+			            "Object": {
+			              "Role": "bridge_issue_link.link_type_name"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "bridge_issue_links_have_link_type_names"
+			        }
+			      ]
+			    },
 			    "bridge_issue_link_has_linked_issue_code": {
 			      "Binding": {
 			        "ConceptualEntity": "Bridge Issue Link"
@@ -25951,39 +25661,6 @@ cultureInfo en-GB
 			          "State": "Generated",
 			          "Weight": 0.99,
 			          "ID": "bridge_issue_links_have_directions"
-			        }
-			      ]
-			    },
-			    "dim_link_type_has_link_type_key": {
-			      "Binding": {
-			        "ConceptualEntity": "Dim Link Type"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "dim_link_type": {
-			          "Target": {
-			            "Entity": "dim_link_type"
-			          }
-			        },
-			        "dim_link_type.link_type_key": {
-			          "Target": {
-			            "Entity": "dim_link_type.link_type_key"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "dim_link_type"
-			            },
-			            "Object": {
-			              "Role": "dim_link_type.link_type_key"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "dim_link_types_have_link_type_keys"
 			        }
 			      ]
 			    },
@@ -26099,217 +25776,6 @@ cultureInfo en-GB
 			        }
 			      ]
 			    },
-			    "dim_link_type_has_link_type_id": {
-			      "Binding": {
-			        "ConceptualEntity": "Dim Link Type"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "dim_link_type": {
-			          "Target": {
-			            "Entity": "dim_link_type"
-			          }
-			        },
-			        "dim_link_type.link_type_id": {
-			          "Target": {
-			            "Entity": "dim_link_type.link_type_id"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "dim_link_type"
-			            },
-			            "Object": {
-			              "Role": "dim_link_type.link_type_id"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "dim_link_types_have_link_type_ids"
-			        },
-			        {
-			          "Name": {
-			            "Subject": {
-			              "Role": "dim_link_type"
-			            },
-			            "Name": {
-			              "Role": "dim_link_type.link_type_id"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "link_type_ids_are_names_IDs_of_dim_link_types"
-			        }
-			      ]
-			    },
-			    "fact_test_has_tests_passed": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Test"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_test": {
-			          "Target": {
-			            "Entity": "fact_test"
-			          }
-			        },
-			        "fact_test.tests_passed": {
-			          "Target": {
-			            "Entity": "fact_test.tests_passed"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_test"
-			            },
-			            "Object": {
-			              "Role": "fact_test.tests_passed"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_tests_have_tests_passed"
-			        }
-			      ]
-			    },
-			    "dim_test_status_has_fact_test_tests_passed": {
-			      "Binding": {
-			        "ConceptualEntity": "Dim Test Status"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "dim_test_status": {
-			          "Target": {
-			            "Entity": "dim_test_status"
-			          }
-			        },
-			        "fact_test.tests_passed": {
-			          "Target": {
-			            "Entity": "fact_test.tests_passed"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "dim_test_status"
-			            },
-			            "Object": {
-			              "Role": "fact_test.tests_passed"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "dim_test_statuses_have_tests_passed"
-			        }
-			      ]
-			    },
-			    "bridge_issue_link_has_fact_test_test_set_codes": {
-			      "Binding": {
-			        "ConceptualEntity": "Bridge Issue Link"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "bridge_issue_link": {
-			          "Target": {
-			            "Entity": "bridge_issue_link"
-			          }
-			        },
-			        "fact_test.test_set_codes": {
-			          "Target": {
-			            "Entity": "fact_test.test_set_codes"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "bridge_issue_link"
-			            },
-			            "Object": {
-			              "Role": "fact_test.test_set_codes"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "bridge_issue_links_have_test_set_codes"
-			        }
-			      ]
-			    },
-			    "dim_resource_has_fact_test_latest_executor": {
-			      "Binding": {
-			        "ConceptualEntity": "Dim Resource"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "dim_resource": {
-			          "Target": {
-			            "Entity": "dim_resource"
-			          }
-			        },
-			        "fact_test.latest_executor": {
-			          "Target": {
-			            "Entity": "fact_test.latest_executor"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "dim_resource"
-			            },
-			            "Object": {
-			              "Role": "fact_test.latest_executor"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "dim_resources_have_latest_executor"
-			        },
-			        {
-			          "Verb": {
-			            "Subject": {
-			              "Role": "fact_test.latest_executor"
-			            },
-			            "Verbs": [
-			              {
-			                "execute": {
-			                  "State": "Generated"
-			                }
-			              }
-			            ],
-			            "Object": {
-			              "Role": "dim_resource"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.75,
-			          "ID": "latest_executor_execute_dim_resources"
-			        },
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_test.latest_executor"
-			            },
-			            "Object": {
-			              "Role": "dim_resource"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "latest_executor_have_dim_resources"
-			        }
-			      ]
-			    },
 			    "fact_test_has_total_test": {
 			      "Binding": {
 			        "ConceptualEntity": "Fact Test"
@@ -26340,105 +25806,6 @@ cultureInfo en-GB
 			          "State": "Generated",
 			          "Weight": 0.99,
 			          "ID": "fact_tests_have_total_test"
-			        }
-			      ]
-			    },
-			    "fact_test_has_test_summary": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Test"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_test": {
-			          "Target": {
-			            "Entity": "fact_test"
-			          }
-			        },
-			        "fact_test.test_summary": {
-			          "Target": {
-			            "Entity": "fact_test.test_summary"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_test"
-			            },
-			            "Object": {
-			              "Role": "fact_test.test_summary"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_tests_have_test_summary"
-			        }
-			      ]
-			    },
-			    "dim_test_status_has_fact_test_latest_test_status": {
-			      "Binding": {
-			        "ConceptualEntity": "Dim Test Status"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "dim_test_status": {
-			          "Target": {
-			            "Entity": "dim_test_status"
-			          }
-			        },
-			        "fact_test.latest_test_status": {
-			          "Target": {
-			            "Entity": "fact_test.latest_test_status"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "dim_test_status"
-			            },
-			            "Object": {
-			              "Role": "fact_test.latest_test_status"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "dim_test_statuses_have_latest_test_status"
-			        }
-			      ]
-			    },
-			    "fact_test_has_latest_run_date": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Test"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_test": {
-			          "Target": {
-			            "Entity": "fact_test"
-			          }
-			        },
-			        "fact_test.latest_run_date": {
-			          "Target": {
-			            "Entity": "fact_test.latest_run_date"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_test"
-			            },
-			            "Object": {
-			              "Role": "fact_test.latest_run_date"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_tests_have_latest_run_date"
 			        }
 			      ]
 			    },
@@ -26475,237 +25842,6 @@ cultureInfo en-GB
 			        }
 			      ]
 			    },
-			    "fact_test_has_runs_passed": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Test"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_test": {
-			          "Target": {
-			            "Entity": "fact_test"
-			          }
-			        },
-			        "fact_test.runs_passed": {
-			          "Target": {
-			            "Entity": "fact_test.runs_passed"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_test"
-			            },
-			            "Object": {
-			              "Role": "fact_test.runs_passed"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_tests_have_runs_passed"
-			        }
-			      ]
-			    },
-			    "fact_test_has_tests_failed": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Test"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_test": {
-			          "Target": {
-			            "Entity": "fact_test"
-			          }
-			        },
-			        "fact_test.tests_failed": {
-			          "Target": {
-			            "Entity": "fact_test.tests_failed"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_test"
-			            },
-			            "Object": {
-			              "Role": "fact_test.tests_failed"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_tests_have_tests_failed"
-			        }
-			      ]
-			    },
-			    "dim_test_status_has_fact_test_tests_failed": {
-			      "Binding": {
-			        "ConceptualEntity": "Dim Test Status"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "dim_test_status": {
-			          "Target": {
-			            "Entity": "dim_test_status"
-			          }
-			        },
-			        "fact_test.tests_failed": {
-			          "Target": {
-			            "Entity": "fact_test.tests_failed"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "dim_test_status"
-			            },
-			            "Object": {
-			              "Role": "fact_test.tests_failed"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "dim_test_statuses_have_tests_failed"
-			        }
-			      ]
-			    },
-			    "fact_test_has_runs_failed": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Test"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_test": {
-			          "Target": {
-			            "Entity": "fact_test"
-			          }
-			        },
-			        "fact_test.runs_failed": {
-			          "Target": {
-			            "Entity": "fact_test.runs_failed"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_test"
-			            },
-			            "Object": {
-			              "Role": "fact_test.runs_failed"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_tests_have_runs_failed"
-			        }
-			      ]
-			    },
-			    "fact_test_has_pass_rate_": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Test"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_test": {
-			          "Target": {
-			            "Entity": "fact_test"
-			          }
-			        },
-			        "fact_test.pass_rate_": {
-			          "Target": {
-			            "Entity": "fact_test.pass_rate_"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_test"
-			            },
-			            "Object": {
-			              "Role": "fact_test.pass_rate_"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_tests_have_pass_rate_"
-			        }
-			      ]
-			    },
-			    "dim_test_status_has_fact_test_pass_rate_": {
-			      "Binding": {
-			        "ConceptualEntity": "Dim Test Status"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "dim_test_status": {
-			          "Target": {
-			            "Entity": "dim_test_status"
-			          }
-			        },
-			        "fact_test.pass_rate_": {
-			          "Target": {
-			            "Entity": "fact_test.pass_rate_"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "dim_test_status"
-			            },
-			            "Object": {
-			              "Role": "fact_test.pass_rate_"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "dim_test_statuses_have_pass_rate_"
-			        }
-			      ]
-			    },
-			    "fact_test_has_test_fact_key": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Test"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_test": {
-			          "Target": {
-			            "Entity": "fact_test"
-			          }
-			        },
-			        "fact_test.test_fact_key": {
-			          "Target": {
-			            "Entity": "fact_test.test_fact_key"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_test"
-			            },
-			            "Object": {
-			              "Role": "fact_test.test_fact_key"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_tests_have_test_fact_keys"
-			        }
-			      ]
-			    },
 			    "fact_test_has_is_latest": {
 			      "Binding": {
 			        "ConceptualEntity": "Fact Test"
@@ -26736,39 +25872,6 @@ cultureInfo en-GB
 			          "State": "Generated",
 			          "Weight": 0.99,
 			          "ID": "fact_tests_have_is_latest"
-			        }
-			      ]
-			    },
-			    "fact_test_has_execution_issue_key": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Test"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_test": {
-			          "Target": {
-			            "Entity": "fact_test"
-			          }
-			        },
-			        "fact_test.execution_issue_key": {
-			          "Target": {
-			            "Entity": "fact_test.execution_issue_key"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_test"
-			            },
-			            "Object": {
-			              "Role": "fact_test.execution_issue_key"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_tests_have_execution_issue_keys"
 			        }
 			      ]
 			    },
@@ -28370,85 +27473,6 @@ cultureInfo en-GB
 			        }
 			      ]
 			    },
-			    "fact_issue_history_has_issue_id": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Issue History"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_issue_history": {
-			          "Target": {
-			            "Entity": "fact_issue_history"
-			          }
-			        },
-			        "fact_issue_history.issue_id": {
-			          "Target": {
-			            "Entity": "fact_issue_history.issue_id"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_issue_history"
-			            },
-			            "Object": {
-			              "Role": "fact_issue_history.issue_id"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_issue_histories_have_issue_ids"
-			        }
-			      ]
-			    },
-			    "dim_team_has_team_id": {
-			      "Binding": {
-			        "ConceptualEntity": "Dim Team"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "dim_team": {
-			          "Target": {
-			            "Entity": "dim_team"
-			          }
-			        },
-			        "dim_team.team_id": {
-			          "Target": {
-			            "Entity": "dim_team.team_id"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "dim_team"
-			            },
-			            "Object": {
-			              "Role": "dim_team.team_id"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "dim_teams_have_team_ids"
-			        },
-			        {
-			          "Name": {
-			            "Subject": {
-			              "Role": "dim_team"
-			            },
-			            "Name": {
-			              "Role": "dim_team.team_id"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "team_ids_are_names_IDs_of_dim_teams"
-			        }
-			      ]
-			    },
 			    "dim_team_has_team_name": {
 			      "Binding": {
 			        "ConceptualEntity": "Dim Team"
@@ -29208,138 +28232,6 @@ cultureInfo en-GB
 			        }
 			      ]
 			    },
-			    "fact_resource_allocation_has_issue_id": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Resource Allocation"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_resource_allocation": {
-			          "Target": {
-			            "Entity": "fact_resource_allocation"
-			          }
-			        },
-			        "fact_resource_allocation.issue_id": {
-			          "Target": {
-			            "Entity": "fact_resource_allocation.issue_id"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_resource_allocation"
-			            },
-			            "Object": {
-			              "Role": "fact_resource_allocation.issue_id"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_resource_allocations_have_issue_ids"
-			        }
-			      ]
-			    },
-			    "fact_resource_allocation_has_resource_id": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Resource Allocation"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_resource_allocation": {
-			          "Target": {
-			            "Entity": "fact_resource_allocation"
-			          }
-			        },
-			        "fact_resource_allocation.resource_id": {
-			          "Target": {
-			            "Entity": "fact_resource_allocation.resource_id"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_resource_allocation"
-			            },
-			            "Object": {
-			              "Role": "fact_resource_allocation.resource_id"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_resource_allocations_have_resource_ids"
-			        }
-			      ]
-			    },
-			    "fact_issue_has_total_time_spent_hrs": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Issue"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_issue": {
-			          "Target": {
-			            "Entity": "fact_issue"
-			          }
-			        },
-			        "fact_issue.total_time_spent_hrs": {
-			          "Target": {
-			            "Entity": "fact_issue.total_time_spent_hrs"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_issue"
-			            },
-			            "Object": {
-			              "Role": "fact_issue.total_time_spent_hrs"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_issues_have_total_time_spent_hrs"
-			        }
-			      ]
-			    },
-			    "fact_issue_has_total_story_points": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Issue"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_issue": {
-			          "Target": {
-			            "Entity": "fact_issue"
-			          }
-			        },
-			        "fact_issue.total_story_points": {
-			          "Target": {
-			            "Entity": "fact_issue.total_story_points"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_issue"
-			            },
-			            "Object": {
-			              "Role": "fact_issue.total_story_points"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_issues_have_total_story_points"
-			        }
-			      ]
-			    },
 			    "fact_issue_has_total_issues": {
 			      "Binding": {
 			        "ConceptualEntity": "Fact Issue"
@@ -29370,204 +28262,6 @@ cultureInfo en-GB
 			          "State": "Generated",
 			          "Weight": 0.99,
 			          "ID": "fact_issues_have_total_issues"
-			        }
-			      ]
-			    },
-			    "fact_issue_has_overdue_issues": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Issue"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_issue": {
-			          "Target": {
-			            "Entity": "fact_issue"
-			          }
-			        },
-			        "fact_issue.overdue_issues": {
-			          "Target": {
-			            "Entity": "fact_issue.overdue_issues"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_issue"
-			            },
-			            "Object": {
-			              "Role": "fact_issue.overdue_issues"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_issues_have_overdue_issues"
-			        }
-			      ]
-			    },
-			    "fact_issue_has_open_issues": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Issue"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_issue": {
-			          "Target": {
-			            "Entity": "fact_issue"
-			          }
-			        },
-			        "fact_issue.open_issues": {
-			          "Target": {
-			            "Entity": "fact_issue.open_issues"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_issue"
-			            },
-			            "Object": {
-			              "Role": "fact_issue.open_issues"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_issues_have_open_issues"
-			        }
-			      ]
-			    },
-			    "fact_issue_has_story_points_delivered": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Issue"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_issue": {
-			          "Target": {
-			            "Entity": "fact_issue"
-			          }
-			        },
-			        "fact_issue.story_points_delivered": {
-			          "Target": {
-			            "Entity": "fact_issue.story_points_delivered"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_issue"
-			            },
-			            "Object": {
-			              "Role": "fact_issue.story_points_delivered"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_issues_have_story_points_delivered"
-			        }
-			      ]
-			    },
-			    "fact_issue_has_story_points_committed": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Issue"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_issue": {
-			          "Target": {
-			            "Entity": "fact_issue"
-			          }
-			        },
-			        "fact_issue.story_points_committed": {
-			          "Target": {
-			            "Entity": "fact_issue.story_points_committed"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_issue"
-			            },
-			            "Object": {
-			              "Role": "fact_issue.story_points_committed"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_issues_have_story_points_committed"
-			        }
-			      ]
-			    },
-			    "fact_issue_has_progress": {
-			      "Binding": {
-			        "ConceptualEntity": "Fact Issue"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "fact_issue": {
-			          "Target": {
-			            "Entity": "fact_issue"
-			          }
-			        },
-			        "fact_issue.progress": {
-			          "Target": {
-			            "Entity": "fact_issue.progress"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "fact_issue"
-			            },
-			            "Object": {
-			              "Role": "fact_issue.progress"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "fact_issues_have_progress"
-			        }
-			      ]
-			    },
-			    "dim_status_has_fact_issue_progress": {
-			      "Binding": {
-			        "ConceptualEntity": "Dim Status"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "dim_status": {
-			          "Target": {
-			            "Entity": "dim_status"
-			          }
-			        },
-			        "fact_issue.progress": {
-			          "Target": {
-			            "Entity": "fact_issue.progress"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "dim_status"
-			            },
-			            "Object": {
-			              "Role": "fact_issue.progress"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "dim_statuses_have_progress"
 			        }
 			      ]
 			    },
@@ -31999,52 +30693,6 @@ cultureInfo en-GB
 			        }
 			      ]
 			    },
-			    "dim_resource_has_resource_id": {
-			      "Binding": {
-			        "ConceptualEntity": "Dim Resource"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "dim_resource": {
-			          "Target": {
-			            "Entity": "dim_resource"
-			          }
-			        },
-			        "dim_resource.resource_id": {
-			          "Target": {
-			            "Entity": "dim_resource.resource_id"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "dim_resource"
-			            },
-			            "Object": {
-			              "Role": "dim_resource.resource_id"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "dim_resources_have_resource_ids"
-			        },
-			        {
-			          "Name": {
-			            "Subject": {
-			              "Role": "dim_resource"
-			            },
-			            "Name": {
-			              "Role": "dim_resource.resource_id"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "resource_ids_are_names_IDs_of_dim_resources"
-			        }
-			      ]
-			    },
 			    "dim_project_has_project_name": {
 			      "Binding": {
 			        "ConceptualEntity": "Dim Project"
@@ -32282,39 +30930,6 @@ cultureInfo en-GB
 			        }
 			      ]
 			    },
-			    "dim_issue_has_parent_issue_id": {
-			      "Binding": {
-			        "ConceptualEntity": "Dim Issue"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "dim_issue": {
-			          "Target": {
-			            "Entity": "dim_issue"
-			          }
-			        },
-			        "dim_issue.parent_issue_id": {
-			          "Target": {
-			            "Entity": "dim_issue.parent_issue_id"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "dim_issue"
-			            },
-			            "Object": {
-			              "Role": "dim_issue.parent_issue_id"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "dim_issues_have_parent_issue_ids"
-			        }
-			      ]
-			    },
 			    "dim_issue_has_issue_code": {
 			      "Binding": {
 			        "ConceptualEntity": "Dim Issue"
@@ -32472,26 +31087,26 @@ cultureInfo en-GB
 			        }
 			      ]
 			    },
-			    "fact_test_is_run_on_latest_run_date": {
+			    "dim_issue_is_ended_on_actual_end_date": {
 			      "Binding": {
-			        "ConceptualEntity": "Fact Test"
+			        "ConceptualEntity": "Dim Issue"
 			      },
 			      "State": "Generated",
 			      "Roles": {
-			        "fact_test": {
+			        "dim_issue": {
 			          "Target": {
-			            "Entity": "fact_test"
+			            "Entity": "dim_issue"
 			          }
 			        },
-			        "fact_test.latest_run_date": {
+			        "dim_issue.actual_end_date": {
 			          "Target": {
-			            "Entity": "fact_test.latest_run_date"
+			            "Entity": "dim_issue.actual_end_date"
 			          }
 			        }
 			      },
 			      "SemanticSlots": {
 			        "When": {
-			          "Role": "fact_test.latest_run_date"
+			          "Role": "dim_issue.actual_end_date"
 			        }
 			      },
 			      "Phrasings": [
@@ -32499,18 +31114,154 @@ cultureInfo en-GB
 			          "Verb": {
 			            "Verbs": [
 			              {
-			                "run": {
+			                "end": {
 			                  "State": "Generated"
 			                }
 			              }
 			            ],
 			            "Object": {
-			              "Role": "fact_test"
+			              "Role": "dim_issue"
 			            }
 			          },
 			          "State": "Generated",
 			          "Weight": 0.9,
-			          "ID": "fact_tests_are_run_on_latest_run_date"
+			          "ID": "dim_issues_are_ended_on_actual_end_dates"
+			        }
+			      ]
+			    },
+			    "dim_issue_is_started_on_actual_start_date": {
+			      "Binding": {
+			        "ConceptualEntity": "Dim Issue"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "dim_issue": {
+			          "Target": {
+			            "Entity": "dim_issue"
+			          }
+			        },
+			        "dim_issue.actual_start_date": {
+			          "Target": {
+			            "Entity": "dim_issue.actual_start_date"
+			          }
+			        }
+			      },
+			      "SemanticSlots": {
+			        "When": {
+			          "Role": "dim_issue.actual_start_date"
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Verb": {
+			            "Verbs": [
+			              {
+			                "start": {
+			                  "State": "Generated"
+			                }
+			              }
+			            ],
+			            "Object": {
+			              "Role": "dim_issue"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.9,
+			          "ID": "dim_issues_are_started_on_actual_start_dates"
+			        }
+			      ]
+			    },
+			    "dim_issue_is_planned_on_planned_end_date": {
+			      "Binding": {
+			        "ConceptualEntity": "Dim Issue"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "dim_issue": {
+			          "Target": {
+			            "Entity": "dim_issue"
+			          }
+			        },
+			        "dim_issue.planned_end_date": {
+			          "Target": {
+			            "Entity": "dim_issue.planned_end_date"
+			          }
+			        }
+			      },
+			      "SemanticSlots": {
+			        "When": {
+			          "Role": "dim_issue.planned_end_date"
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Verb": {
+			            "Verbs": [
+			              {
+			                "plan": {
+			                  "State": "Generated"
+			                }
+			              },
+			              {
+			                "end": {
+			                  "State": "Generated"
+			                }
+			              }
+			            ],
+			            "Object": {
+			              "Role": "dim_issue"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.9,
+			          "ID": "dim_issues_are_planned_on_planned_end_dates"
+			        }
+			      ]
+			    },
+			    "dim_issue_is_planned_on_planned_start_date": {
+			      "Binding": {
+			        "ConceptualEntity": "Dim Issue"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "dim_issue": {
+			          "Target": {
+			            "Entity": "dim_issue"
+			          }
+			        },
+			        "dim_issue.planned_start_date": {
+			          "Target": {
+			            "Entity": "dim_issue.planned_start_date"
+			          }
+			        }
+			      },
+			      "SemanticSlots": {
+			        "When": {
+			          "Role": "dim_issue.planned_start_date"
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Verb": {
+			            "Verbs": [
+			              {
+			                "plan": {
+			                  "State": "Generated"
+			                }
+			              },
+			              {
+			                "start": {
+			                  "State": "Generated"
+			                }
+			              }
+			            ],
+			            "Object": {
+			              "Role": "dim_issue"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.9,
+			          "ID": "dim_issues_are_planned_on_planned_start_dates"
 			        }
 			      ]
 			    },
@@ -33930,6 +32681,604 @@ cultureInfo en-GB
 			        }
 			      ]
 			    },
+			    "fact_issue_has_dim_project": {
+			      "Binding": {
+			        "ConceptualEntity": "Fact Issue"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "fact_issue": {
+			          "Target": {
+			            "Entity": "fact_issue"
+			          }
+			        },
+			        "dim_project": {
+			          "Target": {
+			            "Entity": "dim_project"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "fact_issue"
+			            },
+			            "Object": {
+			              "Role": "dim_project"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "fact_issues_have_dim_projects"
+			        },
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "dim_project"
+			            },
+			            "Object": {
+			              "Role": "fact_issue"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "dim_projects_have_fact_issues"
+			        }
+			      ]
+			    },
+			    "fact_issue_has_dim_status": {
+			      "Binding": {
+			        "ConceptualEntity": "Fact Issue"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "fact_issue": {
+			          "Target": {
+			            "Entity": "fact_issue"
+			          }
+			        },
+			        "dim_status": {
+			          "Target": {
+			            "Entity": "dim_status"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "fact_issue"
+			            },
+			            "Object": {
+			              "Role": "dim_status"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "fact_issues_have_dim_statuses"
+			        },
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "dim_status"
+			            },
+			            "Object": {
+			              "Role": "fact_issue"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "dim_statuses_have_fact_issues"
+			        }
+			      ]
+			    },
+			    "fact_issue_has_dim_issue": {
+			      "Binding": {
+			        "ConceptualEntity": "Fact Issue"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "fact_issue": {
+			          "Target": {
+			            "Entity": "fact_issue"
+			          }
+			        },
+			        "dim_issue": {
+			          "Target": {
+			            "Entity": "dim_issue"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "fact_issue"
+			            },
+			            "Object": {
+			              "Role": "dim_issue"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "fact_issues_have_dim_issues"
+			        },
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "dim_issue"
+			            },
+			            "Object": {
+			              "Role": "fact_issue"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "dim_issues_have_fact_issues"
+			        }
+			      ]
+			    },
+			    "fact_issue_has_dim_priority": {
+			      "Binding": {
+			        "ConceptualEntity": "Fact Issue"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "fact_issue": {
+			          "Target": {
+			            "Entity": "fact_issue"
+			          }
+			        },
+			        "dim_priority": {
+			          "Target": {
+			            "Entity": "dim_priority"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "fact_issue"
+			            },
+			            "Object": {
+			              "Role": "dim_priority"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "fact_issues_have_dim_priorities"
+			        },
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "dim_priority"
+			            },
+			            "Object": {
+			              "Role": "fact_issue"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "dim_priorities_have_fact_issues"
+			        }
+			      ]
+			    },
+			    "fact_issue_has_dim_issue_type": {
+			      "Binding": {
+			        "ConceptualEntity": "Fact Issue"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "fact_issue": {
+			          "Target": {
+			            "Entity": "fact_issue"
+			          }
+			        },
+			        "dim_issue_type": {
+			          "Target": {
+			            "Entity": "dim_issue_type"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "fact_issue"
+			            },
+			            "Object": {
+			              "Role": "dim_issue_type"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "fact_issues_have_dim_issue_types"
+			        },
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "dim_issue_type"
+			            },
+			            "Object": {
+			              "Role": "fact_issue"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "dim_issue_types_have_fact_issues"
+			        }
+			      ]
+			    },
+			    "fact_issue_has_dim_due_date": {
+			      "Binding": {
+			        "ConceptualEntity": "Fact Issue"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "fact_issue": {
+			          "Target": {
+			            "Entity": "fact_issue"
+			          }
+			        },
+			        "dim_due_date": {
+			          "Target": {
+			            "Entity": "dim_due_date"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "fact_issue"
+			            },
+			            "Object": {
+			              "Role": "dim_due_date"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "fact_issues_have_dim_due_date"
+			        },
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "dim_due_date"
+			            },
+			            "Object": {
+			              "Role": "fact_issue"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "dim_due_date_have_fact_issues"
+			        }
+			      ]
+			    },
+			    "fact_issue_has_dim_team": {
+			      "Binding": {
+			        "ConceptualEntity": "Fact Issue"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "fact_issue": {
+			          "Target": {
+			            "Entity": "fact_issue"
+			          }
+			        },
+			        "dim_team": {
+			          "Target": {
+			            "Entity": "dim_team"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "fact_issue"
+			            },
+			            "Object": {
+			              "Role": "dim_team"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "fact_issues_have_dim_teams"
+			        },
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "dim_team"
+			            },
+			            "Object": {
+			              "Role": "fact_issue"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "dim_teams_have_fact_issues"
+			        }
+			      ]
+			    },
+			    "fact_issue_has_dim_date": {
+			      "Binding": {
+			        "ConceptualEntity": "Fact Issue"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "fact_issue": {
+			          "Target": {
+			            "Entity": "fact_issue"
+			          }
+			        },
+			        "dim_date": {
+			          "Target": {
+			            "Entity": "dim_date"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "fact_issue"
+			            },
+			            "Object": {
+			              "Role": "dim_date"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "fact_issues_have_dim_dates"
+			        },
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "dim_date"
+			            },
+			            "Object": {
+			              "Role": "fact_issue"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "dim_dates_have_fact_issues"
+			        }
+			      ]
+			    },
+			    "fact_resource_allocation_has_dim_issue": {
+			      "Binding": {
+			        "ConceptualEntity": "Fact Resource Allocation"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "fact_resource_allocation": {
+			          "Target": {
+			            "Entity": "fact_resource_allocation"
+			          }
+			        },
+			        "dim_issue": {
+			          "Target": {
+			            "Entity": "dim_issue"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "fact_resource_allocation"
+			            },
+			            "Object": {
+			              "Role": "dim_issue"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "fact_resource_allocations_have_dim_issues"
+			        },
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "dim_issue"
+			            },
+			            "Object": {
+			              "Role": "fact_resource_allocation"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "dim_issues_have_fact_resource_allocations"
+			        }
+			      ]
+			    },
+			    "fact_resource_allocation_has_dim_resource": {
+			      "Binding": {
+			        "ConceptualEntity": "Fact Resource Allocation"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "fact_resource_allocation": {
+			          "Target": {
+			            "Entity": "fact_resource_allocation"
+			          }
+			        },
+			        "dim_resource": {
+			          "Target": {
+			            "Entity": "dim_resource"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "fact_resource_allocation"
+			            },
+			            "Object": {
+			              "Role": "dim_resource"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "fact_resource_allocations_have_dim_resources"
+			        },
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "dim_resource"
+			            },
+			            "Object": {
+			              "Role": "fact_resource_allocation"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "dim_resources_have_fact_resource_allocations"
+			        }
+			      ]
+			    },
+			    "fact_resource_allocation_has_dim_project": {
+			      "Binding": {
+			        "ConceptualEntity": "Fact Resource Allocation"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "fact_resource_allocation": {
+			          "Target": {
+			            "Entity": "fact_resource_allocation"
+			          }
+			        },
+			        "dim_project": {
+			          "Target": {
+			            "Entity": "dim_project"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "fact_resource_allocation"
+			            },
+			            "Object": {
+			              "Role": "dim_project"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "fact_resource_allocations_have_dim_projects"
+			        },
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "dim_project"
+			            },
+			            "Object": {
+			              "Role": "fact_resource_allocation"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "dim_projects_have_fact_resource_allocations"
+			        }
+			      ]
+			    },
+			    "fact_resource_allocation_has_dim_team": {
+			      "Binding": {
+			        "ConceptualEntity": "Fact Resource Allocation"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "fact_resource_allocation": {
+			          "Target": {
+			            "Entity": "fact_resource_allocation"
+			          }
+			        },
+			        "dim_team": {
+			          "Target": {
+			            "Entity": "dim_team"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "fact_resource_allocation"
+			            },
+			            "Object": {
+			              "Role": "dim_team"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "fact_resource_allocations_have_dim_teams"
+			        },
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "dim_team"
+			            },
+			            "Object": {
+			              "Role": "fact_resource_allocation"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "dim_teams_have_fact_resource_allocations"
+			        }
+			      ]
+			    },
+			    "fact_resource_allocation_has_dim_resource_role": {
+			      "Binding": {
+			        "ConceptualEntity": "Fact Resource Allocation"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "fact_resource_allocation": {
+			          "Target": {
+			            "Entity": "fact_resource_allocation"
+			          }
+			        },
+			        "dim_resource_role": {
+			          "Target": {
+			            "Entity": "dim_resource_role"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "fact_resource_allocation"
+			            },
+			            "Object": {
+			              "Role": "dim_resource_role"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "fact_resource_allocations_have_dim_resource_roles"
+			        },
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "dim_resource_role"
+			            },
+			            "Object": {
+			              "Role": "fact_resource_allocation"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "dim_resource_roles_have_fact_resource_allocations"
+			        }
+			      ]
+			    },
 			    "fact_issue_history_has_dim_status": {
 			      "Binding": {
 			        "ConceptualEntity": "Fact Issue History"
@@ -34666,52 +34015,6 @@ cultureInfo en-GB
 			        }
 			      ]
 			    },
-			    "bridge_issue_link_has_dim_link_type": {
-			      "Binding": {
-			        "ConceptualEntity": "Bridge Issue Link"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "bridge_issue_link": {
-			          "Target": {
-			            "Entity": "bridge_issue_link"
-			          }
-			        },
-			        "dim_link_type": {
-			          "Target": {
-			            "Entity": "dim_link_type"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "bridge_issue_link"
-			            },
-			            "Object": {
-			              "Role": "dim_link_type"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "bridge_issue_links_have_dim_link_types"
-			        },
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "dim_link_type"
-			            },
-			            "Object": {
-			              "Role": "bridge_issue_link"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "dim_link_types_have_bridge_issue_links"
-			        }
-			      ]
-			    },
 			    "bridge_issue_link_has_dim_project": {
 			      "Binding": {
 			        "ConceptualEntity": "Bridge Issue Link"
@@ -34847,6 +34150,98 @@ cultureInfo en-GB
 			          "State": "Generated",
 			          "Weight": 0.99,
 			          "ID": "dim_test_statuses_have_bridge_issue_links"
+			        }
+			      ]
+			    },
+			    "bridge_issue_link_has_dim_link_type": {
+			      "Binding": {
+			        "ConceptualEntity": "Bridge Issue Link"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "bridge_issue_link": {
+			          "Target": {
+			            "Entity": "bridge_issue_link"
+			          }
+			        },
+			        "dim_link_type": {
+			          "Target": {
+			            "Entity": "dim_link_type"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "bridge_issue_link"
+			            },
+			            "Object": {
+			              "Role": "dim_link_type"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "bridge_issue_links_have_dim_link_types"
+			        },
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "dim_link_type"
+			            },
+			            "Object": {
+			              "Role": "bridge_issue_link"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "dim_link_types_have_bridge_issue_links"
+			        }
+			      ]
+			    },
+			    "bridge_issue_link_has_dim_linked_issue": {
+			      "Binding": {
+			        "ConceptualEntity": "Bridge Issue Link"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "bridge_issue_link": {
+			          "Target": {
+			            "Entity": "bridge_issue_link"
+			          }
+			        },
+			        "dim_linked_issue": {
+			          "Target": {
+			            "Entity": "dim_linked_issue"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "bridge_issue_link"
+			            },
+			            "Object": {
+			              "Role": "dim_linked_issue"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "bridge_issue_links_have_dim_linked_issues"
+			        },
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "dim_linked_issue"
+			            },
+			            "Object": {
+			              "Role": "bridge_issue_link"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "dim_linked_issues_have_bridge_issue_links"
 			        }
 			      ]
 			    },

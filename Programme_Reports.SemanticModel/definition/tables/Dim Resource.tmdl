@@ -30,16 +30,9 @@ table 'Dim Resource'
 
 		annotation SummarizationSetBy = Automatic
 
-	column 'Resource Email'
-		dataType: string
-		lineageTag: 5db3545a-592c-43e6-94cf-23279c355d14
-		summarizeBy: none
-		sourceColumn: Resource Email
-
-		annotation SummarizationSetBy = Automatic
-
 	column 'Is Active'
-		dataType: string
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
 		lineageTag: 5111f507-5239-4ae5-96bd-687ff87280bb
 		summarizeBy: none
 		sourceColumn: Is Active
@@ -66,6 +59,14 @@ table 'Dim Resource'
 		annotation SummarizationSetBy = Automatic
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Email
+		dataType: string
+		lineageTag: b1a411b1-25a9-4f43-9b6b-bfca03b05121
+		summarizeBy: none
+		sourceColumn: Email
+
+		annotation SummarizationSetBy = Automatic
 
 	partition 'Dim Resource' = m
 		mode: import

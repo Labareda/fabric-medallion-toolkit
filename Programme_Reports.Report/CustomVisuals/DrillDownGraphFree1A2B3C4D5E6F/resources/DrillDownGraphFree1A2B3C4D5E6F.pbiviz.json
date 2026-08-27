@@ -1,0 +1,228 @@
+{
+  "visual": {
+    "name": "DrillDownGraphFree",
+    "displayName": "Drill Down Graph (Free)",
+    "guid": "DrillDownGraphFree1A2B3C4D5E6F",
+    "visualClassName": "Visual",
+    "version": "1.0.0.0",
+    "description": "Interactive entity relationship explorer with drill-down, search, and cross-highlight. Fast, lightweight alternative to premium graph visuals.",
+    "supportUrl": "https://github.com/labareda/entity-drill-visual",
+    "gitHubUrl": "https://github.com/labareda/entity-drill-visual"
+  },
+  "author": {
+    "name": "Ana Almeida",
+    "email": "ana@labareda.dev"
+  },
+  "apiVersion": "5.7.0",
+  "style": "style/visual.less",
+  "stringResources": {},
+  "capabilities": {
+    "privileges": [],
+    "dataRoles": [
+      {
+        "name": "sourceEntity",
+        "kind": "Grouping",
+        "displayName": "Source Entity",
+        "description": "Source entity name or identifier"
+      },
+      {
+        "name": "targetEntity",
+        "kind": "Grouping",
+        "displayName": "Target Entity",
+        "description": "Target entity name or identifier"
+      },
+      {
+        "name": "relationshipType",
+        "kind": "Grouping",
+        "displayName": "Relationship Type",
+        "description": "Type of relationship between entities"
+      },
+      {
+        "name": "sourceNodeKey",
+        "kind": "Grouping",
+        "displayName": "Source Node Key",
+        "description": "Unique key for source node (optional)"
+      },
+      {
+        "name": "targetNodeKey",
+        "kind": "Grouping",
+        "displayName": "Target Node Key",
+        "description": "Unique key for target node (optional)"
+      },
+      {
+        "name": "sourceCategory",
+        "kind": "Grouping",
+        "displayName": "Source Category",
+        "description": "Category or type of source entity"
+      },
+      {
+        "name": "targetCategory",
+        "kind": "Grouping",
+        "displayName": "Target Category",
+        "description": "Category or type of target entity"
+      },
+      {
+        "name": "relationshipValue",
+        "kind": "Measure",
+        "displayName": "Relationship Value",
+        "description": "Strength or weight of the relationship"
+      }
+    ],
+    "dataViewMappings": [
+      {
+        "table": {
+          "rows": {
+            "select": [
+              {
+                "for": {
+                  "in": "sourceEntity"
+                }
+              },
+              {
+                "for": {
+                  "in": "targetEntity"
+                }
+              },
+              {
+                "for": {
+                  "in": "relationshipType"
+                }
+              },
+              {
+                "for": {
+                  "in": "sourceNodeKey"
+                }
+              },
+              {
+                "for": {
+                  "in": "targetNodeKey"
+                }
+              },
+              {
+                "for": {
+                  "in": "sourceCategory"
+                }
+              },
+              {
+                "for": {
+                  "in": "targetCategory"
+                }
+              },
+              {
+                "for": {
+                  "in": "relationshipValue"
+                }
+              }
+            ],
+            "dataReductionAlgorithm": {
+              "top": {
+                "count": 10000
+              }
+            }
+          }
+        }
+      }
+    ],
+    "objects": {
+      "general": {
+        "displayName": "General",
+        "properties": {
+          "drillState": {
+            "type": {
+              "text": true
+            }
+          }
+        }
+      },
+      "layout": {
+        "displayName": "Layout",
+        "properties": {
+          "nodeSize": {
+            "displayName": "Node Size",
+            "type": {
+              "numeric": true
+            }
+          },
+          "linkDistance": {
+            "displayName": "Link Distance",
+            "type": {
+              "numeric": true
+            }
+          },
+          "charge": {
+            "displayName": "Charge",
+            "type": {
+              "numeric": true
+            }
+          }
+        }
+      },
+      "colors": {
+        "displayName": "Colors",
+        "properties": {
+          "nodeColor": {
+            "displayName": "Node Color",
+            "type": {
+              "fill": {
+                "solid": {
+                  "color": true
+                }
+              }
+            }
+          },
+          "linkColor": {
+            "displayName": "Link Color",
+            "type": {
+              "fill": {
+                "solid": {
+                  "color": true
+                }
+              }
+            }
+          },
+          "selectedNodeColor": {
+            "displayName": "Selected Node Color",
+            "type": {
+              "fill": {
+                "solid": {
+                  "color": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "labels": {
+        "displayName": "Labels",
+        "properties": {
+          "show": {
+            "displayName": "Show Node Labels",
+            "type": {
+              "bool": true
+            }
+          },
+          "fontSize": {
+            "displayName": "Font Size",
+            "type": {
+              "numeric": true
+            }
+          }
+        }
+      }
+    },
+    "supportsHighlight": true,
+    "sorting": {
+      "default": {}
+    },
+    "supportsKeyboardFocus": true
+  },
+  "content": {
+    "js": "var DrillDownGraphFree1A2B3C4D5E6F;define([\"require\",\"exports\",\"../../src/visual\"],function(e,i,l){\"use strict\";Object.defineProperty(i,\"__esModule\",{value:!0});var r=window.powerbi,s={name:\"DrillDownGraphFree1A2B3C4D5E6F\",displayName:\"Drill Down Graph (Free)\",class:\"Visual\",apiVersion:\"5.7.0\",create:e=>{if(l.Visual)return new l.Visual(e);throw\"Visual instance not found\"},createModalDialog:(e,i,l)=>{const r=globalThis.dialogRegistry;e in r&&new r[e](i,l)},custom:!0};void 0!==r&&(r.visuals=r.visuals||{},r.visuals.plugins=r.visuals.plugins||{},r.visuals.plugins.DrillDownGraphFree1A2B3C4D5E6F=s),i.default=s}),DrillDownGraphFree1A2B3C4D5E6F={};",
+    "iconBase64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAABBElEQVR4nO2WTQ6CQAyFR+PSS+jtvJDczkvoXleYyWQG+/PwFdJvBQmBfq8tcLjcn++yYY7sArykAJsUYJMCbE7sApZ43M7f4+v06l4TtgN18b3zmbACUlLgX4x2ALrEkqVD3wfWAenSae4jCSHsCEk7GErA0rVVBTQFWfcHItA+vC5Am6p2+d0Co+Q0EtaFLwU4Qr3kJBLeV69LQJKctBPW74ZZQJPcSMIzOjPuEZIm10qgvtomAWtynkJHqAVQyaEwj1CE4ktRCiCWrhX3BiH6nW4L9z4U2b2fHUCkviah/kYt7F8AvXRoREscreia/Y9QdFKATQqwSQE2KcAmBdikAJsPh2hgazCm3HEAAAAASUVORK5CYII="
+  },
+  "visualEntryPoint": "",
+  "externalJS": [],
+  "assets": {
+    "icon": "assets/icon.png"
+  }
+}

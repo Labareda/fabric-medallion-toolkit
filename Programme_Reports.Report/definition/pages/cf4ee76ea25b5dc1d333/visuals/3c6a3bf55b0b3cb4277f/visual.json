@@ -275,6 +275,11 @@
         }
       ]
     },
+    "syncGroup": {
+      "groupName": "Issue Code",
+      "fieldChanges": true,
+      "filterChanges": true
+    },
     "drillFilterOtherVisuals": true
   },
   "filterConfig": {

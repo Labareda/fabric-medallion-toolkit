@@ -1,0 +1,357 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
+  "name": "702904b9459d68f06a78",
+  "position": {
+    "x": 277.32254731705171,
+    "y": 444.79655316436214,
+    "z": 15007,
+    "height": 275.52175155525265,
+    "width": 974.230507133279
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Issue Type Name"
+                }
+              },
+              "queryRef": "Dim Issue.Issue Type Name",
+              "nativeQueryRef": "Issue Type Name"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Issue Code"
+                }
+              },
+              "queryRef": "Dim Issue.Issue Code",
+              "nativeQueryRef": "Issue Code"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Summary"
+                }
+              },
+              "queryRef": "Dim Issue.Summary",
+              "nativeQueryRef": "Summary"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Acceptance Criteria"
+                }
+              },
+              "queryRef": "Dim Issue.Acceptance Criteria",
+              "nativeQueryRef": "Acceptance Criteria"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Bridge Issue Link"
+                    }
+                  },
+                  "Property": "Issue Test Status"
+                }
+              },
+              "queryRef": "Bridge Issue Link.Issue Test Status",
+              "nativeQueryRef": "Issue Test Status"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Bridge Issue Link"
+                    }
+                  },
+                  "Property": "Link Label"
+                }
+              },
+              "queryRef": "Bridge Issue Link.Link Label",
+              "nativeQueryRef": "Link Label"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Bridge Issue Link"
+                    }
+                  },
+                  "Property": "Linked Issue Code"
+                }
+              },
+              "queryRef": "Bridge Issue Link.Linked Issue Code",
+              "nativeQueryRef": "Linked Issue Code"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Bridge Issue Link"
+                    }
+                  },
+                  "Property": "Linked Issue Status"
+                }
+              },
+              "queryRef": "Bridge Issue Link.Linked Issue Status",
+              "nativeQueryRef": "Linked Issue Status"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Bridge Issue Link"
+                    }
+                  },
+                  "Property": "Linked Issue Summary"
+                }
+              },
+              "queryRef": "Bridge Issue Link.Linked Issue Summary",
+              "nativeQueryRef": "Linked Issue Summary"
+            },
+            {
+              "field": {
+                "Aggregation": {
+                  "Expression": {
+                    "Column": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "Bridge Issue Link"
+                        }
+                      },
+                      "Property": "Linked Issue Code"
+                    }
+                  },
+                  "Function": 2
+                }
+              },
+              "queryRef": "Count(Bridge Issue Link.Linked Issue Code)",
+              "nativeQueryRef": "Count of Linked Issue Code"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "Bridge Issue Link"
+                  }
+                },
+                "Property": "Linked Issue Summary"
+              }
+            },
+            "direction": "Descending"
+          }
+        ]
+      }
+    },
+    "objects": {
+      "columnWidth": [
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "113.234704112337D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Dim Issue.Summary"
+          }
+        }
+      ],
+      "columnHeaders": [
+        {
+          "properties": {}
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "d7bc266f2a9b24e5fb58",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Dim Issue"
+              }
+            },
+            "Property": "Issue Type Name"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "b53ecf2e6e6e5310149f",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Dim Issue"
+              }
+            },
+            "Property": "Issue Code"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "86c0fc90dd987aeb0d15",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Dim Issue"
+              }
+            },
+            "Property": "Summary"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "bbe4b059c00ad758a252",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Dim Issue"
+              }
+            },
+            "Property": "Acceptance Criteria"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "e579bcd3f8f7bb5cec3c",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Bridge Issue Link"
+              }
+            },
+            "Property": "Issue Test Status"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "446535e348b6dc61334a",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Bridge Issue Link"
+              }
+            },
+            "Property": "Link Label"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "c52f4f5e8c86751f97e6",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Bridge Issue Link"
+              }
+            },
+            "Property": "Linked Issue Status"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "84cd96b4a8ccf8eff041",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Bridge Issue Link"
+              }
+            },
+            "Property": "Linked Issue Summary"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "d92ecbcabedc04def3dd",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Bridge Issue Link"
+              }
+            },
+            "Property": "Linked Issue Code"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "ec0ffddc78828c02c83d",
+        "field": {
+          "Aggregation": {
+            "Expression": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "Bridge Issue Link"
+                  }
+                },
+                "Property": "Linked Issue Code"
+              }
+            },
+            "Function": 2
+          }
+        },
+        "type": "Advanced"
+      }
+    ]
+  }
+}

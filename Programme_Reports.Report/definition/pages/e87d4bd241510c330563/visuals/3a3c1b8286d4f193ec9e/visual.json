@@ -2,11 +2,11 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
   "name": "3a3c1b8286d4f193ec9e",
   "position": {
-    "x": 284.7045911834644,
-    "y": 103.22622604312745,
+    "x": 284.52573036424786,
+    "y": 102.64535842254512,
     "z": 15004,
-    "height": 582.72869540475176,
-    "width": 965.66469524216,
+    "height": 93.64137961354993,
+    "width": 965.22652832428389,
     "tabOrder": 14000
   },
   "visual": {
@@ -130,6 +130,25 @@
               },
               "queryRef": "Bridge Issue Link.Linked Issue URL",
               "nativeQueryRef": "Linked Issue URL"
+            },
+            {
+              "field": {
+                "Aggregation": {
+                  "Expression": {
+                    "Column": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "Bridge Issue Link"
+                        }
+                      },
+                      "Property": "Issue Code"
+                    }
+                  },
+                  "Function": 2
+                }
+              },
+              "queryRef": "Count(Bridge Issue Link.Issue Code)",
+              "nativeQueryRef": "Count of Issue Code"
             }
           ]
         }
@@ -383,6 +402,137 @@
         },
         "type": "Categorical",
         "howCreated": "User"
+      },
+      {
+        "name": "38c2ef9f3c3750088ea0",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Bridge Issue Link"
+              }
+            },
+            "Property": "Linked Issue Type"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "85c27efc5c47f8c35a6d",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Bridge Issue Link"
+              }
+            },
+            "Property": "Linked Issue Code"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "0736af9eee9b16e64763",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Bridge Issue Link"
+              }
+            },
+            "Property": "Link Label"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "567f790872c8cc228adb",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Bridge Issue Link"
+              }
+            },
+            "Property": "Linked Issue Summary"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "09d2fcac1307e4286af6",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Bridge Issue Link"
+              }
+            },
+            "Property": "Linked Issue Acceptance Criteria"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "5d6b0cf94b52174f5eb8",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Bridge Issue Link"
+              }
+            },
+            "Property": "Linked Test Status"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "6fef875780e013f4c8e0",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Bridge Issue Link"
+              }
+            },
+            "Property": "Linked Issue URL"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "00b63de67fd5d634ebe9",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Bridge Issue Link"
+              }
+            },
+            "Property": "Issue Code"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "6dd3c2578d1cd557aa7b",
+        "field": {
+          "Aggregation": {
+            "Expression": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "Bridge Issue Link"
+                  }
+                },
+                "Property": "Issue Code"
+              }
+            },
+            "Function": 2
+          }
+        },
+        "type": "Advanced"
       }
     ]
   }

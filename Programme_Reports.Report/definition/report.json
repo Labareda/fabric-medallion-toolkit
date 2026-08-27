@@ -31,7 +31,7 @@
           "expanded": {
             "expr": {
               "Literal": {
-                "Value": "false"
+                "Value": "true"
               }
             }
           },
@@ -83,6 +83,17 @@
           "name": "Transform_(8)7931964752403259.png",
           "path": "Transform_(8)7931964752403259.png",
           "type": "Image"
+        }
+      ]
+    },
+    {
+      "name": "DrillDownGraphFree1A2B3C4D5E6F",
+      "type": "CustomVisual",
+      "items": [
+        {
+          "name": "DrillDownGraphFree1A2B3C4D5E6F.pbiviz.json",
+          "path": "DrillDownGraphFree1A2B3C4D5E6F.pbiviz.json",
+          "type": "CustomVisualMetadata"
         }
       ]
     }

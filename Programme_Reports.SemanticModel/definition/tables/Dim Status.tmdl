@@ -21,14 +21,6 @@ table 'Dim Status'
 
 		annotation SummarizationSetBy = Automatic
 
-	column 'Status Description'
-		dataType: string
-		lineageTag: 7ce35eed-ed8f-4fe3-8e30-24fca5956326
-		summarizeBy: none
-		sourceColumn: Status Description
-
-		annotation SummarizationSetBy = Automatic
-
 	column 'Status Key'
 		dataType: string
 		isHidden
@@ -88,6 +80,14 @@ table 'Dim Status'
 		lineageTag: 60c9cdfd-1a53-4b91-86e1-6bb367f8bac9
 		summarizeBy: sum
 		sourceColumn: Sort Order
+
+		annotation SummarizationSetBy = Automatic
+
+	column Description
+		dataType: string
+		lineageTag: edef7d5b-8d44-4408-875a-c256275842b6
+		summarizeBy: none
+		sourceColumn: Description
 
 		annotation SummarizationSetBy = Automatic
 

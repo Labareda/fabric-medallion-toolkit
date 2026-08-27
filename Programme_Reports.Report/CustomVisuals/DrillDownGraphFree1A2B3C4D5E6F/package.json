@@ -1,0 +1,29 @@
+{
+  "version": "1.0.0.0",
+  "author": {
+    "name": "Ana Almeida",
+    "email": "ana@labareda.dev"
+  },
+  "resources": [
+    {
+      "resourceId": "rId0",
+      "sourceType": 5,
+      "file": "resources/DrillDownGraphFree1A2B3C4D5E6F.pbiviz.json"
+    }
+  ],
+  "visual": {
+    "guid": "DrillDownGraphFree1A2B3C4D5E6F",
+    "name": "DrillDownGraphFree",
+    "displayName": "Drill Down Graph (Free)",
+    "version": "1.0.0.0",
+    "description": "Interactive entity relationship explorer with drill-down, search, and cross-highlight. Fast, lightweight alternative to premium graph visuals.",
+    "supportUrl": "https://github.com/labareda/entity-drill-visual",
+    "gitHubUrl": "https://github.com/labareda/entity-drill-visual",
+    "visualClassName": "Visual"
+  },
+  "metadata": {
+    "pbivizjson": {
+      "resourceId": "rId0"
+    }
+  }
+}

@@ -193,14 +193,33 @@ table 'Fact Issue History'
 
 		annotation SummarizationSetBy = Automatic
 
-	column 'Resource Key'
-		dataType: string
-		isHidden
-		lineageTag: 2e62360f-b70a-4bcc-a71d-40417f514b0a
+	column 'Valid From Date'
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: d43dd8e1-cefb-4fb4-8d2c-0e22ee1365f3
 		summarizeBy: none
-		sourceColumn: Resource Key
+		sourceColumn: Valid From Date
 
-		changedProperty = IsHidden
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Valid To Date'
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 606c260e-6dcb-4bb6-aa86-be6b317c1842
+		summarizeBy: none
+		sourceColumn: Valid To Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Changed By Key'
+		dataType: string
+		lineageTag: 8aff485f-01e8-4f73-8d58-512da6574767
+		summarizeBy: none
+		sourceColumn: Changed By Key
 
 		annotation SummarizationSetBy = Automatic
 

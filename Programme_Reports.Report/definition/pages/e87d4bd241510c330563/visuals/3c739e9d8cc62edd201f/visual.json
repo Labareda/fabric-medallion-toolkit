@@ -1,0 +1,77 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
+  "name": "3c739e9d8cc62edd201f",
+  "position": {
+    "x": 812.15888857136565,
+    "y": 295.33050493504209,
+    "z": 15009,
+    "height": 149.46604822932008,
+    "width": 185.48196346530082,
+    "tabOrder": 14002
+  },
+  "visual": {
+    "visualType": "slicer",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Bridge Issue Link"
+                    }
+                  },
+                  "Property": "Issue Test Status"
+                }
+              },
+              "queryRef": "Bridge Issue Link.Issue Test Status",
+              "nativeQueryRef": "Issue Test Status",
+              "active": true
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "data": [
+        {
+          "properties": {
+            "mode": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Basic'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "general": [
+        {
+          "properties": {}
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "1d37705cf9b5c673f7f8",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Bridge Issue Link"
+              }
+            },
+            "Property": "Issue Test Status"
+          }
+        },
+        "type": "Categorical"
+      }
+    ]
+  }
+}

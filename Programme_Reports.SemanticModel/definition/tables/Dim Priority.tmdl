@@ -21,14 +21,6 @@ table 'Dim Priority'
 
 		annotation SummarizationSetBy = Automatic
 
-	column 'Priority Description'
-		dataType: string
-		lineageTag: ae36a462-2481-45de-9f8c-532be4949304
-		summarizeBy: none
-		sourceColumn: Priority Description
-
-		annotation SummarizationSetBy = Automatic
-
 	column 'Priority Key'
 		dataType: string
 		isHidden
@@ -46,6 +38,14 @@ table 'Dim Priority'
 		lineageTag: 587614fe-03c0-4c68-9e4d-df0170a633aa
 		summarizeBy: none
 		sourceColumn: Sort Order
+
+		annotation SummarizationSetBy = Automatic
+
+	column Description
+		dataType: string
+		lineageTag: 5253f0d1-bce7-4503-baae-ab8ed4c2141a
+		summarizeBy: none
+		sourceColumn: Description
 
 		annotation SummarizationSetBy = Automatic
 

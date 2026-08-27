@@ -61,14 +61,6 @@ table 'Fact Resource Day Allocation'
 
 		annotation SummarizationSetBy = Automatic
 
-	column 'Role Name'
-		dataType: string
-		lineageTag: 2050191e-be11-4051-8d77-600312528820
-		summarizeBy: none
-		sourceColumn: Role Name
-
-		annotation SummarizationSetBy = Automatic
-
 		annotation UnderlyingDateTimeDataType = Date
 
 	column 'Allocated Hours'
@@ -111,6 +103,14 @@ table 'Fact Resource Day Allocation'
 		sourceColumn: Resource Day Allocation Key
 
 		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Role Name'
+		dataType: string
+		lineageTag: f6ab4c5b-ddfa-4c8d-b3ac-57fb2b269058
+		summarizeBy: none
+		sourceColumn: Role Name
 
 		annotation SummarizationSetBy = Automatic
 

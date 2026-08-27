@@ -3,10 +3,11 @@
   "name": "5bf6a84c304e33b6a27d",
   "position": {
     "x": 286,
-    "y": 515,
-    "z": 14001,
-    "height": 150,
-    "width": 965
+    "y": 498,
+    "z": 15000,
+    "height": 185,
+    "width": 965,
+    "tabOrder": 15000
   },
   "visual": {
     "visualType": "tableEx",
@@ -19,32 +20,115 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Fact Resource Day Allocation"
+                      "Entity": "Dim Issue"
                     }
                   },
-                  "Property": "Issue Key"
+                  "Property": "Summary"
                 }
               },
-              "queryRef": "Fact Resource Day Allocation.Issue Key",
-              "nativeQueryRef": "Issue Key"
+              "queryRef": "Dim Issue.Summary",
+              "nativeQueryRef": "Summary"
             },
             {
               "field": {
-                "Measure": {
+                "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Fact Resource Day Allocation"
+                      "Entity": "Dim Issue"
                     }
                   },
-                  "Property": "Allocated Items"
+                  "Property": "Created Date"
                 }
               },
-              "queryRef": "Fact Resource Day Allocation.Allocated Items",
-              "nativeQueryRef": "Allocated Items"
+              "queryRef": "Dim Issue.Created Date",
+              "nativeQueryRef": "Created Date"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Updated Date"
+                }
+              },
+              "queryRef": "Dim Issue.Updated Date",
+              "nativeQueryRef": "Updated Date"
+            },
+            {
+              "field": {
+                "Aggregation": {
+                  "Expression": {
+                    "Column": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "Fact Resource Allocation"
+                        }
+                      },
+                      "Property": "Allocation Count"
+                    }
+                  },
+                  "Function": 0
+                }
+              },
+              "queryRef": "Sum(Fact Resource Allocation.Allocation Count)",
+              "nativeQueryRef": "Sum of Allocation Count"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Issue"
+                    }
+                  },
+                  "Property": "Issue Type Name"
+                }
+              },
+              "queryRef": "Dim Issue.Issue Type Name",
+              "nativeQueryRef": "Issue Type Name"
             }
           ]
         }
       }
+    },
+    "objects": {
+      "columnWidth": [
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "444D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Dim Issue.Summary"
+          }
+        }
+      ],
+      "columnHeaders": [
+        {
+          "properties": {}
+        }
+      ],
+      "total": [
+        {
+          "properties": {
+            "totals": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "drillFilterOtherVisuals": true
   }

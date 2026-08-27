@@ -67,44 +67,6 @@
                   "Value": "true"
                 }
               }
-            },
-            "selfFilter": {
-              "filter": {
-                "Version": 2,
-                "From": [
-                  {
-                    "Name": "d1",
-                    "Entity": "Dim Issue",
-                    "Type": 0
-                  }
-                ],
-                "Where": [
-                  {
-                    "Condition": {
-                      "Contains": {
-                        "Left": {
-                          "Column": {
-                            "Expression": {
-                              "SourceRef": {
-                                "Source": "d1"
-                              }
-                            },
-                            "Property": "Issue Code"
-                          }
-                        },
-                        "Right": {
-                          "Literal": {
-                            "Value": "'TF-18118'"
-                          }
-                        }
-                      }
-                    },
-                    "Annotations": {
-                      "PowerBI.MParameterBehavior": 1
-                    }
-                  }
-                ]
-              }
             }
           }
         }
@@ -351,6 +313,20 @@
             }
           ]
         }
+      },
+      {
+        "name": "0cf8d46bdf54fb39f8a6",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Dim Issue"
+              }
+            },
+            "Property": "Issue Code"
+          }
+        },
+        "type": "Categorical"
       }
     ]
   }

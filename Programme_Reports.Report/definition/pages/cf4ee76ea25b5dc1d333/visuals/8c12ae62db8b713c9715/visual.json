@@ -230,6 +230,11 @@
         }
       ]
     },
+    "syncGroup": {
+      "groupName": "Status Category",
+      "fieldChanges": true,
+      "filterChanges": true
+    },
     "drillFilterOtherVisuals": true
   }
 }

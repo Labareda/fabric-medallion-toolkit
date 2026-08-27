@@ -46,10 +46,6 @@ relationship AutoDetected_117312d2-813d-4e02-acbc-5d1494123e0b
 	fromColumn: 'Fact Issue History'.'Project Key'
 	toColumn: 'Dim Project'.'Project Key'
 
-relationship AutoDetected_7fbb20c7-e0e5-4622-93e3-c8c36e2f3b9a
-	fromColumn: 'Fact Issue History'.'Resource Key'
-	toColumn: 'Dim Resource'.'Resource Key'
-
 relationship AutoDetected_845d3642-f596-427a-b703-473d81f629b2
 	fromColumn: 'Fact Resource Allocation'.'Team Key'
 	toColumn: 'Dim Team'.'Team Key'
@@ -102,15 +98,6 @@ relationship 53a69cb6-5f29-9ad8-6662-2df3eae57901
 	fromColumn: 'Fact Worklog'.'Started Date'
 	toColumn: 'Dim Date'.Date
 
-relationship AutoDetected_62de9671-eae3-4660-ac80-fd31918b56dc
-	fromColumn: 'Bridge Issue Link'.'Issue Code'
-	toColumn: 'Dim Issue'.'Issue Code'
-
-relationship AutoDetected_638c041c-b0d0-4fd6-9f39-6fb6889d7b00
-	isActive: false
-	fromColumn: 'Bridge Issue Link'.'Issue Code'
-	toColumn: 'Fact Issue'.'Issue Code'
-
 relationship 0086fce5-b90a-8446-f8ef-93d88c125ad7
 	fromColumn: 'Fact Test'.'Executed By Key'
 	toColumn: 'Dim Resource'.'Resource Key'
@@ -156,4 +143,16 @@ relationship d3903bdf-59f5-c2d1-c6af-46d2b1d87529
 	fromColumn: 'Bridge Issue Link'.'Link Type Key'
 	toColumn: 'Dim Link Type'.'Link Type Key'
 
+relationship ea217432-e36a-be45-3c5a-85c1b13f78e9
+	isActive: false
+	fromColumn: 'Bridge Issue Link'.'Issue Key'
+	toColumn: 'Fact Issue'.'Issue Key'
+
+relationship AutoDetected_048e1be1-7902-411f-b661-5f064708e9dc
+	fromColumn: 'Fact Resource Day Allocation'.'Role Name'
+	toColumn: 'Dim Resource Role'.'Role Name'
+
+relationship 31dc342d-3098-0b51-4df6-e0b9359b4e86
+	fromColumn: 'Bridge Issue Link'.'Issue Key'
+	toColumn: 'Dim Issue'.'Issue Key'
 

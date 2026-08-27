@@ -28,14 +28,6 @@ table 'Dim Test Status'
 
 		annotation SummarizationSetBy = Automatic
 
-	column 'Test Status Description'
-		dataType: string
-		lineageTag: 21322b4c-d47c-4777-872e-f8e4980d85e4
-		summarizeBy: none
-		sourceColumn: Test Status Description
-
-		annotation SummarizationSetBy = Automatic
-
 	column 'Is Pass'
 		dataType: boolean
 		formatString: """TRUE"";""TRUE"";""FALSE"""
@@ -87,6 +79,14 @@ table 'Dim Test Status'
 		lineageTag: 616ec84e-e649-4be0-b294-6ab669268f21
 		summarizeBy: none
 		sourceColumn: Is Final
+
+		annotation SummarizationSetBy = Automatic
+
+	column Description
+		dataType: string
+		lineageTag: 5a738175-3efd-49f3-9ff8-a4721d80feee
+		summarizeBy: none
+		sourceColumn: Description
 
 		annotation SummarizationSetBy = Automatic
 
