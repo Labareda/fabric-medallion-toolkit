@@ -94,19 +94,10 @@ schema = fmt.TableSchema(
             "merge_field": True
         },
 
+        # One label per row, matching the row's direction -- holds every
+        # label value ("is blocked by", "blocks", "tests", "is tested by",
+        # "relates to", ...) so the client filters whichever they need.
         "Link_Label": {
-            "type": "string",
-            "default": "Unknown"
-        },
-
-        # Both directional label names of the link type, kept so the report
-        # can filter either way ("is blocked by" / "blocks", etc.).
-        "Inward_Label": {
-            "type": "string",
-            "default": "Unknown"
-        },
-
-        "Outward_Label": {
             "type": "string",
             "default": "Unknown"
         },
@@ -282,18 +273,19 @@ df = spark.sql(f"""
                 ELSE 'Inward'
             END AS Direction,
 
-            COALESCE(
-                il.outward_label,
-                il.inward_label
-            ) AS Link_Label,
-
-            -- Both directional label names kept on every row (they are
-            -- properties of the link TYPE, so issue_links carries both),
-            -- so the report can filter on either side: "is blocked by" OR
-            -- "blocks", "is tested by" OR "tests", etc.
-            il.inward_label  AS Inward_Label,
-
-            il.outward_label AS Outward_Label
+            -- The label MUST follow the DIRECTION, not a COALESCE of labels.
+            -- Both inward_label and outward_label are populated on every row
+            -- (they are properties of the link TYPE), so COALESCE would
+            -- always pick outward ("blocks") -- wrong for an inward row that
+            -- is actually "is blocked by". So: an outward row (outward_issue
+            -- populated) uses the outward label, an inward row uses the
+            -- inward label. One Label column then holds every label value,
+            -- and the client filters whichever they want.
+            CASE
+                WHEN il.outward_issue_key IS NOT NULL
+                    THEN il.outward_label
+                ELSE il.inward_label
+            END AS Link_Label
 
         FROM Silver.jira.issue_links il
 
@@ -376,10 +368,6 @@ df = spark.sql(f"""
         a.Direction,
 
         a.Link_Label,
-
-        a.Inward_Label,
-
-        a.Outward_Label,
 
 
         -- ----------------------------------------------------------------

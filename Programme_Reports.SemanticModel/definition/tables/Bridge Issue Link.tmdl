@@ -41,22 +41,6 @@ table 'Bridge Issue Link'
 
 		annotation SummarizationSetBy = Automatic
 
-	column 'Inward Label'
-		dataType: string
-		lineageTag: 7b1c2d3e-4f50-4617-8829-a0b1c2d3e4f5
-		summarizeBy: none
-		sourceColumn: Inward Label
-
-		annotation SummarizationSetBy = Automatic
-
-	column 'Outward Label'
-		dataType: string
-		lineageTag: 8c2d3e4f-5061-4728-9930-b1c2d3e4f506
-		summarizeBy: none
-		sourceColumn: Outward Label
-
-		annotation SummarizationSetBy = Automatic
-
 	column 'Issue Key'
 		dataType: string
 		isHidden
