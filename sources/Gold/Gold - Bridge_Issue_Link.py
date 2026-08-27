@@ -3,31 +3,26 @@
 # MARKDOWN ********************
 # ## Bridge_Issue_Link
 #
-# Every relationship an issue has to another issue, any TYPE, any SOURCE.
+# Every issue-to-issue link, both directions.
 #
-# Sources:
-#   * Jira-native issue links
-#   * Xray Test Sets
-#   * Xray Test Plans
-#   * Xray Test Executions
+# Source:
+#   * Jira issue_links -- the ONLY source of links between issues.
+#     Xray does NOT add issue links; it only enriches Tests with a result
+#     STATUS (see Linked_Test_Status / Issue_Test_Status below), pulled from
+#     Silver.xray.test_runs. Test Set / Plan / Execution containment is NOT
+#     a Jira issue link and is intentionally not treated as one here.
 #
 # Grain:
 #   ONE ROW PER ISSUE PER RELATIONSHIP RECORD
 #
-# This table intentionally stores BOTH directions of a relationship where
-# the source system only provides one direction.
+# Jira stores each link from BOTH issues' perspectives, so both directions
+# are already present in issue_links, e.g.:
 #
-# Example:
+#   TRAN-2151 is blocked by TF-18118   (Inward,  from the test's row)
+#   TF-18118  blocks        TRAN-2151  (Outward, from the blocker's row)
 #
-#   Test Set PTP-10 contains Test PTP-1
-#
-# produces:
-#
-#   PTP-10 -> PTP-1   Outward   contains
-#   PTP-1  -> PTP-10  Inward    belongs to
-#
-# This mirrors Jira/Xray from the perspective of each issue and makes the
-# table suitable for client-facing traceability reports.
+# Both directional label names (inward_label AND outward_label) are kept on
+# every row so the report can filter either way.
 #
 # The bridge also denormalises attributes of the LINKED issue:
 #
@@ -100,6 +95,18 @@ schema = fmt.TableSchema(
         },
 
         "Link_Label": {
+            "type": "string",
+            "default": "Unknown"
+        },
+
+        # Both directional label names of the link type, kept so the report
+        # can filter either way ("is blocked by" / "blocks", etc.).
+        "Inward_Label": {
+            "type": "string",
+            "default": "Unknown"
+        },
+
+        "Outward_Label": {
             "type": "string",
             "default": "Unknown"
         },
@@ -240,29 +247,23 @@ schema = fmt.TableSchema(
 # MARKDOWN ********************
 # ## Build all issue relationships
 #
-# Jira issue_links:
-#   The source already contains either outward_issue_key or
-#   inward_issue_key, so COALESCE is sufficient.
-#
-# Xray:
-#   Test Set / Test Plan / Test Execution relationships only record the
-#   containment direction in Silver, so both directions are generated.
-#
-# Test Execution:
-#   test_runs is run-grain, so DISTINCT is required to avoid producing
-#   multiple relationship rows for the same Execution/Test combination.
+# all_rows:
+#   Every link comes from Jira issue_links. Each row already carries either
+#   outward_issue_key or inward_issue_key (COALESCE picks the populated one),
+#   plus both label names. No Xray containment is treated as a link.
 #
 # latest_status_per_test:
-#   Gets the most recent Xray result for every Test.
+#   Gets the most recent Xray result for every Test -- the only thing Xray
+#   contributes here (a status, not a link).
 # CELL ********************
 
 df = spark.sql(f"""
 
     WITH all_rows AS (
 
-        # ================================================================
-        # Jira-native issue links
-        # ================================================================
+        -- ================================================================
+        -- Jira-native issue links
+        -- ================================================================
 
         SELECT
 
@@ -284,7 +285,15 @@ df = spark.sql(f"""
             COALESCE(
                 il.outward_label,
                 il.inward_label
-            ) AS Link_Label
+            ) AS Link_Label,
+
+            -- Both directional label names kept on every row (they are
+            -- properties of the link TYPE, so issue_links carries both),
+            -- so the report can filter on either side: "is blocked by" OR
+            -- "blocks", "is tested by" OR "tests", etc.
+            il.inward_label  AS Inward_Label,
+
+            il.outward_label AS Outward_Label
 
         FROM Silver.jira.issue_links il
 
@@ -292,127 +301,22 @@ df = spark.sql(f"""
             il.outward_issue_key,
             il.inward_issue_key
         ) IS NOT NULL
-
-
-        UNION ALL
-
-
-        # ================================================================
-        # Xray Test Set
-        # ================================================================
-
-        SELECT
-            test_set_issue_key AS Issue_Code,
-            test_issue_key AS Linked_Issue_Code,
-            'Test Set' AS Link_Type_Name,
-            'Outward' AS Direction,
-            'contains' AS Link_Label
-
-        FROM Silver.xray.test_sets
-
-        WHERE test_issue_key IS NOT NULL
-
-
-        UNION ALL
-
-
-        SELECT
-            test_issue_key AS Issue_Code,
-            test_set_issue_key AS Linked_Issue_Code,
-            'Test Set' AS Link_Type_Name,
-            'Inward' AS Direction,
-            'belongs to' AS Link_Label
-
-        FROM Silver.xray.test_sets
-
-        WHERE test_issue_key IS NOT NULL
-
-
-        UNION ALL
-
-
-        # ================================================================
-        # Xray Test Plan
-        # ================================================================
-
-        SELECT
-            test_plan_issue_key AS Issue_Code,
-            test_issue_key AS Linked_Issue_Code,
-            'Test Plan' AS Link_Type_Name,
-            'Outward' AS Direction,
-            'contains' AS Link_Label
-
-        FROM Silver.xray.test_plans
-
-        WHERE test_issue_key IS NOT NULL
-
-
-        UNION ALL
-
-
-        SELECT
-            test_issue_key AS Issue_Code,
-            test_plan_issue_key AS Linked_Issue_Code,
-            'Test Plan' AS Link_Type_Name,
-            'Inward' AS Direction,
-            'belongs to' AS Link_Label
-
-        FROM Silver.xray.test_plans
-
-        WHERE test_issue_key IS NOT NULL
-
-
-        UNION ALL
-
-
-        # ================================================================
-        # Xray Test Execution
-        #
-        # DISTINCT because a Test Execution can contain multiple Test Runs
-        # for the same Test.
-        # ================================================================
-
-        SELECT DISTINCT
-            execution_issue_key AS Issue_Code,
-            test_issue_key AS Linked_Issue_Code,
-            'Test Execution' AS Link_Type_Name,
-            'Outward' AS Direction,
-            'contains' AS Link_Label
-
-        FROM Silver.xray.test_runs
-
-        WHERE test_issue_key IS NOT NULL
-
-
-        UNION ALL
-
-
-        SELECT DISTINCT
-            test_issue_key AS Issue_Code,
-            execution_issue_key AS Linked_Issue_Code,
-            'Test Execution' AS Link_Type_Name,
-            'Inward' AS Direction,
-            'belongs to' AS Link_Label
-
-        FROM Silver.xray.test_runs
-
-        WHERE test_issue_key IS NOT NULL
     ),
 
 
-    # ====================================================================
-    # Latest Xray result per Test
-    #
-    # The original model used Started_On only.
-    #
-    # We now use:
-    #   1. Started_On DESC
-    #   2. Finished_On DESC
-    #   3. Run_Id DESC
-    #
-    # This makes the selection deterministic when two runs have identical
-    # Started_On values.
-    # ====================================================================
+    -- ====================================================================
+    -- Latest Xray result per Test
+    --
+    -- The original model used Started_On only.
+    --
+    -- We now use:
+    --   1. Started_On DESC
+    --   2. Finished_On DESC
+    --   3. Run_Id DESC
+    --
+    -- This makes the selection deterministic when two runs have identical
+    -- Started_On values.
+    -- ====================================================================
 
     latest_status_per_test AS (
 
@@ -454,15 +358,15 @@ df = spark.sql(f"""
     )
 
 
-    # ====================================================================
-    # Final bridge
-    # ====================================================================
+    -- ====================================================================
+    -- Final bridge
+    -- ====================================================================
 
     SELECT DISTINCT
 
-        # ----------------------------------------------------------------
-        # Relationship
-        # ----------------------------------------------------------------
+        -- ----------------------------------------------------------------
+        -- Relationship
+        -- ----------------------------------------------------------------
         a.Issue_Code,
 
         a.Linked_Issue_Code,
@@ -473,10 +377,14 @@ df = spark.sql(f"""
 
         a.Link_Label,
 
+        a.Inward_Label,
 
-        # ----------------------------------------------------------------
-        # Linked issue attributes
-        # ----------------------------------------------------------------
+        a.Outward_Label,
+
+
+        -- ----------------------------------------------------------------
+        -- Linked issue attributes
+        -- ----------------------------------------------------------------
 
         COALESCE(
             linked_di.Issue_Type_Name,
@@ -505,9 +413,9 @@ df = spark.sql(f"""
         ) AS Linked_Issue_URL,
 
 
-        # ----------------------------------------------------------------
-        # Latest result of linked Test
-        # ----------------------------------------------------------------
+        -- ----------------------------------------------------------------
+        -- Latest result of linked Test
+        -- ----------------------------------------------------------------
 
         COALESCE(
             lsp.Test_Status_Name,
@@ -515,11 +423,11 @@ df = spark.sql(f"""
         ) AS Linked_Test_Status,
 
 
-        # ----------------------------------------------------------------
-        # Latest result of the ANCHOR issue when it is a Test -- so a
-        # blocked-tests report can show each test's own result status
-        # alongside what it is blocked by.
-        # ----------------------------------------------------------------
+        -- ----------------------------------------------------------------
+        -- Latest result of the ANCHOR issue when it is a Test -- so a
+        -- blocked-tests report can show each test's own result status
+        -- alongside what it is blocked by.
+        -- ----------------------------------------------------------------
 
         COALESCE(
             lsp_anchor.Test_Status_Name,
@@ -527,9 +435,9 @@ df = spark.sql(f"""
         ) AS Issue_Test_Status,
 
 
-        # ----------------------------------------------------------------
-        # Foreign keys
-        # ----------------------------------------------------------------
+        -- ----------------------------------------------------------------
+        -- Foreign keys
+        -- ----------------------------------------------------------------
 
         di.Issue_Key,
 
@@ -547,60 +455,60 @@ df = spark.sql(f"""
     FROM all_rows a
 
 
-    # --------------------------------------------------------------------
-    # Anchor issue
-    # --------------------------------------------------------------------
+    -- --------------------------------------------------------------------
+    -- Anchor issue
+    -- --------------------------------------------------------------------
 
     LEFT JOIN {GOLD_SCHEMA}.dim_issue di
 
         ON di.Issue_Code = a.Issue_Code
 
 
-    # --------------------------------------------------------------------
-    # Linked issue
-    #
-    # This is the source for:
-    #   Linked_Issue_Type
-    #   Linked_Issue_Summary
-    #   Linked_Issue_Acceptance_Criteria
-    #   Linked_Issue_URL
-    # --------------------------------------------------------------------
+    -- --------------------------------------------------------------------
+    -- Linked issue
+    --
+    -- This is the source for:
+    --   Linked_Issue_Type
+    --   Linked_Issue_Summary
+    --   Linked_Issue_Acceptance_Criteria
+    --   Linked_Issue_URL
+    -- --------------------------------------------------------------------
 
     LEFT JOIN {GOLD_SCHEMA}.dim_issue linked_di
 
         ON linked_di.Issue_Code = a.Linked_Issue_Code
 
 
-    # --------------------------------------------------------------------
-    # Link type
-    # --------------------------------------------------------------------
+    -- --------------------------------------------------------------------
+    -- Link type
+    -- --------------------------------------------------------------------
 
     LEFT JOIN {GOLD_SCHEMA}.dim_link_type lt
 
         ON lt.Link_Type_Name = a.Link_Type_Name
 
 
-    # --------------------------------------------------------------------
-    # Latest linked Test status
-    # --------------------------------------------------------------------
+    -- --------------------------------------------------------------------
+    -- Latest linked Test status
+    -- --------------------------------------------------------------------
 
     LEFT JOIN latest_status_per_test lsp
 
         ON lsp.Test_Code = a.Linked_Issue_Code
 
 
-    # --------------------------------------------------------------------
-    # Latest anchor Test status (anchor issue's own result)
-    # --------------------------------------------------------------------
+    -- --------------------------------------------------------------------
+    -- Latest anchor Test status (anchor issue's own result)
+    -- --------------------------------------------------------------------
 
     LEFT JOIN latest_status_per_test lsp_anchor
 
         ON lsp_anchor.Test_Code = a.Issue_Code
 
 
-    # --------------------------------------------------------------------
-    # Anchor issue's own project/team
-    # --------------------------------------------------------------------
+    -- --------------------------------------------------------------------
+    -- Anchor issue's own project/team
+    -- --------------------------------------------------------------------
 
     LEFT JOIN Silver.jira.issues ai
 

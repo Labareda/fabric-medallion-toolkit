@@ -318,9 +318,9 @@ df = spark.sql(f"""
 
     SELECT
 
-        # -------------------------------------------------------------------
-        # Issue identity
-        # -------------------------------------------------------------------
+        -- -------------------------------------------------------------------
+        -- Issue identity
+        -- -------------------------------------------------------------------
         i.id AS Issue_Id,
 
         i.key AS Issue_Code,
@@ -339,35 +339,35 @@ df = spark.sql(f"""
             )
         ) AS Display_Label,
 
-        # -------------------------------------------------------------------
-        # Milestone
-        # -------------------------------------------------------------------
+        -- -------------------------------------------------------------------
+        -- Milestone
+        -- -------------------------------------------------------------------
         LOWER(it.name) = 'milestone' AS Is_Milestone,
 
-        # -------------------------------------------------------------------
-        # Xray Acceptance Criteria
-        #
-        # Different Jira/Xray configurations may expose the field under
-        # different Silver column names, hence the fallback.
-        # -------------------------------------------------------------------
+        -- -------------------------------------------------------------------
+        -- Xray Acceptance Criteria
+        --
+        -- Different Jira/Xray configurations may expose the field under
+        -- different Silver column names, hence the fallback.
+        -- -------------------------------------------------------------------
         COALESCE(
             i.fields_customfield_acceptance_criteria,
             i.fields_acceptance_criteria,
             'Unknown'
         ) AS Acceptance_Criteria,
 
-        # -------------------------------------------------------------------
-        # Jira URL
-        # -------------------------------------------------------------------
+        -- -------------------------------------------------------------------
+        -- Jira URL
+        -- -------------------------------------------------------------------
         CONCAT(
             '{JIRA_BASE_URL}',
             '/browse/',
             i.key
         ) AS Jira_URL,
 
-        # -------------------------------------------------------------------
-        # Current issue attributes
-        # -------------------------------------------------------------------
+        -- -------------------------------------------------------------------
+        -- Current issue attributes
+        -- -------------------------------------------------------------------
         COALESCE(
             it.name,
             'Unknown'
@@ -396,21 +396,21 @@ df = spark.sql(f"""
             i.fields_updated AS date
         ) AS Updated_Date,
 
-        # Missing dates land on a 1900-01-01 sentinel so no date cell is
-        # ever blank. These are display-only copies -- the additive date
-        # math and the Dim Date relationships live on Fact_Issue, which
-        # keeps its dates nullable, and the Missing_Planned_Dates flag below
-        # is computed from the raw Silver fields, so this sentinel does not
-        # affect either.
+        -- Missing dates land on a 1900-01-01 sentinel so no date cell is
+        -- ever blank. These are display-only copies -- the additive date
+        -- math and the Dim Date relationships live on Fact_Issue, which
+        -- keeps its dates nullable, and the Missing_Planned_Dates flag below
+        -- is computed from the raw Silver fields, so this sentinel does not
+        -- affect either.
         COALESCE(CAST(i.fields_start_date AS date), DATE '1900-01-01') AS Planned_Start_Date,
         COALESCE(CAST(i.fields_duedate AS date), DATE '1900-01-01')    AS Planned_End_Date,
         COALESCE(CAST(i.fields_actual_start AS date), DATE '1900-01-01') AS Actual_Start_Date,
         COALESCE(CAST(COALESCE(i.fields_actual_end, i.fields_resolutiondate) AS date), DATE '1900-01-01') AS Actual_End_Date,
         (i.fields_start_date IS NULL OR i.fields_duedate IS NULL) AS Missing_Planned_Dates,
 
-        # -------------------------------------------------------------------
-        # Hierarchy working columns
-        # -------------------------------------------------------------------
+        -- -------------------------------------------------------------------
+        -- Hierarchy working columns
+        -- -------------------------------------------------------------------
         i.fields_rank AS Rank,
 
         i.fields_parent_id AS Parent_Issue_Id,
@@ -419,9 +419,9 @@ df = spark.sql(f"""
 
         it.hierarchylevel AS Hierarchy_Level,
 
-        # -------------------------------------------------------------------
-        # Resources
-        # -------------------------------------------------------------------
+        -- -------------------------------------------------------------------
+        -- Resources
+        -- -------------------------------------------------------------------
         COALESCE(
             i.fields_assignee_displayName,
             'Unassigned'
@@ -442,9 +442,9 @@ df = spark.sql(f"""
             ', '
         ) AS Resource_Names,
 
-        # -------------------------------------------------------------------
-        # Dependencies
-        # -------------------------------------------------------------------
+        -- -------------------------------------------------------------------
+        -- Dependencies
+        -- -------------------------------------------------------------------
         COALESCE(
             pre.Predecessor_Issue_Code,
             'None'
