@@ -293,6 +293,33 @@ df = spark.sql(f"""
             il.outward_issue_key,
             il.inward_issue_key
         ) IS NOT NULL
+
+
+        UNION ALL
+
+
+        -- ================================================================
+        -- Issues with NO links -- one placeholder row each, so every issue
+        -- still appears in the report (as "No links") even when nothing is
+        -- linked to it. Sourced from Dim_Issue so it matches the report's
+        -- Dim_Issue relationship. NOT EXISTS is null-safe (unlike NOT IN).
+        -- ================================================================
+
+        SELECT
+            di.Issue_Code AS Issue_Code,
+            '(none)'   AS Linked_Issue_Code,
+            'None'     AS Link_Type_Name,
+            'None'     AS Direction,
+            'No links' AS Link_Label
+
+        FROM {GOLD_SCHEMA}.dim_issue di
+
+        WHERE di.Issue_Code <> 'Unknown'
+          AND NOT EXISTS (
+              SELECT 1
+              FROM Silver.jira.issue_links il
+              WHERE il.issue_key = di.Issue_Code
+          )
     ),
 
 
