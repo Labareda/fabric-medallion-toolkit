@@ -175,6 +175,15 @@ table 'Bridge Issue Link'
 
 		annotation SummarizationSetBy = Automatic
 
+	column 'Has Blocker Link'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: b7e2c4d1-3a5f-4908-9c26-1d2e3f4a5b6c
+		summarizeBy: none
+		sourceColumn: Has Blocker Link
+
+		annotation SummarizationSetBy = Automatic
+
 	partition 'Bridge Issue Link' = m
 		mode: import
 		source =

@@ -154,6 +154,13 @@ schema = fmt.TableSchema(
             "default": "N/A"
         },
 
+        # TRUE if the anchor issue has an "is blocked by" link. FALSE with
+        # Issue_Test_Status = 'Blocked' = blocked but no blocker recorded.
+        "Has_Blocker_Link": {
+            "type": "boolean",
+            "default": False
+        },
+
         # -------------------------------------------------------------------
         # Foreign keys
         # -------------------------------------------------------------------
@@ -374,6 +381,25 @@ df = spark.sql(f"""
         ) x
 
         WHERE rn = 1
+    ),
+
+
+    -- ====================================================================
+    -- Issues that HAVE an "is blocked by" link (an inward Blocks link).
+    -- Used to flag the gap the client cares about: a test that is BLOCKED
+    -- but has no blocker recorded -- whether it has no links at all, or has
+    -- links but none of them is "is blocked by".
+    -- ====================================================================
+
+    blocker_links AS (
+
+        SELECT DISTINCT
+            il.issue_key AS Issue_Code
+
+        FROM Silver.jira.issue_links il
+
+        WHERE il.link_type = 'Blocks'
+          AND il.inward_issue_key IS NOT NULL
     )
 
 
@@ -451,6 +477,18 @@ df = spark.sql(f"""
 
 
         -- ----------------------------------------------------------------
+        -- Does the anchor issue have an "is blocked by" link at all?
+        -- FALSE + Issue_Test_Status = 'Blocked' is the client's gap:
+        -- blocked but no blocker recorded.
+        -- ----------------------------------------------------------------
+
+        CASE
+            WHEN bl.Issue_Code IS NOT NULL THEN TRUE
+            ELSE FALSE
+        END AS Has_Blocker_Link,
+
+
+        -- ----------------------------------------------------------------
         -- Foreign keys
         -- ----------------------------------------------------------------
 
@@ -519,6 +557,15 @@ df = spark.sql(f"""
     LEFT JOIN latest_status_per_test lsp_anchor
 
         ON lsp_anchor.Test_Code = a.Issue_Code
+
+
+    -- --------------------------------------------------------------------
+    -- Whether the anchor issue has any "is blocked by" link
+    -- --------------------------------------------------------------------
+
+    LEFT JOIN blocker_links bl
+
+        ON bl.Issue_Code = a.Issue_Code
 
 
     -- --------------------------------------------------------------------
