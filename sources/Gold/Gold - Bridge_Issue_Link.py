@@ -306,18 +306,30 @@ df = spark.sql(f"""
 
 
         -- ================================================================
-        -- Issues with NO links -- one placeholder row each, so every issue
-        -- still appears in the report (as "No links") even when nothing is
-        -- linked to it. Sourced from Dim_Issue so it matches the report's
-        -- Dim_Issue relationship. NOT EXISTS is null-safe (unlike NOT IN).
+        -- "is blocked by" GAP MARKER.
+        --
+        -- Every issue that has NO inward "Blocks" link (i.e. nothing is
+        -- recorded as blocking it) gets ONE placeholder row:
+        --     Link_Label = 'is blocked by', Linked_Issue_Code = '(none)'.
+        --
+        -- So an issue ALWAYS carries a blocked-by line -- either its real
+        -- blocker(s) or this "(none)" marker -- ALONGSIDE any other links it
+        -- has. That is what makes a blocked test with, say, only a "relates
+        -- to" link show TWO rows: the "relates to" link AND an
+        -- "is blocked by -> (none)" line. It also guarantees a link-less
+        -- issue still appears at all.
+        --
+        -- Detection of an existing blocker: the issue is the INWARD side of
+        -- a Blocks link (inward_issue_key populated = the blocker).
+        -- NOT EXISTS is null-safe (unlike NOT IN).
         -- ================================================================
 
         SELECT
-            di.Issue_Code AS Issue_Code,
-            '(none)'   AS Linked_Issue_Code,
-            'None'     AS Link_Type_Name,
-            'None'     AS Direction,
-            'No links' AS Link_Label
+            di.Issue_Code   AS Issue_Code,
+            '(none)'        AS Linked_Issue_Code,
+            'Blocks'        AS Link_Type_Name,
+            'Inward'        AS Direction,
+            'is blocked by' AS Link_Label
 
         FROM {GOLD_SCHEMA}.dim_issue di
 
@@ -326,6 +338,8 @@ df = spark.sql(f"""
               SELECT 1
               FROM Silver.jira.issue_links il
               WHERE il.issue_key = di.Issue_Code
+                AND il.link_type = 'Blocks'
+                AND il.inward_issue_key IS NOT NULL
           )
     ),
 
