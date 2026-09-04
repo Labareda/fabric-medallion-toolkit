@@ -101,6 +101,20 @@ for entity in source_config.entities:
 
         use_watermark = bool(entity.incremental_column or entity.watermark_params_template or entity.watermark_body_template)
         watermark_value = fmt.get_watermark(spark, SOURCE_NAME, entity, bronze_schema=WATERMARK_SCHEMA) if use_watermark else None
+
+        # Jira JQL only accepts 'yyyy-MM-dd HH:mm' -- it REJECTS the ISO-8601
+        # form (e.g. "2026-09-03T08:41:16.958+0000") that Jira's own
+        # fields.updated returns and that a previous run may have stored as
+        # the watermark. An un-normalised value makes `updated >= '{watermark}'`
+        # invalid, so the incremental pull returns 0 rows and updates silently
+        # stop landing. Normalise here (identical to the Xray pull): drop the
+        # 'T'/'Z' and trim to the minute. Flooring to the minute with '>='
+        # also gives a safe overlap so a same-minute update isn't skipped, and
+        # because the stuck watermark sits at the last good point, this run
+        # re-pulls everything changed since -- recovering the missed updates.
+        if watermark_value and "T" in watermark_value:
+            watermark_value = watermark_value.replace("T", " ").replace("Z", "")[:16]
+
         print(f"[{entity.entity_name}] {'incremental, watermark >= ' + str(watermark_value) if use_watermark else 'full load'}")
 
         records = list(extractor.extract_entity(entity, watermark_value=watermark_value))

@@ -80,4 +80,18 @@ def compute_new_watermark(records: Iterable[Dict[str, Any]], entity: EntityConfi
         if val is not None and (max_val is None or str(val) > str(max_val)):
             max_val = val
 
-    return str(max_val) if max_val is not None else extraction_started_at.isoformat()
+    if max_val is None:
+        return extraction_started_at.isoformat()
+
+    # Normalise an ISO-8601 datetime (e.g. "2026-09-03T08:41:16.958+0000",
+    # exactly what Jira's fields.updated returns) to the "yyyy-MM-dd HH:mm"
+    # form that Jira/Xray JQL require -- JQL rejects the 'T', seconds, millis
+    # and timezone offset, so storing the raw ISO value makes the NEXT run's
+    # `updated >= '{watermark}'` invalid and silently return 0 rows. Only
+    # applied when the value looks like an ISO datetime (has 'T' after a
+    # yyyy-MM-dd prefix); anything else is stored unchanged. Trimming to the
+    # minute is safe because the '>=' filter re-includes that minute.
+    s = str(max_val)
+    if len(s) >= 11 and s[4] == "-" and s[7] == "-" and s[10] == "T":
+        s = s.replace("T", " ").replace("Z", "")[:16]
+    return s
