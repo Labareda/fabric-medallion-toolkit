@@ -69,6 +69,18 @@ schema = fmt.TableSchema(
 
     key_column="Issue_Link_Key",
 
+    # OVERWRITE, deliberately -- unlike the dims and additive facts (which
+    # MERGE to retain records that drop out of Silver). This is a CURRENT-
+    # STATE relationships table, fully re-derived from issue_links every run.
+    # Merging would let STALE links linger: a removed "relates to" would
+    # never disappear, and -- critically -- when a client adds the missing
+    # "is blocked by" link, the old "is blocked by -> (none)" gap-marker row
+    # would survive alongside the new real blocker, so the test would still
+    # look like a gap. Overwrite makes every link (and the (none) marker)
+    # reflect the current truth. No issue is lost by this: issues are
+    # retained in Dim_Issue, which still MERGEs.
+    write_mode="overwrite",
+
     columns={
 
         # -------------------------------------------------------------------
