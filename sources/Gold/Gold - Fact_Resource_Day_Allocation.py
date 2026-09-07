@@ -72,23 +72,40 @@ df = spark.sql(f"""
     -- Every resource<->issue link (Lead AND Involved) on issues with a real
     -- planned range. Estimate NOT required (assumption 2). Weight = 1 for
     -- Lead, 0 for Involved (drives hours; 0 = counts but no capacity load).
+    --
+    -- DEDUP TO ONE ROLE PER (Resource, Issue): a person can be BOTH Lead and
+    -- Involved on the same issue, which would otherwise produce two rows per
+    -- (Resource, Issue, Date) -- colliding on the merge key AND doubling the
+    -- working-day count (halving the spread hours). Being the Lead already
+    -- implies involvement, so keep the STRONGEST role only (highest weight =
+    -- Lead over Involved). Role_Name reflects that strongest role.
     allocations AS (
         SELECT
-            fra.Resource_Id,
-            fra.Issue_Id,
-            role.Role_Name,
-            fra.Allocation_Weight,
-            fi.Planned_Start_Date,
-            fi.Planned_End_Date,
-            COALESCE(fi.Original_Estimate_Hours, 0) AS Original_Estimate_Hours
-        FROM {GOLD_SCHEMA}.fact_resource_allocation fra
-        JOIN {GOLD_SCHEMA}.dim_resourcerole role
-          ON role.Resource_Role_Key = fra.Resource_Role_Key
-        JOIN {GOLD_SCHEMA}.fact_issue fi
-          ON fi.Issue_Id = fra.Issue_Id
-        WHERE fi.Planned_Start_Date IS NOT NULL
-          AND fi.Planned_End_Date IS NOT NULL
-          AND fi.Planned_End_Date >= fi.Planned_Start_Date
+            Resource_Id, Issue_Id, Role_Name, Allocation_Weight,
+            Planned_Start_Date, Planned_End_Date, Original_Estimate_Hours
+        FROM (
+            SELECT
+                fra.Resource_Id,
+                fra.Issue_Id,
+                role.Role_Name,
+                fra.Allocation_Weight,
+                fi.Planned_Start_Date,
+                fi.Planned_End_Date,
+                COALESCE(fi.Original_Estimate_Hours, 0) AS Original_Estimate_Hours,
+                ROW_NUMBER() OVER (
+                    PARTITION BY fra.Resource_Id, fra.Issue_Id
+                    ORDER BY fra.Allocation_Weight DESC, role.Role_Name
+                ) AS rn
+            FROM {GOLD_SCHEMA}.fact_resource_allocation fra
+            JOIN {GOLD_SCHEMA}.dim_resourcerole role
+              ON role.Resource_Role_Key = fra.Resource_Role_Key
+            JOIN {GOLD_SCHEMA}.fact_issue fi
+              ON fi.Issue_Id = fra.Issue_Id
+            WHERE fi.Planned_Start_Date IS NOT NULL
+              AND fi.Planned_End_Date IS NOT NULL
+              AND fi.Planned_End_Date >= fi.Planned_Start_Date
+        ) x
+        WHERE rn = 1
     ),
     -- One row per working day in range -- assumption 4.
     working_days AS (
