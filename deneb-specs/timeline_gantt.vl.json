@@ -1,0 +1,69 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Timeline Gantt (free Deneb replacement for Gantt Chart xViz). Bind to Deneb's Values well: Dim Issue[Issue Code], Dim Issue[Summary], Dim Issue[Sort Path], Dim Issue[Status Name], Dim Issue[Is Milestone], Dim Issue[Lead Name], Dim Issue[Resource Names], Dim Issue[Level 1..7], Fact Issue[Planned Start Date], Fact Issue[Planned End Date]. Indentation is derived from how many Level_n are populated, so NO Gold change is needed.",
+  "width": "container",
+  "height": { "step": 18 },
+  "config": {
+    "view": { "stroke": "transparent" },
+    "font": "Segoe UI",
+    "axis": { "labelColor": "#333333", "titleColor": "#333333", "gridColor": "#EEEEEE", "domain": false, "ticks": false },
+    "legend": { "orient": "top", "title": null }
+  },
+  "data": { "name": "dataset" },
+  "transform": [
+    { "filter": "datum['Planned Start Date'] != null && datum['Planned End Date'] != null" },
+    {
+      "calculate": "(datum['Level 1']!=null&&datum['Level 1']!=''?1:0)+(datum['Level 2']!=null&&datum['Level 2']!=''?1:0)+(datum['Level 3']!=null&&datum['Level 3']!=''?1:0)+(datum['Level 4']!=null&&datum['Level 4']!=''?1:0)+(datum['Level 5']!=null&&datum['Level 5']!=''?1:0)+(datum['Level 6']!=null&&datum['Level 6']!=''?1:0)+(datum['Level 7']!=null&&datum['Level 7']!=''?1:0)",
+      "as": "Depth"
+    },
+    {
+      "calculate": "substring('                              ', 0, (max(datum.Depth,1)-1)*3) + datum['Issue Code'] + '  ' + datum['Summary']",
+      "as": "TaskLabel"
+    }
+  ],
+  "layer": [
+    {
+      "description": "Task bars",
+      "mark": { "type": "bar", "height": { "band": 0.62 }, "cornerRadius": 2, "tooltip": true },
+      "encoding": {
+        "y": {
+          "field": "TaskLabel",
+          "type": "nominal",
+          "sort": { "field": "Sort Path", "order": "ascending" },
+          "axis": { "title": null, "labelFontSize": 10, "labelLimit": 340, "labelFont": "Consolas, 'Courier New', monospace" }
+        },
+        "x": {
+          "field": "Planned Start Date",
+          "type": "temporal",
+          "axis": { "title": null, "format": "%b %Y", "grid": true, "orient": "top" }
+        },
+        "x2": { "field": "Planned End Date" },
+        "color": { "field": "Status Name", "type": "nominal", "legend": { "title": "Status" } },
+        "tooltip": [
+          { "field": "Issue Code", "title": "Issue" },
+          { "field": "Summary", "title": "Summary" },
+          { "field": "Status Name", "title": "Status" },
+          { "field": "Lead Name", "title": "Lead" },
+          { "field": "Resource Names", "title": "Resources" },
+          { "field": "Planned Start Date", "type": "temporal", "title": "Start", "format": "%d %b %Y" },
+          { "field": "Planned End Date", "type": "temporal", "title": "End", "format": "%d %b %Y" }
+        ]
+      }
+    },
+    {
+      "description": "Milestone diamonds",
+      "transform": [ { "filter": "datum['Is Milestone'] == true" } ],
+      "mark": { "type": "point", "shape": "diamond", "size": 80, "filled": true, "color": "#B21C1A", "tooltip": true },
+      "encoding": {
+        "y": { "field": "TaskLabel", "type": "nominal", "sort": { "field": "Sort Path", "order": "ascending" }, "axis": null },
+        "x": { "field": "Planned End Date", "type": "temporal" }
+      }
+    },
+    {
+      "description": "Today line",
+      "data": { "values": [ {} ] },
+      "mark": { "type": "rule", "color": "#B21C1A", "strokeWidth": 1.5, "strokeDash": [ 4, 3 ] },
+      "encoding": { "x": { "datum": { "expr": "now()" }, "type": "temporal" } }
+    }
+  ]
+}
