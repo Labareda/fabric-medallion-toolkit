@@ -93,6 +93,24 @@ class BarsCard extends FormattingSettingsCard {
     ];
 }
 
+/** Legend: status colour key. */
+class LegendCard extends FormattingSettingsCard {
+    show = new formattingSettings.ToggleSwitch({
+        name: "show",
+        displayName: "Show legend",
+        value: true
+    });
+    atBottom = new formattingSettings.ToggleSwitch({
+        name: "atBottom",
+        displayName: "Position at bottom",
+        value: false
+    });
+
+    name: string = "legend";
+    displayName: string = "Legend";
+    slices: FormattingSettingsSlice[] = [ this.show, this.atBottom ];
+}
+
 /** Grid & rows: matrix-style column separators, row lines, banded rows. */
 class GridCard extends FormattingSettingsCard {
     rowBorders = new formattingSettings.ToggleSwitch({
@@ -226,6 +244,7 @@ class ColumnsCard extends FormattingSettingsCard {
 
 export class VisualFormattingSettingsModel extends FormattingSettingsModel {
     appearance = new AppearanceCard();
+    legend = new LegendCard();
     grid = new GridCard();
     bars = new BarsCard();
     actualBar = new ActualBarCard();
@@ -234,7 +253,7 @@ export class VisualFormattingSettingsModel extends FormattingSettingsModel {
     columns = new ColumnsCard();
 
     cards: FormattingSettingsCard[] = [
-        this.appearance, this.grid, this.bars, this.actualBar,
+        this.appearance, this.legend, this.grid, this.bars, this.actualBar,
         this.milestone, this.todayLine, this.columns
     ];
 }

@@ -212,11 +212,17 @@ export class Visual implements IVisual {
 
         // time scale across all tasks
         let minD: Date | undefined, maxD: Date | undefined;
+        const statusSet: string[] = [];
+        let anyMilestone = false, anyActual = false;
         const scan = (n: TaskNode) => {
             const lo = [n.start, n.aStart].filter(Boolean) as Date[];
             const hi = [n.end, n.aEnd, n.start, n.aStart].filter(Boolean) as Date[];
             for (const d of lo) if (!minD || d < minD) minD = d;
             for (const d of hi) if (!maxD || d > maxD) maxD = d;
+            const hasBar = !!((n.start && n.end) || (n.aStart && n.aEnd));
+            if (hasBar && n.status && statusSet.indexOf(n.status) < 0) statusSet.push(n.status);
+            if (n.isMilestone && n.end) anyMilestone = true;
+            if (n.start && n.end && n.aStart && n.aEnd) anyActual = true;
             n.children.forEach(scan);
         };
         scan(this.root);
@@ -304,9 +310,9 @@ export class Visual implements IVisual {
             }
         });
 
-        const barColor = (n: TaskNode): string => {
+        const statusColor = (status: string): string => {
             if (!s.bars.colorByStatus.value) return s.bars.defaultColor.value.value;
-            const st = (n.status || "").toLowerCase();
+            const st = (status || "").toLowerCase();
             if (st.indexOf("done") >= 0 || st.indexOf("complete") >= 0 || st.indexOf("closed") >= 0)
                 return s.bars.doneColor.value.value;
             if (st.indexOf("progress") >= 0 || st.indexOf("doing") >= 0)
@@ -316,6 +322,7 @@ export class Visual implements IVisual {
                 return s.bars.toDoColor.value.value;
             return s.bars.defaultColor.value.value;
         };
+        const barColor = (n: TaskNode): string => statusColor(n.status);
         const barH = Math.max(4, Math.round(rowH * 0.55));
         const corner = Math.max(0, s.bars.cornerRadius.value);
         const showLabels = s.bars.showBarLabels.value;
@@ -542,6 +549,72 @@ export class Visual implements IVisual {
             if (showLead) row.appendChild(textCell(n.lead, leadW, showRes));
             if (showRes) row.appendChild(textCell(n.resources, resW, false));
         });
+
+        // ---- legend (status colour key + milestone / actual markers) ----
+        if (s.legend.show.value) {
+            const legend = document.createElement("div");
+            legend.style.cssText = `flex:0 0 auto;display:flex;flex-wrap:wrap;align-items:center;` +
+                `gap:4px 14px;padding:4px 10px;box-sizing:border-box;font-size:${fontSize}px;` +
+                `color:${textColor};background:transparent;`;
+
+            const item = (swatch: HTMLElement, text: string) => {
+                const wrap = document.createElement("div");
+                wrap.style.cssText = "display:flex;align-items:center;gap:5px;";
+                wrap.appendChild(swatch);
+                const t = document.createElement("span");
+                t.textContent = text;
+                wrap.appendChild(t);
+                legend.appendChild(wrap);
+            };
+            const box = (color: string) => {
+                const b = document.createElement("span");
+                b.style.cssText = `width:12px;height:12px;border-radius:2px;background:${color};` +
+                    `display:inline-block;flex:0 0 12px;`;
+                return b;
+            };
+
+            // status entries, ordered To Do -> In Progress -> Done -> other
+            if (s.bars.colorByStatus.value) {
+                const rank = (st: string): number => {
+                    const l = st.toLowerCase();
+                    if (l.indexOf("to do") >= 0 || l.indexOf("todo") >= 0 || l.indexOf("open") >= 0 ||
+                        l.indexOf("backlog") >= 0 || l.indexOf("new") >= 0) return 0;
+                    if (l.indexOf("progress") >= 0 || l.indexOf("doing") >= 0) return 1;
+                    if (l.indexOf("done") >= 0 || l.indexOf("complete") >= 0 || l.indexOf("closed") >= 0) return 2;
+                    return 3;
+                };
+                statusSet.sort((a, b) => {
+                    const r = rank(a) - rank(b);
+                    return r !== 0 ? r : (a < b ? -1 : 1);
+                });
+                statusSet.forEach(st => item(box(statusColor(st)), st));
+            }
+
+            if (anyActual && s.actualBar.show.value) {
+                const bar = document.createElement("span");
+                bar.style.cssText = `width:14px;height:4px;border-radius:1px;` +
+                    `background:${s.actualBar.actualColor.value.value};display:inline-block;flex:0 0 14px;`;
+                item(bar, "Actual dates");
+            }
+            if (anyMilestone) {
+                const dia = document.createElement("span");
+                const c = s.milestone.milestoneColor.value.value;
+                dia.style.cssText = `width:10px;height:10px;background:${c};display:inline-block;` +
+                    `flex:0 0 10px;transform:rotate(45deg);`;
+                item(dia, "Milestone");
+            }
+            if (s.todayLine.show.value) {
+                const ln = document.createElement("span");
+                ln.style.cssText = `width:14px;height:0;border-top:2px dashed ${s.todayLine.lineColor.value.value};` +
+                    `display:inline-block;flex:0 0 14px;`;
+                item(ln, "Today");
+            }
+
+            if (legend.childNodes.length > 0) {
+                if (s.legend.atBottom.value) container.appendChild(legend);
+                else container.insertBefore(legend, header);
+            }
+        }
     }
 
     private barLabel(svg: any, xPos: number, cy: number, text: string, fontSize: number, timelineW: number): void {

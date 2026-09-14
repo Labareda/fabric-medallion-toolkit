@@ -61,6 +61,12 @@
         "showBarLabels": { "type": { "bool": true } }
       }
     },
+    "legend": {
+      "properties": {
+        "show": { "type": { "bool": true } },
+        "atBottom": { "type": { "bool": true } }
+      }
+    },
     "grid": {
       "properties": {
         "rowBorders": { "type": { "bool": true } },
