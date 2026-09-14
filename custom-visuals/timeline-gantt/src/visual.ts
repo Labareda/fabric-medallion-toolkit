@@ -39,6 +39,8 @@ export class Visual implements IVisual {
     private collapsed: Set<string> = new Set<string>();
     private lastWidth = 0;
     private lastHeight = 0;
+    private zoomTransform: any = null;   // d3 zoom transform, preserved across re-renders
+    private dataToken = "";              // changes when the underlying data changes -> reset zoom
 
     constructor(options: VisualConstructorOptions) {
         this.target = options.element;
@@ -56,6 +58,15 @@ export class Visual implements IVisual {
         this.lastHeight = options.viewport.height;
 
         const dv: DataView = options.dataViews && options.dataViews[0];
+        // Reset zoom only when the data itself changes, not on a plain resize,
+        // so resizing keeps the user's current zoom/pan.
+        const token = dv && dv.table
+            ? `${dv.table.rows.length}|${dv.table.columns.length}`
+            : "";
+        if (token !== this.dataToken) {
+            this.zoomTransform = null;
+            this.dataToken = token;
+        }
         this.root = this.buildTree(dv);
         this.render();
     }
@@ -245,13 +256,13 @@ export class Visual implements IVisual {
         if (showLead) header.appendChild(colHeader("Lead", leadW));
         if (showRes) header.appendChild(colHeader("Resources", resW));
 
-        // axis in header (years + quarters)
+        // axis in header (adaptive year/quarter/month/day bands, drawn by drawTimeline)
         const axisWrap = document.createElement("div");
         axisWrap.style.cssText = `flex:0 0 ${timelineW + SCROLLBAR_W}px;position:relative;`;
         header.appendChild(axisWrap);
         const axisSvg = d3.select(axisWrap).append("svg")
             .attr("width", timelineW).attr("height", HEADER_H);
-        this.renderAxisHeader(axisSvg, x, timelineW, fontSize);
+        const gAxis = axisSvg.append("g");
 
         // ---- scroll body ----
         const body = document.createElement("div");
@@ -265,24 +276,15 @@ export class Visual implements IVisual {
             `height:${contentH}px;border-right:1px solid #E0E0E0;`;
         body.appendChild(left);
 
-        // right timeline svg
+        // right timeline svg + layered groups (redrawn on every zoom/pan)
         const rightSvg = d3.select(body).append("svg")
             .attr("width", timelineW).attr("height", contentH)
-            .style("flex", `0 0 ${timelineW}px`);
+            .style("flex", `0 0 ${timelineW}px`)
+            .style("cursor", "grab");
+        const gGrid = rightSvg.append("g");
+        const gBars = rightSvg.append("g");
+        const gToday = rightSvg.append("g");
 
-        // gridlines (quarter boundaries)
-        if (s.appearance.showGridlines.value) {
-            const gridColor = s.appearance.gridlineColor.value.value;
-            const quarters = d3.timeMonth.range(
-                d3.timeMonth.floor(domainMin), domainMax, 3);
-            rightSvg.append("g").selectAll("line").data(quarters).enter()
-                .append("line")
-                .attr("x1", d => x(d)).attr("x2", d => x(d))
-                .attr("y1", 0).attr("y2", contentH)
-                .attr("stroke", gridColor).attr("stroke-width", 1);
-        }
-
-        // bars + labels + milestones
         const barColor = (n: TaskNode): string => {
             if (!s.bars.colorByStatus.value) return s.bars.defaultColor.value.value;
             const st = (n.status || "").toLowerCase();
@@ -300,38 +302,155 @@ export class Visual implements IVisual {
         const showLabels = s.bars.showBarLabels.value;
         const mColor = s.milestone.milestoneColor.value.value;
         const mSize = Math.max(4, s.milestone.milestoneSize.value);
+        const gridColor = s.appearance.gridlineColor.value.value;
+        const showGrid = s.appearance.showGridlines.value;
 
-        visible.forEach((n, i) => {
-            const cy = i * rowH + rowH / 2;
-            if (n.isMilestone && n.end) {
-                const cx = x(n.end);
-                rightSvg.append("path")
-                    .attr("d", `M${cx} ${cy - mSize} L${cx + mSize} ${cy} L${cx} ${cy + mSize} L${cx - mSize} ${cy} Z`)
-                    .attr("fill", mColor);
-                if (showLabels) this.barLabel(rightSvg, cx + mSize + 4, cy, n.label, fontSize, timelineW);
-            } else if (n.start && n.end) {
-                const x0 = x(n.start);
-                const x1 = Math.max(x0 + 2, x(n.end));
-                rightSvg.append("rect")
-                    .attr("x", x0).attr("y", cy - barH / 2)
-                    .attr("width", x1 - x0).attr("height", barH)
-                    .attr("rx", corner).attr("ry", corner)
-                    .attr("fill", barColor(n));
-                if (showLabels) this.barLabel(rightSvg, x1 + 4, cy, n.label, fontSize, timelineW);
+        // Redraw everything that depends on the (zoomed) time scale.
+        const drawTimeline = (cx: any) => {
+            gGrid.selectAll("*").remove();
+            gBars.selectAll("*").remove();
+            gToday.selectAll("*").remove();
+            gAxis.selectAll("*").remove();
+
+            const [d0, d1] = cx.domain();
+            const pxPerDay = cx(d3.timeDay.offset(d0, 1)) - cx(d0);
+
+            // pick major (top) + minor (bottom) granularity from zoom level
+            let minorInt: d3.CountableTimeInterval, minorStep = 1;
+            let minorFmt: (d: Date) => string;
+            let majorInt: d3.CountableTimeInterval, majorFmt: (d: Date) => string;
+            if (pxPerDay >= 11) {
+                majorInt = d3.timeMonth; majorFmt = d3.timeFormat("%B %Y");
+                minorInt = d3.timeDay; minorStep = Math.max(1, Math.ceil(20 / pxPerDay));
+                minorFmt = d3.timeFormat("%-d");
+            } else if (pxPerDay >= 2.6) {
+                majorInt = d3.timeYear; majorFmt = d3.timeFormat("%Y");
+                minorInt = d3.timeMonth; minorFmt = d3.timeFormat("%b");
+            } else if (pxPerDay >= 0.55) {
+                majorInt = d3.timeYear; majorFmt = d3.timeFormat("%Y");
+                minorInt = d3.timeMonth; minorStep = 3;
+                minorFmt = (d: Date) => "Q" + (Math.floor(d.getMonth() / 3) + 1);
+            } else {
+                majorInt = d3.timeYear; majorFmt = d3.timeFormat("%Y");
+                minorInt = d3.timeYear; minorFmt = d3.timeFormat("%Y");
             }
-        });
 
-        // today line
-        if (s.todayLine.show.value) {
-            const now = new Date();
-            if (now >= domainMin && now <= domainMax) {
-                rightSvg.append("line")
-                    .attr("x1", x(now)).attr("x2", x(now))
+            // minor boundaries within the visible window
+            const minors = (minorStep > 1 ? minorInt.every(minorStep) : minorInt)!
+                .range(minorInt.floor(d0), minorInt.offset(d1, 1));
+
+            // gridlines
+            if (showGrid) {
+                gGrid.selectAll("line").data(minors).enter().append("line")
+                    .attr("x1", (d: Date) => cx(d)).attr("x2", (d: Date) => cx(d))
                     .attr("y1", 0).attr("y2", contentH)
-                    .attr("stroke", s.todayLine.lineColor.value.value)
-                    .attr("stroke-width", 1.5).attr("stroke-dasharray", "4,3");
+                    .attr("stroke", gridColor).attr("stroke-width", 1);
             }
-        }
+
+            // minor band (bottom row of header)
+            minors.forEach((b: Date) => {
+                const segEnd = minorStep > 1 ? minorInt.offset(b, minorStep) : minorInt.offset(b, 1);
+                const a = b < d0 ? d0 : b;
+                const e = segEnd > d1 ? d1 : segEnd;
+                if (e <= a) return;
+                gAxis.append("line").attr("x1", cx(b)).attr("x2", cx(b))
+                    .attr("y1", 18).attr("y2", HEADER_H).attr("stroke", "rgba(255,255,255,.2)");
+                const mid = (cx(a) + cx(e)) / 2;
+                if (mid > -20 && mid < timelineW + 20) {
+                    gAxis.append("text").attr("x", mid).attr("y", 31)
+                        .attr("text-anchor", "middle").attr("fill", "rgba(255,255,255,.92)")
+                        .attr("font-size", `${fontSize}px`).text(minorFmt(b));
+                }
+            });
+
+            // major band (top row of header)
+            const majors = majorInt.range(majorInt.floor(d0), majorInt.offset(d1, 1));
+            majors.forEach((b: Date) => {
+                const segEnd = majorInt.offset(b, 1);
+                const a = b < d0 ? d0 : b;
+                const e = segEnd > d1 ? d1 : segEnd;
+                if (e <= a) return;
+                gAxis.append("line").attr("x1", cx(b)).attr("x2", cx(b))
+                    .attr("y1", 2).attr("y2", HEADER_H).attr("stroke", "rgba(255,255,255,.4)");
+                const mid = (cx(a) + cx(e)) / 2;
+                if (mid > -40 && mid < timelineW + 40) {
+                    gAxis.append("text").attr("x", mid).attr("y", 13)
+                        .attr("text-anchor", "middle").attr("fill", "#fff")
+                        .attr("font-size", `${fontSize + 1}px`).attr("font-weight", 600)
+                        .text(majorFmt(b));
+                }
+            });
+
+            // bars + milestones + labels
+            visible.forEach((n, i) => {
+                const cy = i * rowH + rowH / 2;
+                if (n.isMilestone && n.end) {
+                    const mx = cx(n.end);
+                    if (mx < -mSize || mx > timelineW + mSize) return;
+                    gBars.append("path")
+                        .attr("d", `M${mx} ${cy - mSize} L${mx + mSize} ${cy} L${mx} ${cy + mSize} L${mx - mSize} ${cy} Z`)
+                        .attr("fill", mColor);
+                    if (showLabels) this.barLabel(gBars, mx + mSize + 4, cy, n.label, fontSize, timelineW);
+                } else if (n.start && n.end) {
+                    const x0 = cx(n.start);
+                    const x1 = Math.max(x0 + 2, cx(n.end));
+                    if (x1 < 0 || x0 > timelineW) return;
+                    gBars.append("rect")
+                        .attr("x", x0).attr("y", cy - barH / 2)
+                        .attr("width", x1 - x0).attr("height", barH)
+                        .attr("rx", corner).attr("ry", corner)
+                        .attr("fill", barColor(n));
+                    if (showLabels) this.barLabel(gBars, x1 + 4, cy, n.label, fontSize, timelineW);
+                }
+            });
+
+            // today line
+            if (s.todayLine.show.value) {
+                const now = new Date();
+                const nx = cx(now);
+                if (nx >= 0 && nx <= timelineW) {
+                    gToday.append("line")
+                        .attr("x1", nx).attr("x2", nx).attr("y1", 0).attr("y2", contentH)
+                        .attr("stroke", s.todayLine.lineColor.value.value)
+                        .attr("stroke-width", 1.5).attr("stroke-dasharray", "4,3");
+                }
+            }
+        };
+
+        // zoom + pan (horizontal): wheel to zoom, drag to pan; scaleExtent caps
+        // how far in (down to days) and out (fit-to-width) you can go.
+        const zoom = d3.zoom<SVGSVGElement, unknown>()
+            .scaleExtent([1, 120])
+            .translateExtent([[0, 0], [timelineW, contentH]])
+            .extent([[0, 0], [timelineW, contentH]])
+            .filter((event: any) => {
+                // block the browser page-zoom (ctrl+wheel) but allow wheel/drag
+                if (event.type === "wheel") return !event.ctrlKey;
+                return !event.button;
+            })
+            .on("zoom", (event: any) => {
+                this.zoomTransform = event.transform;
+                rightSvg.style("cursor", event.sourceEvent && event.sourceEvent.type === "mousemove" ? "grabbing" : "grab");
+                drawTimeline(event.transform.rescaleX(x));
+            });
+        (rightSvg as any).call(zoom);
+        // restore prior zoom (preserved across expand/collapse); triggers first draw
+        (rightSvg as any).call(zoom.transform, this.zoomTransform || d3.zoomIdentity);
+
+        // zoom controls (top-right of the axis header)
+        const mkBtn = (label: string, title: string, right: number, fn: () => void) => {
+            const b = document.createElement("div");
+            b.textContent = label;
+            b.title = title;
+            b.style.cssText = `position:absolute;top:2px;right:${right}px;width:18px;height:16px;` +
+                `line-height:16px;text-align:center;background:rgba(255,255,255,.9);color:#333;` +
+                `border-radius:3px;cursor:pointer;font-size:12px;font-weight:600;user-select:none;`;
+            b.onclick = fn;
+            axisWrap.appendChild(b);
+        };
+        mkBtn("−", "Zoom out", 4 + SCROLLBAR_W, () => (rightSvg as any).transition().duration(150).call(zoom.scaleBy, 1 / 1.6));
+        mkBtn("↺", "Reset zoom", 26 + SCROLLBAR_W, () => (rightSvg as any).transition().duration(150).call(zoom.transform, d3.zoomIdentity));
+        mkBtn("+", "Zoom in", 48 + SCROLLBAR_W, () => (rightSvg as any).transition().duration(150).call(zoom.scaleBy, 1.6));
 
         // left tree rows
         visible.forEach((n, i) => {
@@ -389,42 +508,6 @@ export class Visual implements IVisual {
             .attr("font-size", `${Math.max(7, fontSize - 1)}px`)
             .attr("fill", "#8A8A8A")
             .text(text);
-    }
-
-    private renderAxisHeader(svg: any, x: any, timelineW: number, fontSize: number): void {
-        const [d0, d1] = x.domain();
-        // year band (top half)
-        const years = d3.timeYear.range(d3.timeYear.floor(d0), d3.timeYear.offset(d3.timeYear.ceil(d1), 0));
-        years.push(d3.timeYear.ceil(d1));
-        for (let i = 0; i < years.length - 1; i++) {
-            const a = years[i] < d0 ? d0 : years[i];
-            const b = years[i + 1] > d1 ? d1 : years[i + 1];
-            if (b <= a) continue;
-            const xa = x(a), xb = x(b);
-            svg.append("text")
-                .attr("x", (xa + xb) / 2).attr("y", 13)
-                .attr("text-anchor", "middle").attr("fill", "#fff")
-                .attr("font-size", `${fontSize + 1}px`).attr("font-weight", 600)
-                .text(years[i].getFullYear());
-            svg.append("line").attr("x1", xa).attr("x2", xa).attr("y1", 2).attr("y2", HEADER_H)
-                .attr("stroke", "rgba(255,255,255,.35)");
-        }
-        // quarter band (bottom half)
-        const quarters = d3.timeMonth.range(d3.timeMonth.floor(d0), d1, 3);
-        quarters.forEach(q => {
-            const qEnd = d3.timeMonth.offset(q, 3);
-            const a = q < d0 ? d0 : q;
-            const b = qEnd > d1 ? d1 : qEnd;
-            if (b <= a) return;
-            const qi = Math.floor(q.getMonth() / 3) + 1;
-            svg.append("text")
-                .attr("x", (x(a) + x(b)) / 2).attr("y", 31)
-                .attr("text-anchor", "middle").attr("fill", "rgba(255,255,255,.9)")
-                .attr("font-size", `${fontSize}px`)
-                .text("Q" + qi);
-            svg.append("line").attr("x1", x(q)).attr("x2", x(q)).attr("y1", 18).attr("y2", HEADER_H)
-                .attr("stroke", "rgba(255,255,255,.2)");
-        });
     }
 
     public getFormattingModel(): powerbi.visuals.FormattingModel {
