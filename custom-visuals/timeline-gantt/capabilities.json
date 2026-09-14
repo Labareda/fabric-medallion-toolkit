@@ -6,6 +6,8 @@
     { "displayName": "Hierarchy Levels (1..7)", "name": "level", "kind": "Grouping" },
     { "displayName": "Planned Start Date", "name": "startDate", "kind": "Grouping" },
     { "displayName": "Planned End Date", "name": "endDate", "kind": "Grouping" },
+    { "displayName": "Start Date (actual)", "name": "actualStart", "kind": "Grouping" },
+    { "displayName": "End Date (actual)", "name": "actualEnd", "kind": "Grouping" },
     { "displayName": "Lead", "name": "lead", "kind": "Grouping" },
     { "displayName": "Resources", "name": "resources", "kind": "Grouping" },
     { "displayName": "Status", "name": "status", "kind": "Grouping" },
@@ -23,6 +25,8 @@
             { "for": { "in": "level" } },
             { "for": { "in": "startDate" } },
             { "for": { "in": "endDate" } },
+            { "for": { "in": "actualStart" } },
+            { "for": { "in": "actualEnd" } },
             { "for": { "in": "lead" } },
             { "for": { "in": "resources" } },
             { "for": { "in": "status" } },
@@ -55,6 +59,12 @@
         "inProgressColor": { "type": { "fill": { "solid": { "color": true } } } },
         "toDoColor": { "type": { "fill": { "solid": { "color": true } } } },
         "showBarLabels": { "type": { "bool": true } }
+      }
+    },
+    "actualBar": {
+      "properties": {
+        "show": { "type": { "bool": true } },
+        "actualColor": { "type": { "fill": { "solid": { "color": true } } } }
       }
     },
     "milestone": {

@@ -16,8 +16,10 @@ interface TaskNode {
     label: string;           // "ISSUE-CODE: Summary" (or the raw level text if no own row)
     depth: number;           // 1-based depth in the tree
     sortKey: string;         // Sort Path (or "" )
-    start?: Date;
-    end?: Date;
+    start?: Date;            // planned start
+    end?: Date;              // planned end
+    aStart?: Date;           // actual start
+    aEnd?: Date;             // actual end
     lead: string;
     resources: string;
     status: string;
@@ -88,6 +90,8 @@ export class Visual implements IVisual {
         const iName = firstIdx("taskName");
         const iStart = firstIdx("startDate");
         const iEnd = firstIdx("endDate");
+        const iAStart = firstIdx("actualStart");
+        const iAEnd = firstIdx("actualEnd");
         const iLead = firstIdx("lead");
         const iRes = firstIdx("resources");
         const iStatus = firstIdx("status");
@@ -143,6 +147,8 @@ export class Visual implements IVisual {
                 : (issueCode || summary || leaf.label);
             leaf.start = iStart >= 0 ? asDate(r[iStart]) : undefined;
             leaf.end = iEnd >= 0 ? asDate(r[iEnd]) : undefined;
+            leaf.aStart = iAStart >= 0 ? asDate(r[iAStart]) : undefined;
+            leaf.aEnd = iAEnd >= 0 ? asDate(r[iAEnd]) : undefined;
             leaf.lead = iLead >= 0 ? asStr(r[iLead]) : "";
             leaf.resources = iRes >= 0 ? asStr(r[iRes]) : "";
             leaf.status = iStatus >= 0 ? asStr(r[iStatus]) : "";
@@ -150,14 +156,14 @@ export class Visual implements IVisual {
             leaf.sortKey = iSort >= 0 ? asStr(r[iSort]) : "";
         }
 
-        // sort every level by Sort Path (fall back to label)
+        // sort every level by Sort Path (natural/numeric-aware), then by label
         const sortRec = (n: TaskNode) => {
             n.children.sort((a, b) => {
                 const ak = a.sortKey || this.minSort(a);
                 const bk = b.sortKey || this.minSort(b);
-                if (ak < bk) return -1;
-                if (ak > bk) return 1;
-                return a.label < b.label ? -1 : 1;
+                const c = this.natCmp(ak, bk);
+                if (c !== 0) return c;
+                return this.natCmp(a.label, b.label);
             });
             n.children.forEach(sortRec);
         };
@@ -165,13 +171,37 @@ export class Visual implements IVisual {
         return rootNode;
     }
 
+    /** Smallest Sort Path in a subtree (for ancestor nodes with no own row). */
     private minSort(n: TaskNode): string {
         let m = n.sortKey || "￿";
         for (const c of n.children) {
             const cm = this.minSort(c);
-            if (cm < m) m = cm;
+            if (this.natCmp(cm, m) < 0) m = cm;
         }
         return m;
+    }
+
+    /**
+     * Natural comparison: splits each string into digit / non-digit chunks and
+     * compares digit chunks NUMERICALLY. So "PSP-2" < "PSP-10" and "1.2" < "1.10"
+     * sort correctly, instead of the plain lexicographic order that put "10"
+     * before "2". This is what made Sort Path look wrong.
+     */
+    private natCmp(a: string, b: string): number {
+        const ra = a.match(/(\d+|\D+)/g) || [];
+        const rb = b.match(/(\d+|\D+)/g) || [];
+        const n = Math.min(ra.length, rb.length);
+        for (let i = 0; i < n; i++) {
+            const sa = ra[i], sb = rb[i];
+            const na = /^\d/.test(sa), nb = /^\d/.test(sb);
+            if (na && nb) {
+                const da = parseInt(sa, 10), db = parseInt(sb, 10);
+                if (da !== db) return da < db ? -1 : 1;
+            } else if (sa !== sb) {
+                return sa < sb ? -1 : 1;
+            }
+        }
+        return ra.length - rb.length;
     }
 
     // ---- render ----------------------------------------------------------
@@ -219,9 +249,10 @@ export class Visual implements IVisual {
         // time scale across all tasks
         let minD: Date | undefined, maxD: Date | undefined;
         const scan = (n: TaskNode) => {
-            if (n.start && (!minD || n.start < minD)) minD = n.start;
-            if (n.end && (!maxD || n.end > maxD)) maxD = n.end;
-            if (n.start && (!maxD || n.start > maxD)) maxD = n.start;
+            const lo = [n.start, n.aStart].filter(Boolean) as Date[];
+            const hi = [n.end, n.aEnd, n.start, n.aStart].filter(Boolean) as Date[];
+            for (const d of lo) if (!minD || d < minD) minD = d;
+            for (const d of hi) if (!maxD || d > maxD) maxD = d;
             n.children.forEach(scan);
         };
         scan(this.root);
@@ -304,6 +335,9 @@ export class Visual implements IVisual {
         const mSize = Math.max(4, s.milestone.milestoneSize.value);
         const gridColor = s.appearance.gridlineColor.value.value;
         const showGrid = s.appearance.showGridlines.value;
+        const showActual = s.actualBar.show.value;
+        const actualColor = s.actualBar.actualColor.value.value;
+        const actualH = Math.max(3, Math.round(barH * 0.32));
 
         // Redraw everything that depends on the (zoomed) time scale.
         const drawTimeline = (cx: any) => {
@@ -391,15 +425,30 @@ export class Visual implements IVisual {
                         .attr("d", `M${mx} ${cy - mSize} L${mx + mSize} ${cy} L${mx} ${cy + mSize} L${mx - mSize} ${cy} Z`)
                         .attr("fill", mColor);
                     if (showLabels) this.barLabel(gBars, mx + mSize + 4, cy, n.label, fontSize, timelineW);
-                } else if (n.start && n.end) {
-                    const x0 = cx(n.start);
-                    const x1 = Math.max(x0 + 2, cx(n.end));
+                } else {
+                    // main bar = planned range if present, else actual range
+                    const mS = n.start || n.aStart;
+                    const mE = n.end || n.aEnd;
+                    if (!mS || !mE) return;
+                    const x0 = cx(mS);
+                    const x1 = Math.max(x0 + 2, cx(mE));
                     if (x1 < 0 || x0 > timelineW) return;
                     gBars.append("rect")
                         .attr("x", x0).attr("y", cy - barH / 2)
                         .attr("width", x1 - x0).attr("height", barH)
                         .attr("rx", corner).attr("ry", corner)
                         .attr("fill", barColor(n));
+                    // actual baseline: thin bar along the bottom, only when BOTH
+                    // planned and actual are present (so it reads as plan vs actual)
+                    if (showActual && n.start && n.end && n.aStart && n.aEnd) {
+                        const ax0 = cx(n.aStart);
+                        const ax1 = Math.max(ax0 + 2, cx(n.aEnd));
+                        gBars.append("rect")
+                            .attr("x", ax0).attr("y", cy + barH / 2 - actualH + 1)
+                            .attr("width", ax1 - ax0).attr("height", actualH)
+                            .attr("rx", 1).attr("ry", 1)
+                            .attr("fill", actualColor);
+                    }
                     if (showLabels) this.barLabel(gBars, x1 + 4, cy, n.label, fontSize, timelineW);
                 }
             });

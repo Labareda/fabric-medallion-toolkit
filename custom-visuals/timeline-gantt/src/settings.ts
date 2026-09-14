@@ -93,6 +93,24 @@ class BarsCard extends FormattingSettingsCard {
     ];
 }
 
+/** Actual dates: thin baseline bar under the planned bar. */
+class ActualBarCard extends FormattingSettingsCard {
+    show = new formattingSettings.ToggleSwitch({
+        name: "show",
+        displayName: "Show actual bar",
+        value: true
+    });
+    actualColor = new formattingSettings.ColorPicker({
+        name: "actualColor",
+        displayName: "Actual bar colour",
+        value: { value: "#2E77D0" }
+    });
+
+    name: string = "actualBar";
+    displayName: string = "Actual dates";
+    slices: FormattingSettingsSlice[] = [ this.show, this.actualColor ];
+}
+
 /** Milestone diamonds. */
 class MilestoneCard extends FormattingSettingsCard {
     milestoneColor = new formattingSettings.ColorPicker({
@@ -168,11 +186,12 @@ class ColumnsCard extends FormattingSettingsCard {
 export class VisualFormattingSettingsModel extends FormattingSettingsModel {
     appearance = new AppearanceCard();
     bars = new BarsCard();
+    actualBar = new ActualBarCard();
     milestone = new MilestoneCard();
     todayLine = new TodayLineCard();
     columns = new ColumnsCard();
 
     cards: FormattingSettingsCard[] = [
-        this.appearance, this.bars, this.milestone, this.todayLine, this.columns
+        this.appearance, this.bars, this.actualBar, this.milestone, this.todayLine, this.columns
     ];
 }
