@@ -57,6 +57,25 @@ schema = fmt.TableSchema(
                                      "unknown_value": "Unknown"},
         },
         "Resource_Role_Key": {"type": "string", "merge_field": True},
+        # Status_Key / IssueType_Key sit on this fact so a status or issue-type
+        # slicer filters the resource views in ONE hop -- each person is tied to
+        # an issue, and that issue has a status and a type. Same pattern and same
+        # Unknown-member fallback as Fact_Issue: a status/type that somehow isn't
+        # in the dim resolves to the dim's "Unknown" row rather than dropping the
+        # allocation. The issue's CURRENT status/type is used (point-in-time
+        # status lives on Fact_Issue_History, not here).
+        "Status_Key": {
+            "type": "string",
+            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_status",
+                                     "natural_key_column": "Status_Id", "key_column": "Status_Key",
+                                     "unknown_value": "Unknown"},
+        },
+        "IssueType_Key": {
+            "type": "string",
+            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_issue_type",
+                                     "natural_key_column": "IssueType_Id", "key_column": "IssueType_Key",
+                                     "unknown_value": "Unknown"},
+        },
         # Project_Key/Team_Key sit directly on every fact table so a project
         # or team slicer filters in one hop -- matches Fact_Issue.
         "Project_Key": {
@@ -103,12 +122,15 @@ df = spark.sql(f"""
     SELECT a.Issue_Id, a.Issue_Code, a.Resource_Id,
            a.Allocation_Weight, 1 AS Allocation_Count,
            dim_issue.Issue_Key, res.Resource_Key, role.Resource_Role_Key,
+           status.Status_Key, issue_type.IssueType_Key,
            project.Project_Key, team.Team_Key
     FROM allocations a
     LEFT JOIN Silver.jira.issues i2b            ON a.Issue_Id = i2b.id
     LEFT JOIN {GOLD_SCHEMA}.dim_issue dim_issue ON a.Issue_Id = dim_issue.Issue_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_resource res    ON a.Resource_Id = res.Resource_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_resourcerole role ON a.Role_Name = role.Role_Name
+    LEFT JOIN {GOLD_SCHEMA}.dim_status status     ON i2b.fields_status_id = status.Status_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_issue_type issue_type ON i2b.fields_issuetype_id = issue_type.IssueType_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_project project ON i2b.fields_project_id = project.Project_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_team team       ON i2b.fields_team_name = team.Team_Name
 """)

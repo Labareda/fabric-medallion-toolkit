@@ -26,6 +26,22 @@ relationship 179ad2ec-12ae-af8c-624e-eb5f47966f46
 	fromColumn: 'Fact Resource Allocation'.'Resource Key'
 	toColumn: 'Dim Resource'.'Resource Key'
 
+relationship 5c1e7a90-2b44-4d6e-9f81-a3d2c4e6b701
+	fromColumn: 'Fact Resource Allocation'.'Status Key'
+	toColumn: 'Dim Status'.'Status Key'
+
+relationship 6d2f8b01-3c55-4e7f-8a92-b4e3d5f7c812
+	fromColumn: 'Fact Resource Allocation'.'IssueType Key'
+	toColumn: 'Dim Issue Type'.'IssueType Key'
+
+relationship 7e3a9c12-4d66-4f8b-9a13-c5e4f6a8d923
+	fromColumn: 'Fact Resource Day Allocation'.'Status Key'
+	toColumn: 'Dim Status'.'Status Key'
+
+relationship 8f4b0d23-5e77-4a9c-8b24-d6f5a7b9e034
+	fromColumn: 'Fact Resource Day Allocation'.'IssueType Key'
+	toColumn: 'Dim Issue Type'.'IssueType Key'
+
 relationship AutoDetected_5ea34dd1-0989-404c-83a7-1359af784501
 	fromColumn: 'Fact Issue History'.'Status Key'
 	toColumn: 'Dim Status'.'Status Key'

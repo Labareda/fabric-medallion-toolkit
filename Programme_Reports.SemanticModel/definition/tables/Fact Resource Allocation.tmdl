@@ -130,6 +130,28 @@ table 'Fact Resource Allocation'
 
 		annotation SummarizationSetBy = Automatic
 
+	column 'Status Key'
+		dataType: string
+		isHidden
+		lineageTag: 2a9f4c11-7d3e-4b0a-9c21-5f8e6b0d1a44
+		summarizeBy: none
+		sourceColumn: Status Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'IssueType Key'
+		dataType: string
+		isHidden
+		lineageTag: 3b0a5d22-8e4f-4c1b-ad32-60f9c1e2b055
+		summarizeBy: none
+		sourceColumn: IssueType Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
 	partition 'Fact Resource Allocation' = m
 		mode: import
 		source =
