@@ -1,0 +1,85 @@
+{
+  "privileges": [],
+  "dataRoles": [
+    { "displayName": "Issue Code", "name": "issueCode", "kind": "Grouping" },
+    { "displayName": "Task Name", "name": "taskName", "kind": "Grouping" },
+    { "displayName": "Hierarchy Levels (1..7)", "name": "level", "kind": "Grouping" },
+    { "displayName": "Planned Start Date", "name": "startDate", "kind": "Grouping" },
+    { "displayName": "Planned End Date", "name": "endDate", "kind": "Grouping" },
+    { "displayName": "Lead", "name": "lead", "kind": "Grouping" },
+    { "displayName": "Resources", "name": "resources", "kind": "Grouping" },
+    { "displayName": "Status", "name": "status", "kind": "Grouping" },
+    { "displayName": "Is Milestone", "name": "milestone", "kind": "Grouping" },
+    { "displayName": "Sort Path", "name": "sortPath", "kind": "Grouping" },
+    { "displayName": "Predecessor Issue Code", "name": "predecessor", "kind": "Grouping" }
+  ],
+  "dataViewMappings": [
+    {
+      "table": {
+        "rows": {
+          "select": [
+            { "for": { "in": "issueCode" } },
+            { "for": { "in": "taskName" } },
+            { "for": { "in": "level" } },
+            { "for": { "in": "startDate" } },
+            { "for": { "in": "endDate" } },
+            { "for": { "in": "lead" } },
+            { "for": { "in": "resources" } },
+            { "for": { "in": "status" } },
+            { "for": { "in": "milestone" } },
+            { "for": { "in": "sortPath" } },
+            { "for": { "in": "predecessor" } }
+          ],
+          "dataReductionAlgorithm": { "window": { "count": 30000 } }
+        }
+      }
+    }
+  ],
+  "objects": {
+    "appearance": {
+      "properties": {
+        "rowHeight": { "type": { "numeric": true } },
+        "fontSize": { "type": { "numeric": true } },
+        "textColor": { "type": { "fill": { "solid": { "color": true } } } },
+        "headerColor": { "type": { "fill": { "solid": { "color": true } } } },
+        "showGridlines": { "type": { "bool": true } },
+        "gridlineColor": { "type": { "fill": { "solid": { "color": true } } } }
+      }
+    },
+    "bars": {
+      "properties": {
+        "cornerRadius": { "type": { "numeric": true } },
+        "colorByStatus": { "type": { "bool": true } },
+        "defaultColor": { "type": { "fill": { "solid": { "color": true } } } },
+        "doneColor": { "type": { "fill": { "solid": { "color": true } } } },
+        "inProgressColor": { "type": { "fill": { "solid": { "color": true } } } },
+        "toDoColor": { "type": { "fill": { "solid": { "color": true } } } },
+        "showBarLabels": { "type": { "bool": true } }
+      }
+    },
+    "milestone": {
+      "properties": {
+        "milestoneColor": { "type": { "fill": { "solid": { "color": true } } } },
+        "milestoneSize": { "type": { "numeric": true } }
+      }
+    },
+    "todayLine": {
+      "properties": {
+        "show": { "type": { "bool": true } },
+        "lineColor": { "type": { "fill": { "solid": { "color": true } } } }
+      }
+    },
+    "columns": {
+      "properties": {
+        "showLead": { "type": { "bool": true } },
+        "showResources": { "type": { "bool": true } },
+        "nameWidth": { "type": { "numeric": true } },
+        "leadWidth": { "type": { "numeric": true } },
+        "resourceWidth": { "type": { "numeric": true } }
+      }
+    }
+  },
+  "supportsHighlight": false,
+  "supportsKeyboardFocus": true,
+  "supportsLandingPage": true
+}

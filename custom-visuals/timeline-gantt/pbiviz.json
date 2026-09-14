@@ -1,0 +1,19 @@
+{
+  "visual": {
+    "name": "programmeTimelineGantt",
+    "displayName": "Programme Timeline Gantt",
+    "guid": "ProgrammeTimelineGantt0F4B6BB62EFF4EC97B587982224503B6",
+    "visualClassName": "Visual",
+    "version": "1.0.0.0",
+    "description": "Hierarchical Gantt with expand/collapse, lead/resource columns, status colours, milestones and a today line. A free replacement for the paid xViz Gantt.",
+    "supportUrl": "https://community.fabric.microsoft.com/",
+    "gitHubUrl": ""
+  },
+  "apiVersion": "5.11.0",
+  "author": { "name": "Ana", "email": "anacarvalmeida@gmail.com" },
+  "assets": { "icon": "assets/icon.png" },
+  "style": "style/visual.less",
+  "capabilities": "capabilities.json",
+  "dependencies": null,
+  "stringResources": []
+}
