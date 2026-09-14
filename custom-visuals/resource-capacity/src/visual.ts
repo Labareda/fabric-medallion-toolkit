@@ -12,7 +12,7 @@ import IVisualHost = powerbi.extensibility.visual.IVisualHost;
 import ISelectionManager = powerbi.extensibility.ISelectionManager;
 import ISelectionId = powerbi.visuals.ISelectionId;
 
-interface ItemInfo { code: string; detail: string[]; days: Map<number, number>; }  // detail = the "Detail" field values, in order; days: canonical ymd -> summed value
+interface ItemInfo { code: string; detail: string[]; days: Map<number, number>; selectionIds: ISelectionId[]; }  // detail = the "Detail" field values, in order; days: canonical ymd -> summed value
 interface Resource { name: string; items: Map<string, ItemInfo>; selectionIds: ISelectionId[]; }
 interface Period { start: Date; label: string; top: string; }
 
@@ -98,9 +98,11 @@ export class Visual implements IVisual {
             if (!this.maxDate || dm > this.maxDate) this.maxDate = dm;
             let res = byName.get(name);
             if (!res) { res = { name, items: new Map(), selectionIds: [] }; byName.set(name, res); }
-            res.selectionIds.push(this.host.createSelectionIdBuilder().withTable(table, rowIndex).createSelectionId());
+            const sid = this.host.createSelectionIdBuilder().withTable(table, rowIndex).createSelectionId();
+            res.selectionIds.push(sid);
             let item = res.items.get(code);
-            if (!item) { item = { code, detail: detailIdx.map(i => asStr(r[i])), days: new Map() }; res.items.set(code, item); }
+            if (!item) { item = { code, detail: detailIdx.map(i => asStr(r[i])), days: new Map(), selectionIds: [] }; res.items.set(code, item); }
+            item.selectionIds.push(sid);
             const c = Visual.ymd(dm);
             const v = iValue >= 0 ? asNum(r[iValue]) : 0;
             item.days.set(c, (item.days.get(c) || 0) + v);
@@ -206,10 +208,15 @@ export class Visual implements IVisual {
         const fontSize = Math.max(8, s.appearance.fontSize.value);
         const textColor = s.appearance.textColor.value.value;
         const headerColor = s.appearance.headerColor.value.value;
+        const headerText = s.appearance.headerTextColor.value.value;
         const nameW = Math.max(90, s.appearance.nameWidth.value);
         const gridColor = s.grid.gridColor.value.value;
         const banded = s.grid.bandedRows.value;
         const bandColor = s.grid.bandColor.value.value;
+        const todayColor = s.grid.todayColor.value.value;
+        const chipBg = s.detail.chipBackground.value.value;
+        const chipText = s.detail.chipTextColor.value.value;
+        const workingOnly = s.appearance.workingDaysOnly.value;
         const lowMax = s.thresholds.lowMax.value, midMax = s.thresholds.midMax.value;
         const zeroColor = s.thresholds.zeroColor.value.value, lowColor = s.thresholds.lowColor.value.value;
         const midColor = s.thresholds.midColor.value.value, highColor = s.thresholds.highColor.value.value;
@@ -221,6 +228,9 @@ export class Visual implements IVisual {
 
         const { g, colW } = this.grainFromZoom();
         const { periods, indexOf, nowIndex } = this.buildPeriods(g);
+        // which period columns to actually show: at day grain, optionally drop Sat/Sun
+        const displayed = periods.map((p, pi) => ({ p, pi }))
+            .filter(x => !(workingOnly && g === "day" && (x.p.start.getDay() === 0 || x.p.start.getDay() === 6)));
 
         interface RR { res: Resource; byPeriod: Map<number, ItemInfo[]>; byValue: Map<number, number>; conflicts: number; }
         const rrs: RR[] = [];
@@ -291,15 +301,15 @@ export class Visual implements IVisual {
             const corner = document.createElement("th");
             corner.textContent = "Resource"; corner.rowSpan = 2;
             corner.style.cssText = `position:sticky;left:0;top:0;z-index:5;width:${nameW}px;min-width:${nameW}px;` +
-                `height:${H1}px;background:${headerColor};color:#fff;text-align:left;padding:0 8px;box-sizing:border-box;font-weight:600;`;
+                `height:${H1}px;background:${headerColor};color:${headerText};text-align:left;padding:0 8px;box-sizing:border-box;font-weight:600;`;
             topRow.appendChild(corner);
             let i = 0;
-            while (i < periods.length) {
-                const label = periods[i].top; let span = 1;
-                while (i + span < periods.length && periods[i + span].top === label) span++;
+            while (i < displayed.length) {
+                const label = displayed[i].p.top; let span = 1;
+                while (i + span < displayed.length && displayed[i + span].p.top === label) span++;
                 const th = document.createElement("th");
                 th.textContent = label; th.colSpan = span;
-                th.style.cssText = `position:sticky;top:0;z-index:3;height:${H1}px;background:${headerColor};color:#fff;` +
+                th.style.cssText = `position:sticky;top:0;z-index:3;height:${H1}px;background:${headerColor};color:${headerText};` +
                     `font-weight:600;text-align:center;border-left:1px solid rgba(255,255,255,.35);box-sizing:border-box;`;
                 topRow.appendChild(th); i += span;
             }
@@ -311,16 +321,16 @@ export class Visual implements IVisual {
             const corner = document.createElement("th");
             corner.textContent = "Resource";
             corner.style.cssText = `position:sticky;left:0;top:0;z-index:5;width:${nameW}px;min-width:${nameW}px;` +
-                `height:${H2}px;background:${headerColor};color:#fff;text-align:left;padding:0 8px;box-sizing:border-box;font-weight:600;`;
+                `height:${H2}px;background:${headerColor};color:${headerText};text-align:left;padding:0 8px;box-sizing:border-box;font-weight:600;`;
             labelRow.appendChild(corner);
         }
-        periods.forEach((p, pi) => {
+        displayed.forEach(({ p, pi }) => {
             const th = document.createElement("th");
             th.textContent = p.label; th.title = p.start.toLocaleDateString();
-            const bg = pi === nowIndex ? "#8f1714" : headerColor;
+            const bg = pi === nowIndex ? todayColor : headerColor;
             const top = twoRow ? `top:${H1}px;` : "top:0;";
             th.style.cssText = `position:sticky;${top}z-index:3;width:${colW}px;min-width:${colW}px;height:${H2}px;` +
-                `background:${bg};color:#fff;text-align:center;font-weight:400;overflow:hidden;` +
+                `background:${bg};color:${headerText};text-align:center;font-weight:400;overflow:hidden;` +
                 `border-left:1px solid rgba(255,255,255,.25);box-sizing:border-box;`;
             labelRow.appendChild(th);
         });
@@ -366,7 +376,7 @@ export class Visual implements IVisual {
             tr.appendChild(nameCell);
 
             const CAP = 30;
-            periods.forEach((_p, pi) => {
+            displayed.forEach(({ pi }) => {
                 const list = rr.byPeriod.get(pi) || [];
                 const val = metricOf(rr, pi);
                 const isConf = val >= conflictAt;
@@ -398,9 +408,14 @@ export class Visual implements IVisual {
                             if (sumMode && det.showValue.value) parts.push(String(Math.round(this.itemPeriodValue(it, pi, indexOf) * 10) / 10));
                             const label = parts.length ? parts.join("  ") : it.code;
                             chip.textContent = label;
-                            chip.title = label;
-                            chip.style.cssText = `background:#fff;border:1px solid ${gridColor};border-radius:2px;margin:1px 0;padding:0 3px;color:${textColor};` +
-                                `font-size:${Math.max(7, fontSize - 2)}px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
+                            chip.title = label + "  —  click to show details in linked visuals";
+                            chip.style.cssText = `background:${chipBg};border:1px solid ${gridColor};border-radius:2px;margin:1px 0;padding:0 3px;color:${chipText};` +
+                                `font-size:${Math.max(7, fontSize - 2)}px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;`;
+                            // click an item -> cross-filter other visuals to that item (detail elsewhere)
+                            chip.onclick = (ev) => {
+                                ev.stopPropagation();
+                                this.selectionManager.select(it.selectionIds, (ev as MouseEvent).ctrlKey || (ev as MouseEvent).metaKey);
+                            };
                             td.appendChild(chip);
                         });
                         if (list.length > CAP) {

@@ -10,14 +10,17 @@ class AppearanceCard extends FormattingSettingsCard {
     rowHeight = new formattingSettings.NumUpDown({ name: "rowHeight", displayName: "Row height", value: 26 });
     fontSize = new formattingSettings.NumUpDown({ name: "fontSize", displayName: "Text size", value: 11 });
     textColor = new formattingSettings.ColorPicker({ name: "textColor", displayName: "Text colour", value: { value: "#333333" } });
-    headerColor = new formattingSettings.ColorPicker({ name: "headerColor", displayName: "Header colour", value: { value: "#B21C1A" } });
+    headerColor = new formattingSettings.ColorPicker({ name: "headerColor", displayName: "Header background", value: { value: "#B21C1A" } });
+    headerTextColor = new formattingSettings.ColorPicker({ name: "headerTextColor", displayName: "Header text", value: { value: "#FFFFFF" } });
     nameWidth = new formattingSettings.NumUpDown({ name: "nameWidth", displayName: "Name column width", value: 200 });
     weekWidth = new formattingSettings.NumUpDown({ name: "weekWidth", displayName: "Min column width", value: 40 });
+    workingDaysOnly = new formattingSettings.ToggleSwitch({ name: "workingDaysOnly", displayName: "Working days only (hide Sat/Sun)", value: true });
 
     name: string = "appearance";
     displayName: string = "Appearance";
     slices: FormattingSettingsSlice[] = [
-        this.rowHeight, this.fontSize, this.textColor, this.headerColor, this.nameWidth, this.weekWidth
+        this.rowHeight, this.fontSize, this.textColor, this.headerColor, this.headerTextColor,
+        this.nameWidth, this.weekWidth, this.workingDaysOnly
     ];
 }
 
@@ -52,10 +55,12 @@ class MetricCard extends FormattingSettingsCard {
 /** Item chips are driven by the Detail fields well; this only toggles the value. */
 class DetailCard extends FormattingSettingsCard {
     showValue = new formattingSettings.ToggleSwitch({ name: "showValue", displayName: "Append Value to each item (when summing)", value: true });
+    chipBackground = new formattingSettings.ColorPicker({ name: "chipBackground", displayName: "Item background", value: { value: "#FFFFFF" } });
+    chipTextColor = new formattingSettings.ColorPicker({ name: "chipTextColor", displayName: "Item text", value: { value: "#333333" } });
 
     name: string = "detail";
     displayName: string = "Item detail";
-    slices: FormattingSettingsSlice[] = [ this.showValue ];
+    slices: FormattingSettingsSlice[] = [ this.showValue, this.chipBackground, this.chipTextColor ];
 }
 
 class ConflictsCard extends FormattingSettingsCard {
@@ -72,11 +77,12 @@ class GridCard extends FormattingSettingsCard {
     gridColor = new formattingSettings.ColorPicker({ name: "gridColor", displayName: "Grid line colour", value: { value: "#E4E4E4" } });
     bandedRows = new formattingSettings.ToggleSwitch({ name: "bandedRows", displayName: "Banded rows", value: false });
     bandColor = new formattingSettings.ColorPicker({ name: "bandColor", displayName: "Band colour", value: { value: "#FAFAFA" } });
-    showTodayLine = new formattingSettings.ToggleSwitch({ name: "showTodayLine", displayName: "Highlight current week", value: true });
+    showTodayLine = new formattingSettings.ToggleSwitch({ name: "showTodayLine", displayName: "Highlight current period", value: true });
+    todayColor = new formattingSettings.ColorPicker({ name: "todayColor", displayName: "Current-period colour", value: { value: "#8F1714" } });
 
     name: string = "grid";
     displayName: string = "Grid & rows";
-    slices: FormattingSettingsSlice[] = [ this.gridColor, this.bandedRows, this.bandColor, this.showTodayLine ];
+    slices: FormattingSettingsSlice[] = [ this.gridColor, this.bandedRows, this.bandColor, this.showTodayLine, this.todayColor ];
 }
 
 class LegendCard extends FormattingSettingsCard {

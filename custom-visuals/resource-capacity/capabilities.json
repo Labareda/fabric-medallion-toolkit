@@ -31,7 +31,9 @@
     },
     "detail": {
       "properties": {
-        "showValue": { "type": { "bool": true } }
+        "showValue": { "type": { "bool": true } },
+        "chipBackground": { "type": { "fill": { "solid": { "color": true } } } },
+        "chipTextColor": { "type": { "fill": { "solid": { "color": true } } } }
       }
     },
     "appearance": {
@@ -40,8 +42,10 @@
         "fontSize": { "type": { "numeric": true } },
         "textColor": { "type": { "fill": { "solid": { "color": true } } } },
         "headerColor": { "type": { "fill": { "solid": { "color": true } } } },
+        "headerTextColor": { "type": { "fill": { "solid": { "color": true } } } },
         "nameWidth": { "type": { "numeric": true } },
-        "weekWidth": { "type": { "numeric": true } }
+        "weekWidth": { "type": { "numeric": true } },
+        "workingDaysOnly": { "type": { "bool": true } }
       }
     },
     "thresholds": {
@@ -60,7 +64,8 @@
         "gridColor": { "type": { "fill": { "solid": { "color": true } } } },
         "bandedRows": { "type": { "bool": true } },
         "bandColor": { "type": { "fill": { "solid": { "color": true } } } },
-        "showTodayLine": { "type": { "bool": true } }
+        "showTodayLine": { "type": { "bool": true } },
+        "todayColor": { "type": { "fill": { "solid": { "color": true } } } }
       }
     },
     "legend": {
