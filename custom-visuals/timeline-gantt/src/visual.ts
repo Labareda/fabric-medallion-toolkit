@@ -82,9 +82,6 @@ export class Visual implements IVisual {
 
         const firstIdx = (role: string): number =>
             cols.findIndex(c => c.roles && (c.roles as any)[role]);
-        const levelIdx: number[] = cols
-            .map((c, i) => (c.roles && (c.roles as any)["level"] ? i : -1))
-            .filter(i => i >= 0);
 
         const iIssue = firstIdx("issueCode");
         const iName = firstIdx("taskName");
@@ -113,95 +110,62 @@ export class Visual implements IVisual {
             lead: "", resources: "", status: "", isMilestone: false,
             children: [], hasData: false
         };
-        const byId: { [id: string]: TaskNode } = { "__root__": rootNode };
 
+        // One node per issue row. The tree is reconstructed ENTIRELY from
+        // Sort_Path, whose Gold design guarantees: a parent's path is a literal
+        // prefix of each child's, joined by "!" (a separator chosen to sort
+        // below every rank character), and a plain ascending lexical sort of
+        // Sort_Path reproduces the whole tree -- parent immediately before its
+        // children, siblings in rank order. So we sort by Sort_Path as text
+        // (NEVER numerically -- the ranks are LexoRank, which is lexical) and
+        // rebuild parent/child from the prefix relationship. The bound Level
+        // columns are deliberately NOT used: they are type-placed and ragged,
+        // not depth-placed, so they don't describe the parent chain.
+        const SEP = "!";
+        const nodes: TaskNode[] = [];
+        let seq = 0;
         for (const r of rows) {
-            const levels: string[] = levelIdx.map(i => asStr(r[i])).filter(s => s !== "");
             const issueCode = iIssue >= 0 ? asStr(r[iIssue]) : "";
-            const path = levels.length > 0 ? levels : (issueCode ? [issueCode] : []);
-            if (path.length === 0) continue;
-
-            // walk/create the path, creating placeholder ancestors as needed
-            let parent = rootNode;
-            let acc = "";
-            for (let k = 0; k < path.length; k++) {
-                acc = acc === "" ? path[k] : acc + " ▸ " + path[k];
-                let node = byId[acc];
-                if (!node) {
-                    node = {
-                        id: acc, label: path[k], depth: k + 1, sortKey: "",
-                        lead: "", resources: "", status: "", isMilestone: false,
-                        children: [], hasData: false
-                    };
-                    byId[acc] = node;
-                    parent.children.push(node);
-                }
-                parent = node;
-            }
-
-            // attach this issue's data to the deepest node on its path
-            const leaf = parent;
             const summary = iName >= 0 ? asStr(r[iName]) : "";
-            leaf.hasData = true;
-            leaf.label = issueCode && summary ? `${issueCode}: ${summary}`
-                : (issueCode || summary || leaf.label);
-            leaf.start = iStart >= 0 ? asDate(r[iStart]) : undefined;
-            leaf.end = iEnd >= 0 ? asDate(r[iEnd]) : undefined;
-            leaf.aStart = iAStart >= 0 ? asDate(r[iAStart]) : undefined;
-            leaf.aEnd = iAEnd >= 0 ? asDate(r[iAEnd]) : undefined;
-            leaf.lead = iLead >= 0 ? asStr(r[iLead]) : "";
-            leaf.resources = iRes >= 0 ? asStr(r[iRes]) : "";
-            leaf.status = iStatus >= 0 ? asStr(r[iStatus]) : "";
-            leaf.isMilestone = iMile >= 0 ? asBool(r[iMile]) : false;
-            leaf.sortKey = iSort >= 0 ? asStr(r[iSort]) : "";
-        }
-
-        // sort every level by Sort Path (natural/numeric-aware), then by label
-        const sortRec = (n: TaskNode) => {
-            n.children.sort((a, b) => {
-                const ak = a.sortKey || this.minSort(a);
-                const bk = b.sortKey || this.minSort(b);
-                const c = this.natCmp(ak, bk);
-                if (c !== 0) return c;
-                return this.natCmp(a.label, b.label);
+            let path = iSort >= 0 ? asStr(r[iSort]) : "";
+            // Rows with no Sort_Path still appear, ordered after everything else.
+            if (path === "") path = "￿" + String(seq).padStart(9, "0");
+            seq++;
+            nodes.push({
+                id: path,
+                label: issueCode && summary ? `${issueCode}: ${summary}` : (issueCode || summary || issueCode),
+                depth: 1,
+                sortKey: path,
+                start: iStart >= 0 ? asDate(r[iStart]) : undefined,
+                end: iEnd >= 0 ? asDate(r[iEnd]) : undefined,
+                aStart: iAStart >= 0 ? asDate(r[iAStart]) : undefined,
+                aEnd: iAEnd >= 0 ? asDate(r[iAEnd]) : undefined,
+                lead: iLead >= 0 ? asStr(r[iLead]) : "",
+                resources: iRes >= 0 ? asStr(r[iRes]) : "",
+                status: iStatus >= 0 ? asStr(r[iStatus]) : "",
+                isMilestone: iMile >= 0 ? asBool(r[iMile]) : false,
+                children: [], hasData: true
             });
-            n.children.forEach(sortRec);
-        };
-        sortRec(rootNode);
-        return rootNode;
-    }
-
-    /** Smallest Sort Path in a subtree (for ancestor nodes with no own row). */
-    private minSort(n: TaskNode): string {
-        let m = n.sortKey || "￿";
-        for (const c of n.children) {
-            const cm = this.minSort(c);
-            if (this.natCmp(cm, m) < 0) m = cm;
         }
-        return m;
-    }
 
-    /**
-     * Natural comparison: splits each string into digit / non-digit chunks and
-     * compares digit chunks NUMERICALLY. So "PSP-2" < "PSP-10" and "1.2" < "1.10"
-     * sort correctly, instead of the plain lexicographic order that put "10"
-     * before "2". This is what made Sort Path look wrong.
-     */
-    private natCmp(a: string, b: string): number {
-        const ra = a.match(/(\d+|\D+)/g) || [];
-        const rb = b.match(/(\d+|\D+)/g) || [];
-        const n = Math.min(ra.length, rb.length);
-        for (let i = 0; i < n; i++) {
-            const sa = ra[i], sb = rb[i];
-            const na = /^\d/.test(sa), nb = /^\d/.test(sb);
-            if (na && nb) {
-                const da = parseInt(sa, 10), db = parseInt(sb, 10);
-                if (da !== db) return da < db ? -1 : 1;
-            } else if (sa !== sb) {
-                return sa < sb ? -1 : 1;
+        // Plain lexical sort of Sort_Path == the exact tree (DFS) order.
+        nodes.sort((a, b) => a.sortKey < b.sortKey ? -1 : (a.sortKey > b.sortKey ? 1 : 0));
+
+        // Stack reconstruction: a node's parent is the nearest preceding node
+        // whose path + "!" is a prefix of this node's path. This is robust to
+        // a missing intermediate (the node just attaches to its nearest present
+        // ancestor) and to multiple root trees (project-prefixed roots).
+        const anc: TaskNode[] = [];
+        for (const node of nodes) {
+            while (anc.length && node.sortKey.indexOf(anc[anc.length - 1].sortKey + SEP) !== 0) {
+                anc.pop();
             }
+            const parent = anc.length ? anc[anc.length - 1] : rootNode;
+            node.depth = parent === rootNode ? 1 : parent.depth + 1;
+            parent.children.push(node);
+            anc.push(node);
         }
-        return ra.length - rb.length;
+        return rootNode;
     }
 
     // ---- render ----------------------------------------------------------
@@ -212,7 +176,7 @@ export class Visual implements IVisual {
         if (!this.root || this.root.children.length === 0) {
             const msg = document.createElement("div");
             msg.style.cssText = "padding:12px;font:12px 'Segoe UI';color:#888";
-            msg.textContent = "Bind Issue Code, Task Name, Hierarchy Levels, " +
+            msg.textContent = "Bind Issue Code, Task Name, Sort Path (required for the tree), " +
                 "Planned Start/End Date, Lead, Resources, Status and Is Milestone.";
             el.appendChild(msg);
             return;
@@ -312,9 +276,33 @@ export class Visual implements IVisual {
             .attr("width", timelineW).attr("height", contentH)
             .style("flex", `0 0 ${timelineW}px`)
             .style("cursor", "grab");
-        const gGrid = rightSvg.append("g");
+        const gBands = rightSvg.append("g");   // static row banding + row lines (behind everything)
+        const gGrid = rightSvg.append("g");    // time gridlines (redrawn on zoom)
         const gBars = rightSvg.append("g");
         const gToday = rightSvg.append("g");
+
+        // matrix-style row banding + horizontal row lines (independent of zoom)
+        const grid = s.grid;
+        const bandedRows = grid.bandedRows.value;
+        const bandColor = grid.bandColor.value.value;
+        const rowLines = grid.rowBorders.value;
+        const rowLineColor = grid.rowBorderColor.value.value;
+        const colLines = grid.colBorders.value;
+        const colLineColor = grid.colBorderColor.value.value;
+        visible.forEach((_n, i) => {
+            if (bandedRows && i % 2 === 1) {
+                gBands.append("rect")
+                    .attr("x", 0).attr("y", i * rowH)
+                    .attr("width", timelineW).attr("height", rowH)
+                    .attr("fill", bandColor);
+            }
+            if (rowLines) {
+                gBands.append("line")
+                    .attr("x1", 0).attr("x2", timelineW)
+                    .attr("y1", (i + 1) * rowH).attr("y2", (i + 1) * rowH)
+                    .attr("stroke", rowLineColor).attr("stroke-width", 1);
+            }
+        });
 
         const barColor = (n: TaskNode): string => {
             if (!s.bars.colorByStatus.value) return s.bars.defaultColor.value.value;
@@ -507,14 +495,18 @@ export class Visual implements IVisual {
             row.style.cssText = `position:absolute;top:${i * rowH}px;left:0;` +
                 `width:${leftW}px;height:${rowH}px;display:flex;align-items:center;` +
                 `box-sizing:border-box;font-size:${fontSize}px;color:${textColor};` +
-                (i % 2 === 1 ? "background:#FafafA;" : "");
+                (bandedRows && i % 2 === 1 ? `background:${bandColor};` : "") +
+                (rowLines ? `border-bottom:1px solid ${rowLineColor};` : "");
             left.appendChild(row);
+
+            const colBorder = colLines ? `border-right:1px solid ${colLineColor};` : "";
 
             // name cell (chevron + indent + label)
             const nameCell = document.createElement("div");
             nameCell.style.cssText = `width:${nameW}px;flex:0 0 ${nameW}px;display:flex;` +
                 `align-items:center;box-sizing:border-box;` +
-                `padding-left:${4 + (n.depth - 1) * INDENT}px;padding-right:6px;overflow:hidden;`;
+                `padding-left:${4 + (n.depth - 1) * INDENT}px;padding-right:6px;overflow:hidden;` +
+                ((showLead || showRes) ? colBorder : "");
             const hasChildren = n.children.length > 0;
             const chevron = document.createElement("span");
             chevron.textContent = hasChildren ? (this.collapsed.has(n.id) ? "▶" : "▼") : "";
@@ -536,16 +528,19 @@ export class Visual implements IVisual {
             nameCell.appendChild(labelSpan);
             row.appendChild(nameCell);
 
-            const textCell = (text: string, w: number) => {
+            const textCell = (text: string, w: number, withBorder: boolean) => {
                 const c = document.createElement("div");
                 c.textContent = text;
                 c.title = text;
                 c.style.cssText = `width:${w}px;flex:0 0 ${w}px;padding:0 8px;box-sizing:border-box;` +
-                    `white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
+                    `white-space:nowrap;overflow:hidden;text-overflow:ellipsis;` +
+                    (withBorder ? colBorder : "");
                 return c;
             };
-            if (showLead) row.appendChild(textCell(n.lead, leadW));
-            if (showRes) row.appendChild(textCell(n.resources, resW));
+            // Lead gets a right border only when Resources follows it; Resources
+            // is the last column, so no trailing separator.
+            if (showLead) row.appendChild(textCell(n.lead, leadW, showRes));
+            if (showRes) row.appendChild(textCell(n.resources, resW, false));
         });
     }
 

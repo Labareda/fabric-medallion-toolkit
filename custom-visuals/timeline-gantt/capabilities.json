@@ -61,6 +61,16 @@
         "showBarLabels": { "type": { "bool": true } }
       }
     },
+    "grid": {
+      "properties": {
+        "rowBorders": { "type": { "bool": true } },
+        "rowBorderColor": { "type": { "fill": { "solid": { "color": true } } } },
+        "colBorders": { "type": { "bool": true } },
+        "colBorderColor": { "type": { "fill": { "solid": { "color": true } } } },
+        "bandedRows": { "type": { "bool": true } },
+        "bandColor": { "type": { "fill": { "solid": { "color": true } } } }
+      }
+    },
     "actualBar": {
       "properties": {
         "show": { "type": { "bool": true } },

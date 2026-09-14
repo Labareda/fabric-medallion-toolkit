@@ -93,6 +93,47 @@ class BarsCard extends FormattingSettingsCard {
     ];
 }
 
+/** Grid & rows: matrix-style column separators, row lines, banded rows. */
+class GridCard extends FormattingSettingsCard {
+    rowBorders = new formattingSettings.ToggleSwitch({
+        name: "rowBorders",
+        displayName: "Row lines (horizontal)",
+        value: false
+    });
+    rowBorderColor = new formattingSettings.ColorPicker({
+        name: "rowBorderColor",
+        displayName: "Row line colour",
+        value: { value: "#E4E4E4" }
+    });
+    colBorders = new formattingSettings.ToggleSwitch({
+        name: "colBorders",
+        displayName: "Column lines (vertical)",
+        value: false
+    });
+    colBorderColor = new formattingSettings.ColorPicker({
+        name: "colBorderColor",
+        displayName: "Column line colour",
+        value: { value: "#E4E4E4" }
+    });
+    bandedRows = new formattingSettings.ToggleSwitch({
+        name: "bandedRows",
+        displayName: "Banded rows",
+        value: true
+    });
+    bandColor = new formattingSettings.ColorPicker({
+        name: "bandColor",
+        displayName: "Band colour",
+        value: { value: "#FAFAFA" }
+    });
+
+    name: string = "grid";
+    displayName: string = "Grid & rows";
+    slices: FormattingSettingsSlice[] = [
+        this.rowBorders, this.rowBorderColor, this.colBorders,
+        this.colBorderColor, this.bandedRows, this.bandColor
+    ];
+}
+
 /** Actual dates: thin baseline bar under the planned bar. */
 class ActualBarCard extends FormattingSettingsCard {
     show = new formattingSettings.ToggleSwitch({
@@ -185,6 +226,7 @@ class ColumnsCard extends FormattingSettingsCard {
 
 export class VisualFormattingSettingsModel extends FormattingSettingsModel {
     appearance = new AppearanceCard();
+    grid = new GridCard();
     bars = new BarsCard();
     actualBar = new ActualBarCard();
     milestone = new MilestoneCard();
@@ -192,6 +234,7 @@ export class VisualFormattingSettingsModel extends FormattingSettingsModel {
     columns = new ColumnsCard();
 
     cards: FormattingSettingsCard[] = [
-        this.appearance, this.bars, this.actualBar, this.milestone, this.todayLine, this.columns
+        this.appearance, this.grid, this.bars, this.actualBar,
+        this.milestone, this.todayLine, this.columns
     ];
 }
