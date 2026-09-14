@@ -3,9 +3,8 @@
   "dataRoles": [
     { "displayName": "Resource Name", "name": "resource", "kind": "Grouping" },
     { "displayName": "Date", "name": "date", "kind": "Grouping" },
-    { "displayName": "Issue Code", "name": "issueCode", "kind": "Grouping" },
-    { "displayName": "Item Name", "name": "itemName", "kind": "Grouping" },
-    { "displayName": "Status", "name": "status", "kind": "Grouping" },
+    { "displayName": "Issue Code (item id)", "name": "issueCode", "kind": "Grouping" },
+    { "displayName": "Detail (fields to show)", "name": "detailFields", "kind": "Grouping" },
     { "displayName": "Value (optional)", "name": "value", "kind": "Measure" }
   ],
   "dataViewMappings": [
@@ -16,8 +15,7 @@
             { "for": { "in": "resource" } },
             { "for": { "in": "date" } },
             { "for": { "in": "issueCode" } },
-            { "for": { "in": "itemName" } },
-            { "for": { "in": "status" } },
+            { "for": { "in": "detailFields" } },
             { "for": { "in": "value" } }
           ],
           "dataReductionAlgorithm": { "window": { "count": 30000 } }
@@ -29,6 +27,11 @@
     "metric": {
       "properties": {
         "sumValue": { "type": { "bool": true } }
+      }
+    },
+    "detail": {
+      "properties": {
+        "showValue": { "type": { "bool": true } }
       }
     },
     "appearance": {

@@ -49,6 +49,15 @@ class MetricCard extends FormattingSettingsCard {
     slices: FormattingSettingsSlice[] = [ this.sumValue ];
 }
 
+/** Item chips are driven by the Detail fields well; this only toggles the value. */
+class DetailCard extends FormattingSettingsCard {
+    showValue = new formattingSettings.ToggleSwitch({ name: "showValue", displayName: "Append Value to each item (when summing)", value: true });
+
+    name: string = "detail";
+    displayName: string = "Item detail";
+    slices: FormattingSettingsSlice[] = [ this.showValue ];
+}
+
 class ConflictsCard extends FormattingSettingsCard {
     conflictAt = new formattingSettings.NumUpDown({ name: "conflictAt", displayName: "Conflict when items in a period ≥", value: 5 });
     minConflicts = new formattingSettings.NumUpDown({ name: "minConflicts", displayName: "Only show people with ≥ N conflicts", value: 0 });
@@ -81,11 +90,12 @@ class LegendCard extends FormattingSettingsCard {
 
 export class VisualFormattingSettingsModel extends FormattingSettingsModel {
     metric = new MetricCard();
+    detail = new DetailCard();
     appearance = new AppearanceCard();
     thresholds = new ThresholdsCard();
     conflicts = new ConflictsCard();
     grid = new GridCard();
     legend = new LegendCard();
 
-    cards: FormattingSettingsCard[] = [ this.metric, this.appearance, this.thresholds, this.conflicts, this.grid, this.legend ];
+    cards: FormattingSettingsCard[] = [ this.metric, this.detail, this.appearance, this.thresholds, this.conflicts, this.grid, this.legend ];
 }

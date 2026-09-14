@@ -12,14 +12,14 @@ import IVisualHost = powerbi.extensibility.visual.IVisualHost;
 import ISelectionManager = powerbi.extensibility.ISelectionManager;
 import ISelectionId = powerbi.visuals.ISelectionId;
 
-interface ItemInfo { code: string; name: string; days: Map<number, number>; }  // canonical ymd -> summed value
+interface ItemInfo { code: string; detail: string[]; days: Map<number, number>; }  // detail = the "Detail" field values, in order; days: canonical ymd -> summed value
 interface Resource { name: string; items: Map<string, ItemInfo>; selectionIds: ISelectionId[]; }
 interface Period { start: Date; label: string; top: string; }
 
 type Gran = "year" | "quarter" | "month" | "week" | "day";
+// Only Week and Day are offered -- the resource plan is read at those grains.
 const PRESETS: { key: Gran; label: string; px: number }[] = [
-    { key: "year", label: "Year", px: 0.2 }, { key: "quarter", label: "Quarter", px: 0.7 },
-    { key: "month", label: "Month", px: 2.2 }, { key: "week", label: "Week", px: 8 }, { key: "day", label: "Day", px: 34 }
+    { key: "week", label: "Week", px: 8 }, { key: "day", label: "Day", px: 34 }
 ];
 
 const MS_DAY = 86400000;
@@ -74,8 +74,9 @@ export class Visual implements IVisual {
         if (!dv || !dv.table || !dv.table.columns || !dv.table.rows) return;
         const cols = dv.table.columns;
         const idx = (role: string) => cols.findIndex(c => c.roles && (c.roles as any)[role]);
-        const iRes = idx("resource"), iDate = idx("date"), iCode = idx("issueCode"),
-            iName = idx("itemName"), iValue = idx("value");
+        const iRes = idx("resource"), iDate = idx("date"), iCode = idx("issueCode"), iValue = idx("value");
+        // every column bound to the "Detail" well, in the order the user added them
+        const detailIdx: number[] = cols.map((c, i) => (c.roles && (c.roles as any)["detailFields"]) ? i : -1).filter(i => i >= 0);
         this.hasValue = iValue >= 0;
         const asStr = (v: any) => (v === null || v === undefined) ? "" : String(v);
         const asNum = (v: any) => { if (v === null || v === undefined || v === "") return 0; const n = typeof v === "number" ? v : parseFloat(v); return isNaN(n) ? 0 : n; };
@@ -99,7 +100,7 @@ export class Visual implements IVisual {
             if (!res) { res = { name, items: new Map(), selectionIds: [] }; byName.set(name, res); }
             res.selectionIds.push(this.host.createSelectionIdBuilder().withTable(table, rowIndex).createSelectionId());
             let item = res.items.get(code);
-            if (!item) { item = { code, name: iName >= 0 ? asStr(r[iName]) : code, days: new Map() }; res.items.set(code, item); }
+            if (!item) { item = { code, detail: detailIdx.map(i => asStr(r[i])), days: new Map() }; res.items.set(code, item); }
             const c = Visual.ymd(dm);
             const v = iValue >= 0 ? asNum(r[iValue]) : 0;
             item.days.set(c, (item.days.get(c) || 0) + v);
@@ -179,6 +180,11 @@ export class Visual implements IVisual {
         let v = 0; it.days.forEach((val, c) => { if (indexOf(c) === pi) v += val; }); return v;
     }
 
+    private itemLabel(it: ItemInfo): string {
+        const parts = it.detail.filter(x => x !== "");
+        return parts.length ? parts.join("  ") : it.code;
+    }
+
     private render(): void {
         const el = this.target;
         this.closePopover();
@@ -186,7 +192,8 @@ export class Visual implements IVisual {
         if (this.resources.length === 0 || !this.minDate) {
             const msg = document.createElement("div");
             msg.style.cssText = "padding:12px;font:12px 'Segoe UI';color:#888";
-            msg.textContent = "Bind Resource Name, Date and Issue Code (Item Name optional; Value optional for the sum metric). " +
+            msg.textContent = "Bind Resource Name, Date and Issue Code. Add any fields to the Detail well " +
+                "to control what each item shows; add a Value field for the sum metric. " +
                 "Everything shown is driven only by these field wells.";
             el.appendChild(msg);
             return;
@@ -194,6 +201,7 @@ export class Visual implements IVisual {
 
         const s = this.settings;
         const sumMode = s.metric.sumValue.value && this.hasValue;
+        const det = s.detail;
         const rowH = Math.max(16, s.appearance.rowHeight.value);
         const fontSize = Math.max(8, s.appearance.fontSize.value);
         const textColor = s.appearance.textColor.value.value;
@@ -255,10 +263,6 @@ export class Visual implements IVisual {
             b.onclick = () => { this.pxPerDay = p.px; this.render(); };
             toolbar.appendChild(b);
         });
-        const hint = document.createElement("span");
-        hint.textContent = "(mouse-wheel to zoom)";
-        hint.style.cssText = "color:#aaa;";
-        toolbar.appendChild(hint);
         const totalConf = visibleRRs.reduce((a, r) => a + r.conflicts, 0);
         const cs = document.createElement("span");
         cs.textContent = `${totalConf} conflict${totalConf === 1 ? "" : "s"} · ${visibleRRs.length} people`;
@@ -272,15 +276,7 @@ export class Visual implements IVisual {
         const scroller = document.createElement("div");
         scroller.style.cssText = "flex:1 1 auto;overflow:auto;position:relative;";
         container.appendChild(scroller);
-
-        // mouse wheel = smooth zoom (like the timeline). Shift+wheel / scrollbars scroll.
-        scroller.addEventListener("wheel", (ev: WheelEvent) => {
-            if (ev.shiftKey) return;
-            ev.preventDefault();
-            const factor = ev.deltaY < 0 ? 1.25 : 1 / 1.25;
-            this.pxPerDay = Math.max(0.05, Math.min(200, this.pxPerDay * factor));
-            this.render();
-        }, { passive: false });
+        // No wheel-zoom: the wheel scrolls the table normally; zoom is by the buttons.
 
         const table = document.createElement("table");
         table.style.cssText = `border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:${fontSize}px;color:${textColor};`;
@@ -397,9 +393,12 @@ export class Visual implements IVisual {
                         const sorted = list.slice().sort((a, b) => a.code < b.code ? -1 : 1);
                         sorted.slice(0, CAP).forEach(it => {
                             const chip = document.createElement("div");
-                            const iv = sumMode ? `  ${Math.round(this.itemPeriodValue(it, pi, indexOf) * 10) / 10}` : "";
-                            chip.textContent = `${it.code}  ${it.name}${iv}`;
-                            chip.title = `${it.code}: ${it.name}${iv}`;
+                            // the chip shows exactly the fields dropped into the "Detail" well
+                            const parts = it.detail.filter(x => x !== "");
+                            if (sumMode && det.showValue.value) parts.push(String(Math.round(this.itemPeriodValue(it, pi, indexOf) * 10) / 10));
+                            const label = parts.length ? parts.join("  ") : it.code;
+                            chip.textContent = label;
+                            chip.title = label;
                             chip.style.cssText = `background:#fff;border:1px solid ${gridColor};border-radius:2px;margin:1px 0;padding:0 3px;color:${textColor};` +
                                 `font-size:${Math.max(7, fontSize - 2)}px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
                             td.appendChild(chip);
@@ -411,7 +410,7 @@ export class Visual implements IVisual {
                             more.onclick = (ev) => {
                                 ev.stopPropagation();
                                 this.openPopover(`${res.name} — ${periods[pi].top ? periods[pi].top + " " : ""}${periods[pi].label}`,
-                                    `${list.length} items`, sorted.map(it => ({ code: it.code, name: it.name, extra: "" })),
+                                    `${list.length} items`, sorted.map(it => ({ code: it.code, name: this.itemLabel(it), extra: "" })),
                                     ev as MouseEvent, textColor, headerColor, conflictColor, fontSize);
                             };
                             td.appendChild(more);
@@ -441,7 +440,7 @@ export class Visual implements IVisual {
             if (metric >= conflictAt) {
                 const p = periods[pi];
                 list.slice().sort((a, b) => a.code < b.code ? -1 : 1)
-                    .forEach(it => rows.push({ code: it.code, name: it.name, extra: p ? `${p.top ? p.top + " " : ""}${p.label}` : "" }));
+                    .forEach(it => rows.push({ code: it.code, name: this.itemLabel(it), extra: p ? `${p.top ? p.top + " " : ""}${p.label}` : "" }));
             }
         });
         this.openPopover(`${res.name} — conflicts`, `${rows.length} item-instances in conflict periods`,
