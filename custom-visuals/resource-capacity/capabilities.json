@@ -5,7 +5,8 @@
     { "displayName": "Date", "name": "date", "kind": "Grouping" },
     { "displayName": "Issue Code", "name": "issueCode", "kind": "Grouping" },
     { "displayName": "Item Name", "name": "itemName", "kind": "Grouping" },
-    { "displayName": "Status", "name": "status", "kind": "Grouping" }
+    { "displayName": "Status", "name": "status", "kind": "Grouping" },
+    { "displayName": "Value (optional)", "name": "value", "kind": "Measure" }
   ],
   "dataViewMappings": [
     {
@@ -16,7 +17,8 @@
             { "for": { "in": "date" } },
             { "for": { "in": "issueCode" } },
             { "for": { "in": "itemName" } },
-            { "for": { "in": "status" } }
+            { "for": { "in": "status" } },
+            { "for": { "in": "value" } }
           ],
           "dataReductionAlgorithm": { "window": { "count": 30000 } }
         }
@@ -24,6 +26,11 @@
     }
   ],
   "objects": {
+    "metric": {
+      "properties": {
+        "sumValue": { "type": { "bool": true } }
+      }
+    },
     "appearance": {
       "properties": {
         "rowHeight": { "type": { "numeric": true } },

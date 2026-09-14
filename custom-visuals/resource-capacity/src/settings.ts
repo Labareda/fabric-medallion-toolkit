@@ -12,7 +12,7 @@ class AppearanceCard extends FormattingSettingsCard {
     textColor = new formattingSettings.ColorPicker({ name: "textColor", displayName: "Text colour", value: { value: "#333333" } });
     headerColor = new formattingSettings.ColorPicker({ name: "headerColor", displayName: "Header colour", value: { value: "#B21C1A" } });
     nameWidth = new formattingSettings.NumUpDown({ name: "nameWidth", displayName: "Name column width", value: 200 });
-    weekWidth = new formattingSettings.NumUpDown({ name: "weekWidth", displayName: "Column width", value: 50 });
+    weekWidth = new formattingSettings.NumUpDown({ name: "weekWidth", displayName: "Min column width", value: 40 });
 
     name: string = "appearance";
     displayName: string = "Appearance";
@@ -35,6 +35,18 @@ class ThresholdsCard extends FormattingSettingsCard {
     slices: FormattingSettingsSlice[] = [
         this.lowMax, this.midMax, this.zeroColor, this.lowColor, this.midColor, this.highColor, this.cellTextColor
     ];
+}
+
+class MetricCard extends FormattingSettingsCard {
+    sumValue = new formattingSettings.ToggleSwitch({
+        name: "sumValue",
+        displayName: "Sum the Value field (instead of counting items)",
+        value: false
+    });
+
+    name: string = "metric";
+    displayName: string = "Metric";
+    slices: FormattingSettingsSlice[] = [ this.sumValue ];
 }
 
 class ConflictsCard extends FormattingSettingsCard {
@@ -68,11 +80,12 @@ class LegendCard extends FormattingSettingsCard {
 }
 
 export class VisualFormattingSettingsModel extends FormattingSettingsModel {
+    metric = new MetricCard();
     appearance = new AppearanceCard();
     thresholds = new ThresholdsCard();
     conflicts = new ConflictsCard();
     grid = new GridCard();
     legend = new LegendCard();
 
-    cards: FormattingSettingsCard[] = [ this.appearance, this.thresholds, this.conflicts, this.grid, this.legend ];
+    cards: FormattingSettingsCard[] = [ this.metric, this.appearance, this.thresholds, this.conflicts, this.grid, this.legend ];
 }

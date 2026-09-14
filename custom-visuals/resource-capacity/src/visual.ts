@@ -12,14 +12,14 @@ import IVisualHost = powerbi.extensibility.visual.IVisualHost;
 import ISelectionManager = powerbi.extensibility.ISelectionManager;
 import ISelectionId = powerbi.visuals.ISelectionId;
 
-interface ItemInfo { code: string; name: string; days: Set<number>; }   // days = canonical y*10000+m*100+d
+interface ItemInfo { code: string; name: string; days: Map<number, number>; }  // canonical ymd -> summed value
 interface Resource { name: string; items: Map<string, ItemInfo>; selectionIds: ISelectionId[]; }
 interface Period { start: Date; label: string; top: string; }
 
 type Gran = "year" | "quarter" | "month" | "week" | "day";
-const GRANS: { key: Gran; label: string }[] = [
-    { key: "year", label: "Year" }, { key: "quarter", label: "Quarter" },
-    { key: "month", label: "Month" }, { key: "week", label: "Week" }, { key: "day", label: "Day" }
+const PRESETS: { key: Gran; label: string; px: number }[] = [
+    { key: "year", label: "Year", px: 0.2 }, { key: "quarter", label: "Quarter", px: 0.7 },
+    { key: "month", label: "Month", px: 2.2 }, { key: "week", label: "Week", px: 8 }, { key: "day", label: "Day", px: 34 }
 ];
 
 const MS_DAY = 86400000;
@@ -34,10 +34,11 @@ export class Visual implements IVisual {
     private settings: VisualFormattingSettingsModel;
 
     private resources: Resource[] = [];
+    private hasValue = false;
     private minDate: Date | null = null;
     private maxDate: Date | null = null;
     private expanded: Set<string> = new Set<string>();
-    private granularity: Gran = "day";
+    private pxPerDay = 34;             // zoom level (like the timeline's pxPerDay)
     private dataToken = "";
     private popover: HTMLElement | null = null;
     private vw = 0; private vh = 0;
@@ -69,12 +70,15 @@ export class Visual implements IVisual {
     }
 
     private build(dv: DataView): void {
-        this.resources = []; this.minDate = null; this.maxDate = null;
+        this.resources = []; this.minDate = null; this.maxDate = null; this.hasValue = false;
         if (!dv || !dv.table || !dv.table.columns || !dv.table.rows) return;
         const cols = dv.table.columns;
         const idx = (role: string) => cols.findIndex(c => c.roles && (c.roles as any)[role]);
-        const iRes = idx("resource"), iDate = idx("date"), iCode = idx("issueCode"), iName = idx("itemName");
+        const iRes = idx("resource"), iDate = idx("date"), iCode = idx("issueCode"),
+            iName = idx("itemName"), iValue = idx("value");
+        this.hasValue = iValue >= 0;
         const asStr = (v: any) => (v === null || v === undefined) ? "" : String(v);
+        const asNum = (v: any) => { if (v === null || v === undefined || v === "") return 0; const n = typeof v === "number" ? v : parseFloat(v); return isNaN(n) ? 0 : n; };
         const asDate = (v: any): Date | undefined => {
             if (v === null || v === undefined || v === "") return undefined;
             if (v instanceof Date) return isNaN(v.getTime()) ? undefined : v;
@@ -93,24 +97,32 @@ export class Visual implements IVisual {
             if (!this.maxDate || dm > this.maxDate) this.maxDate = dm;
             let res = byName.get(name);
             if (!res) { res = { name, items: new Map(), selectionIds: [] }; byName.set(name, res); }
-            // one selection id per source row -> selecting a person cross-filters
-            // every allocation row that belongs to them (the count comes straight
-            // from these fact rows, so it always matches slicer-filtered data).
-            res.selectionIds.push(
-                this.host.createSelectionIdBuilder().withTable(table, rowIndex).createSelectionId()
-            );
+            res.selectionIds.push(this.host.createSelectionIdBuilder().withTable(table, rowIndex).createSelectionId());
             let item = res.items.get(code);
-            if (!item) { item = { code, name: iName >= 0 ? asStr(r[iName]) : code, days: new Set() }; res.items.set(code, item); }
-            item.days.add(Visual.ymd(dm));
+            if (!item) { item = { code, name: iName >= 0 ? asStr(r[iName]) : code, days: new Map() }; res.items.set(code, item); }
+            const c = Visual.ymd(dm);
+            const v = iValue >= 0 ? asNum(r[iValue]) : 0;
+            item.days.set(c, (item.days.get(c) || 0) + v);
         });
         this.resources = Array.from(byName.values()).sort((a, b) => a.name < b.name ? -1 : (a.name > b.name ? 1 : 0));
     }
 
-    // Build the ordered list of periods for the current grain + an index() mapper.
-    private buildPeriods(): { periods: Period[]; indexOf: (c: number) => number; nowIndex: number } {
+    /** grain + column width from the continuous zoom (pxPerDay), like the timeline. */
+    private grainFromZoom(): { g: Gran; colW: number } {
+        const px = this.pxPerDay;
+        const minW = Math.max(28, this.settings.appearance.weekWidth.value);
+        let g: Gran, daysPer: number;
+        if (px >= 20) { g = "day"; daysPer = 1; }
+        else if (px >= 5.5) { g = "week"; daysPer = 7; }
+        else if (px >= 1.4) { g = "month"; daysPer = 30.4; }
+        else if (px >= 0.45) { g = "quarter"; daysPer = 91.3; }
+        else { g = "year"; daysPer = 365; }
+        return { g, colW: Math.max(minW, Math.min(360, Math.round(px * daysPer))) };
+    }
+
+    private buildPeriods(g: Gran): { periods: Period[]; indexOf: (c: number) => number; nowIndex: number } {
         const periods: Period[] = [];
         const min = this.minDate as Date, max = this.maxDate as Date;
-        const g = this.granularity;
         const monthYear = (d: Date) => d.toLocaleDateString(undefined, { month: "short", year: "numeric" });
         const shortMonth = (d: Date) => d.toLocaleDateString(undefined, { month: "short" });
         let indexOf: (c: number) => number;
@@ -163,6 +175,10 @@ export class Visual implements IVisual {
         return { periods, indexOf, nowIndex };
     }
 
+    private itemPeriodValue(it: ItemInfo, pi: number, indexOf: (c: number) => number): number {
+        let v = 0; it.days.forEach((val, c) => { if (indexOf(c) === pi) v += val; }); return v;
+    }
+
     private render(): void {
         const el = this.target;
         this.closePopover();
@@ -170,19 +186,19 @@ export class Visual implements IVisual {
         if (this.resources.length === 0 || !this.minDate) {
             const msg = document.createElement("div");
             msg.style.cssText = "padding:12px;font:12px 'Segoe UI';color:#888";
-            msg.textContent = "Bind Resource Name, Date and Issue Code (Item Name optional). " +
-                "Use Fact Resource Day Allocation for Date, Dim Resource for the name, Dim Issue for the codes.";
+            msg.textContent = "Bind Resource Name, Date and Issue Code (Item Name optional; Value optional for the sum metric). " +
+                "Everything shown is driven only by these field wells.";
             el.appendChild(msg);
             return;
         }
 
         const s = this.settings;
+        const sumMode = s.metric.sumValue.value && this.hasValue;
         const rowH = Math.max(16, s.appearance.rowHeight.value);
         const fontSize = Math.max(8, s.appearance.fontSize.value);
         const textColor = s.appearance.textColor.value.value;
         const headerColor = s.appearance.headerColor.value.value;
         const nameW = Math.max(90, s.appearance.nameWidth.value);
-        const colW = Math.max(34, s.appearance.weekWidth.value);
         const gridColor = s.grid.gridColor.value.value;
         const banded = s.grid.bandedRows.value;
         const bandColor = s.grid.bandColor.value.value;
@@ -193,46 +209,56 @@ export class Visual implements IVisual {
         const conflictAt = s.conflicts.conflictAt.value, minConflicts = s.conflicts.minConflicts.value;
         const conflictColor = s.conflicts.conflictColor.value.value;
         const loadColor = (n: number) => n <= 0 ? zeroColor : (n <= lowMax ? lowColor : (n <= midMax ? midColor : highColor));
+        const fmt = (v: number) => sumMode ? String(Math.round(v * 10) / 10) : String(v);
 
-        const { periods, indexOf, nowIndex } = this.buildPeriods();
+        const { g, colW } = this.grainFromZoom();
+        const { periods, indexOf, nowIndex } = this.buildPeriods(g);
 
-        // per resource: items grouped by period index (for counts + detail)
-        interface RR { res: Resource; byPeriod: Map<number, ItemInfo[]>; conflicts: number; }
+        interface RR { res: Resource; byPeriod: Map<number, ItemInfo[]>; byValue: Map<number, number>; conflicts: number; }
         const rrs: RR[] = [];
         this.resources.forEach(res => {
             const byPeriod = new Map<number, ItemInfo[]>();
+            const byValue = new Map<number, number>();
             res.items.forEach(it => {
-                const seen = new Set<number>();
-                it.days.forEach(c => { const pi = indexOf(c); if (!seen.has(pi)) { seen.add(pi); (byPeriod.get(pi) || byPeriod.set(pi, []).get(pi))!.push(it); } });
+                const perP = new Map<number, number>();
+                it.days.forEach((val, c) => { const pi = indexOf(c); perP.set(pi, (perP.get(pi) || 0) + val); });
+                perP.forEach((val, pi) => {
+                    (byPeriod.get(pi) || byPeriod.set(pi, []).get(pi))!.push(it);
+                    byValue.set(pi, (byValue.get(pi) || 0) + val);
+                });
             });
+            const metric = (pi: number) => sumMode ? (byValue.get(pi) || 0) : (byPeriod.get(pi) ? byPeriod.get(pi)!.length : 0);
             let conflicts = 0;
-            byPeriod.forEach(list => { if (list.length >= conflictAt) conflicts++; });
-            rrs.push({ res, byPeriod, conflicts });
+            byPeriod.forEach((_l, pi) => { if (metric(pi) >= conflictAt) conflicts++; });
+            rrs.push({ res, byPeriod, byValue, conflicts });
         });
         const visibleRRs = rrs.filter(rr => rr.conflicts >= minConflicts);
+        const metricOf = (rr: RR, pi: number) => sumMode ? (rr.byValue.get(pi) || 0) : (rr.byPeriod.get(pi) ? rr.byPeriod.get(pi)!.length : 0);
 
         const container = document.createElement("div");
         container.style.cssText = `width:${this.vw}px;height:${this.vh}px;display:flex;flex-direction:column;` +
             `font-family:'Segoe UI',sans-serif;box-sizing:border-box;overflow:hidden;`;
         el.appendChild(container);
 
-        // ---- toolbar: grain buttons + conflict summary ----
+        // ---- toolbar: zoom presets + summary ----
         const toolbar = document.createElement("div");
         toolbar.style.cssText = `flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:4px 8px;` +
             `box-sizing:border-box;font-size:${fontSize}px;color:${textColor};`;
-        const gl = document.createElement("span");
-        gl.textContent = "Zoom:"; gl.style.cssText = "color:#888;margin-right:2px;";
+        const gl = document.createElement("span"); gl.textContent = "Zoom:"; gl.style.cssText = "color:#888;margin-right:2px;";
         toolbar.appendChild(gl);
-        GRANS.forEach(gr => {
+        PRESETS.forEach(p => {
             const b = document.createElement("div");
-            b.textContent = gr.label;
-            const active = this.granularity === gr.key;
+            b.textContent = p.label;
+            const active = g === p.key;
             b.style.cssText = `padding:2px 8px;border-radius:3px;cursor:pointer;user-select:none;` +
-                `border:1px solid ${active ? headerColor : "#CCC"};` +
-                `background:${active ? headerColor : "#FFF"};color:${active ? "#FFF" : "#333"};`;
-            b.onclick = () => { this.granularity = gr.key; this.render(); };
+                `border:1px solid ${active ? headerColor : "#CCC"};background:${active ? headerColor : "#FFF"};color:${active ? "#FFF" : "#333"};`;
+            b.onclick = () => { this.pxPerDay = p.px; this.render(); };
             toolbar.appendChild(b);
         });
+        const hint = document.createElement("span");
+        hint.textContent = "(mouse-wheel to zoom)";
+        hint.style.cssText = "color:#aaa;";
+        toolbar.appendChild(hint);
         const totalConf = visibleRRs.reduce((a, r) => a + r.conflicts, 0);
         const cs = document.createElement("span");
         cs.textContent = `${totalConf} conflict${totalConf === 1 ? "" : "s"} · ${visibleRRs.length} people`;
@@ -247,37 +273,27 @@ export class Visual implements IVisual {
         scroller.style.cssText = "flex:1 1 auto;overflow:auto;position:relative;";
         container.appendChild(scroller);
 
-        // Mouse wheel zooms the date grain (year <-> quarter <-> month <-> week
-        // <-> day), exactly like the timeline custom visual: wheel up = zoom in
-        // toward days, wheel down = zoom out toward years. Hold SHIFT to scroll
-        // the grid instead (or use the scrollbars).
-        const order: Gran[] = ["year", "quarter", "month", "week", "day"];
-        let wheelLock = 0;
+        // mouse wheel = smooth zoom (like the timeline). Shift+wheel / scrollbars scroll.
         scroller.addEventListener("wheel", (ev: WheelEvent) => {
-            if (ev.shiftKey) return;                 // shift+wheel = scroll
+            if (ev.shiftKey) return;
             ev.preventDefault();
-            const now = Date.now();
-            if (now - wheelLock < 180) return;       // one grain step per gesture
-            wheelLock = now;
-            const i = order.indexOf(this.granularity);
-            const ni = ev.deltaY < 0 ? Math.min(order.length - 1, i + 1) : Math.max(0, i - 1);
-            if (ni !== i) { this.granularity = order[ni]; this.render(); }
+            const factor = ev.deltaY < 0 ? 1.25 : 1 / 1.25;
+            this.pxPerDay = Math.max(0.05, Math.min(200, this.pxPerDay * factor));
+            this.render();
         }, { passive: false });
 
         const table = document.createElement("table");
         table.style.cssText = `border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:${fontSize}px;color:${textColor};`;
         scroller.appendChild(table);
 
-        const twoRow = this.granularity !== "year";
+        const twoRow = g !== "year";
         const thead = document.createElement("thead");
         table.appendChild(thead);
 
-        // top grouping row
         if (twoRow) {
             const topRow = document.createElement("tr");
             const corner = document.createElement("th");
-            corner.textContent = "Resource";
-            corner.rowSpan = 2;
+            corner.textContent = "Resource"; corner.rowSpan = 2;
             corner.style.cssText = `position:sticky;left:0;top:0;z-index:5;width:${nameW}px;min-width:${nameW}px;` +
                 `height:${H1}px;background:${headerColor};color:#fff;text-align:left;padding:0 8px;box-sizing:border-box;font-weight:600;`;
             topRow.appendChild(corner);
@@ -294,7 +310,6 @@ export class Visual implements IVisual {
             thead.appendChild(topRow);
         }
 
-        // period label row
         const labelRow = document.createElement("tr");
         if (!twoRow) {
             const corner = document.createElement("th");
@@ -305,24 +320,23 @@ export class Visual implements IVisual {
         }
         periods.forEach((p, pi) => {
             const th = document.createElement("th");
-            th.textContent = p.label;
-            th.title = p.start.toLocaleDateString();
+            th.textContent = p.label; th.title = p.start.toLocaleDateString();
             const bg = pi === nowIndex ? "#8f1714" : headerColor;
             const top = twoRow ? `top:${H1}px;` : "top:0;";
             th.style.cssText = `position:sticky;${top}z-index:3;width:${colW}px;min-width:${colW}px;height:${H2}px;` +
-                `background:${bg};color:#fff;text-align:center;font-weight:400;` +
+                `background:${bg};color:#fff;text-align:center;font-weight:400;overflow:hidden;` +
                 `border-left:1px solid rgba(255,255,255,.25);box-sizing:border-box;`;
             labelRow.appendChild(th);
         });
         thead.appendChild(labelRow);
 
-        // ---- body ----
         const tbody = document.createElement("tbody");
         table.appendChild(tbody);
 
         visibleRRs.forEach((rr, ri) => {
             const res = rr.res;
             const rowBg = banded && ri % 2 === 1 ? bandColor : "#FFFFFF";
+            const isExp = this.expanded.has(res.name);
             const tr = document.createElement("tr");
 
             const nameCell = document.createElement("th");
@@ -331,14 +345,13 @@ export class Visual implements IVisual {
                 `border-bottom:1px solid ${gridColor};border-right:1px solid ${gridColor};font-weight:600;` +
                 `white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
             const chev = document.createElement("span");
-            const isExp = this.expanded.has(res.name);
             chev.textContent = res.items.size > 0 ? (isExp ? "▼ " : "▶ ") : "";
             chev.style.cssText = "cursor:pointer;color:#888;user-select:none;";
             chev.onclick = () => { if (isExp) this.expanded.delete(res.name); else this.expanded.add(res.name); this.render(); };
             nameCell.appendChild(chev);
             const nm = document.createElement("span");
             nm.textContent = res.name;
-            nm.title = res.name + "  —  click to cross-filter other visuals";
+            nm.title = res.name + "  —  click to cross-filter other visuals (Ctrl+click to multi-select)";
             nm.style.cssText = "cursor:pointer;";
             nm.onclick = (ev) => {
                 ev.stopPropagation();
@@ -351,65 +364,59 @@ export class Visual implements IVisual {
                 badge.title = `${rr.conflicts} conflict period(s) — click for detail`;
                 badge.style.cssText = `margin-left:6px;padding:0 5px;border-radius:8px;background:${conflictColor};` +
                     `color:#fff;font-size:${Math.max(7, fontSize - 2)}px;cursor:pointer;`;
-                badge.onclick = (ev) => this.showConflictDetail(res, rr.byPeriod, periods, conflictAt, ev as MouseEvent, textColor, headerColor, conflictColor, fontSize);
+                badge.onclick = (ev) => this.showConflictDetail(res, rr.byPeriod, periods, conflictAt, sumMode, indexOf, ev as MouseEvent, textColor, headerColor, conflictColor, fontSize);
                 nameCell.appendChild(badge);
             }
             tr.appendChild(nameCell);
 
-            const CAP = 30;   // max chips drawn in a cell before "+N more"
+            const CAP = 30;
             periods.forEach((_p, pi) => {
                 const list = rr.byPeriod.get(pi) || [];
-                const n = list.length;
-                const isConf = n >= conflictAt;
+                const val = metricOf(rr, pi);
+                const isConf = val >= conflictAt;
                 const conf = isConf ? `box-shadow:inset 0 0 0 2px ${conflictColor};` : "";
                 const td = document.createElement("td");
 
                 if (!isExp) {
-                    // collapsed: just the count, shaded by load
-                    td.textContent = n > 0 ? String(n) : "";
-                    td.title = n > 0 ? `${res.name}: ${n} item${n === 1 ? "" : "s"} — click to open` : "";
+                    td.textContent = val > 0 ? fmt(val) : "";
+                    td.title = val > 0 ? `${res.name}: ${fmt(val)} — click to open` : "";
                     td.style.cssText = `width:${colW}px;min-width:${colW}px;height:${rowH}px;text-align:center;` +
-                        `background:${loadColor(n)};color:${cellText};box-sizing:border-box;font-weight:${isConf ? 700 : 400};` +
+                        `background:${loadColor(val)};color:${cellText};box-sizing:border-box;font-weight:${isConf ? 700 : 400};` +
                         `border-bottom:1px solid ${gridColor};border-left:1px solid ${gridColor};${conf}` +
-                        (n > 0 ? "cursor:pointer;" : "");
-                    if (n > 0) td.onclick = () => { this.expanded.add(res.name); this.render(); };
+                        (list.length > 0 ? "cursor:pointer;" : "");
+                    if (list.length > 0) td.onclick = () => { this.expanded.add(res.name); this.render(); };
                 } else {
-                    // expanded: the items stacked UNDER THE DAY (in this column)
                     td.style.cssText = `width:${colW}px;min-width:${colW}px;vertical-align:top;` +
-                        `background:${loadColor(n)};color:${cellText};box-sizing:border-box;` +
-                        `border-bottom:1px solid ${gridColor};border-left:1px solid ${gridColor};${conf}` +
-                        `cursor:pointer;padding:2px;`;
-                    if (n > 0) {
+                        `background:${loadColor(val)};color:${cellText};box-sizing:border-box;` +
+                        `border-bottom:1px solid ${gridColor};border-left:1px solid ${gridColor};${conf}cursor:pointer;padding:2px;`;
+                    if (list.length > 0) {
                         const cnt = document.createElement("div");
-                        cnt.textContent = String(n);
-                        cnt.style.cssText = `text-align:center;font-weight:700;margin-bottom:2px;` +
-                            `font-size:${Math.max(7, fontSize - 1)}px;` + (isConf ? `color:${conflictColor};` : "");
+                        cnt.textContent = fmt(val);
+                        cnt.style.cssText = `text-align:center;font-weight:700;margin-bottom:2px;font-size:${Math.max(7, fontSize - 1)}px;` + (isConf ? `color:${conflictColor};` : "");
                         td.appendChild(cnt);
                         const sorted = list.slice().sort((a, b) => a.code < b.code ? -1 : 1);
                         sorted.slice(0, CAP).forEach(it => {
                             const chip = document.createElement("div");
-                            chip.textContent = `${it.code}  ${it.name}`;
-                            chip.title = `${it.code}: ${it.name}`;
-                            chip.style.cssText = `background:#fff;border:1px solid ${gridColor};border-radius:2px;` +
-                                `margin:1px 0;padding:0 3px;color:${textColor};` +
+                            const iv = sumMode ? `  ${Math.round(this.itemPeriodValue(it, pi, indexOf) * 10) / 10}` : "";
+                            chip.textContent = `${it.code}  ${it.name}${iv}`;
+                            chip.title = `${it.code}: ${it.name}${iv}`;
+                            chip.style.cssText = `background:#fff;border:1px solid ${gridColor};border-radius:2px;margin:1px 0;padding:0 3px;color:${textColor};` +
                                 `font-size:${Math.max(7, fontSize - 2)}px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
                             td.appendChild(chip);
                         });
-                        if (n > CAP) {
+                        if (list.length > CAP) {
                             const more = document.createElement("div");
-                            more.textContent = `+${n - CAP} more`;
-                            more.style.cssText = `text-align:center;color:#1a6db0;cursor:pointer;` +
-                                `font-size:${Math.max(7, fontSize - 2)}px;`;
+                            more.textContent = `+${list.length - CAP} more`;
+                            more.style.cssText = `text-align:center;color:#1a6db0;cursor:pointer;font-size:${Math.max(7, fontSize - 2)}px;`;
                             more.onclick = (ev) => {
                                 ev.stopPropagation();
                                 this.openPopover(`${res.name} — ${periods[pi].top ? periods[pi].top + " " : ""}${periods[pi].label}`,
-                                    `${n} items`, sorted.map(it => ({ code: it.code, name: it.name, extra: "" })),
+                                    `${list.length} items`, sorted.map(it => ({ code: it.code, name: it.name, extra: "" })),
                                     ev as MouseEvent, textColor, headerColor, conflictColor, fontSize);
                             };
                             td.appendChild(more);
                         }
                     }
-                    // clicking the empty part of the cell collapses the person
                     td.onclick = (ev) => { if (ev.target === td) { this.expanded.delete(res.name); this.render(); } };
                 }
                 tr.appendChild(td);
@@ -420,18 +427,18 @@ export class Visual implements IVisual {
         if (legend && s.legend.atBottom.value) container.appendChild(legend);
     }
 
-    // ---- detail popovers ----
-
     private closePopover(): void {
         if (this.popover && this.popover.parentNode) this.popover.parentNode.removeChild(this.popover);
         this.popover = null;
     }
 
     private showConflictDetail(res: Resource, byPeriod: Map<number, ItemInfo[]>, periods: Period[], conflictAt: number,
+        sumMode: boolean, indexOf: (c: number) => number,
         ev: MouseEvent, textColor: string, headerColor: string, conflictColor: string, fontSize: number): void {
         const rows: { code: string; name: string; extra: string }[] = [];
         byPeriod.forEach((list, pi) => {
-            if (list.length >= conflictAt) {
+            const metric = sumMode ? list.reduce((a, it) => a + this.itemPeriodValue(it, pi, indexOf), 0) : list.length;
+            if (metric >= conflictAt) {
                 const p = periods[pi];
                 list.slice().sort((a, b) => a.code < b.code ? -1 : 1)
                     .forEach(it => rows.push({ code: it.code, name: it.name, extra: p ? `${p.top ? p.top + " " : ""}${p.label}` : "" }));
@@ -459,18 +466,15 @@ export class Visual implements IVisual {
         head.style.cssText = `background:${headerColor};color:#fff;padding:6px 8px;display:flex;align-items:center;`;
         const ht = document.createElement("div");
         ht.style.cssText = "flex:1 1 auto;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
-        ht.textContent = title;
-        head.appendChild(ht);
+        ht.textContent = title; head.appendChild(ht);
         const close = document.createElement("div");
         close.textContent = "✕"; close.style.cssText = "cursor:pointer;padding:0 2px;";
-        close.onclick = () => this.closePopover();
-        head.appendChild(close);
+        close.onclick = () => this.closePopover(); head.appendChild(close);
         pop.appendChild(head);
 
         const sub = document.createElement("div");
         sub.style.cssText = `padding:3px 8px;color:${conflictColor};border-bottom:1px solid #EEE;`;
-        sub.textContent = subtitle;
-        pop.appendChild(sub);
+        sub.textContent = subtitle; pop.appendChild(sub);
 
         const listWrap = document.createElement("div");
         listWrap.style.cssText = "overflow:auto;padding:2px 0;";
@@ -478,8 +482,7 @@ export class Visual implements IVisual {
             const row = document.createElement("div");
             row.style.cssText = "padding:3px 8px;border-bottom:1px solid #F3F3F3;display:flex;gap:6px;";
             const code = document.createElement("span");
-            code.textContent = r.code;
-            code.style.cssText = "font-weight:600;flex:0 0 auto;color:#B21C1A;";
+            code.textContent = r.code; code.style.cssText = "font-weight:600;flex:0 0 auto;color:#B21C1A;";
             row.appendChild(code);
             const nm = document.createElement("span");
             nm.textContent = r.name + (r.extra ? `  (${r.extra})` : "");
