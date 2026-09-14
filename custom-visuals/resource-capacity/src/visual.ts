@@ -247,12 +247,18 @@ export class Visual implements IVisual {
         scroller.style.cssText = "flex:1 1 auto;overflow:auto;position:relative;";
         container.appendChild(scroller);
 
-        // Ctrl + mouse wheel zooms the date grain (day <-> week <-> month <->
-        // quarter <-> year), like the timeline. Plain wheel still scrolls the grid.
+        // Mouse wheel zooms the date grain (year <-> quarter <-> month <-> week
+        // <-> day), exactly like the timeline custom visual: wheel up = zoom in
+        // toward days, wheel down = zoom out toward years. Hold SHIFT to scroll
+        // the grid instead (or use the scrollbars).
         const order: Gran[] = ["year", "quarter", "month", "week", "day"];
+        let wheelLock = 0;
         scroller.addEventListener("wheel", (ev: WheelEvent) => {
-            if (!(ev.ctrlKey || ev.metaKey)) return;
+            if (ev.shiftKey) return;                 // shift+wheel = scroll
             ev.preventDefault();
+            const now = Date.now();
+            if (now - wheelLock < 180) return;       // one grain step per gesture
+            wheelLock = now;
             const i = order.indexOf(this.granularity);
             const ni = ev.deltaY < 0 ? Math.min(order.length - 1, i + 1) : Math.max(0, i - 1);
             if (ni !== i) { this.granularity = order[ni]; this.render(); }
@@ -321,7 +327,7 @@ export class Visual implements IVisual {
 
             const nameCell = document.createElement("th");
             nameCell.style.cssText = `position:sticky;left:0;z-index:1;width:${nameW}px;min-width:${nameW}px;height:${rowH}px;` +
-                `background:${rowBg};text-align:left;padding:0 6px;box-sizing:border-box;` +
+                `background:${rowBg};text-align:left;padding:3px 6px;box-sizing:border-box;vertical-align:top;` +
                 `border-bottom:1px solid ${gridColor};border-right:1px solid ${gridColor};font-weight:600;` +
                 `white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
             const chev = document.createElement("span");
@@ -350,55 +356,65 @@ export class Visual implements IVisual {
             }
             tr.appendChild(nameCell);
 
+            const CAP = 30;   // max chips drawn in a cell before "+N more"
             periods.forEach((_p, pi) => {
                 const list = rr.byPeriod.get(pi) || [];
                 const n = list.length;
                 const isConf = n >= conflictAt;
+                const conf = isConf ? `box-shadow:inset 0 0 0 2px ${conflictColor};` : "";
                 const td = document.createElement("td");
-                td.textContent = n > 0 ? String(n) : "";
-                td.title = n > 0 ? `${res.name}: ${n} item${n === 1 ? "" : "s"} — click for detail` : "";
-                const conf = isConf ? `box-shadow:inset 0 0 0 2px ${conflictColor};font-weight:700;` : "";
-                td.style.cssText = `width:${colW}px;min-width:${colW}px;height:${rowH}px;text-align:center;` +
-                    `background:${loadColor(n)};color:${cellText};box-sizing:border-box;` +
-                    `border-bottom:1px solid ${gridColor};border-left:1px solid ${gridColor};${conf}` +
-                    (n > 0 ? "cursor:pointer;" : "");
-                // click the number -> open the person's item rows (code + summary)
-                if (n > 0) td.onclick = () => {
-                    if (this.expanded.has(res.name)) this.expanded.delete(res.name);
-                    else this.expanded.add(res.name);
-                    this.render();
-                };
+
+                if (!isExp) {
+                    // collapsed: just the count, shaded by load
+                    td.textContent = n > 0 ? String(n) : "";
+                    td.title = n > 0 ? `${res.name}: ${n} item${n === 1 ? "" : "s"} — click to open` : "";
+                    td.style.cssText = `width:${colW}px;min-width:${colW}px;height:${rowH}px;text-align:center;` +
+                        `background:${loadColor(n)};color:${cellText};box-sizing:border-box;font-weight:${isConf ? 700 : 400};` +
+                        `border-bottom:1px solid ${gridColor};border-left:1px solid ${gridColor};${conf}` +
+                        (n > 0 ? "cursor:pointer;" : "");
+                    if (n > 0) td.onclick = () => { this.expanded.add(res.name); this.render(); };
+                } else {
+                    // expanded: the items stacked UNDER THE DAY (in this column)
+                    td.style.cssText = `width:${colW}px;min-width:${colW}px;vertical-align:top;` +
+                        `background:${loadColor(n)};color:${cellText};box-sizing:border-box;` +
+                        `border-bottom:1px solid ${gridColor};border-left:1px solid ${gridColor};${conf}` +
+                        `cursor:pointer;padding:2px;`;
+                    if (n > 0) {
+                        const cnt = document.createElement("div");
+                        cnt.textContent = String(n);
+                        cnt.style.cssText = `text-align:center;font-weight:700;margin-bottom:2px;` +
+                            `font-size:${Math.max(7, fontSize - 1)}px;` + (isConf ? `color:${conflictColor};` : "");
+                        td.appendChild(cnt);
+                        const sorted = list.slice().sort((a, b) => a.code < b.code ? -1 : 1);
+                        sorted.slice(0, CAP).forEach(it => {
+                            const chip = document.createElement("div");
+                            chip.textContent = `${it.code}  ${it.name}`;
+                            chip.title = `${it.code}: ${it.name}`;
+                            chip.style.cssText = `background:#fff;border:1px solid ${gridColor};border-radius:2px;` +
+                                `margin:1px 0;padding:0 3px;color:${textColor};` +
+                                `font-size:${Math.max(7, fontSize - 2)}px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
+                            td.appendChild(chip);
+                        });
+                        if (n > CAP) {
+                            const more = document.createElement("div");
+                            more.textContent = `+${n - CAP} more`;
+                            more.style.cssText = `text-align:center;color:#1a6db0;cursor:pointer;` +
+                                `font-size:${Math.max(7, fontSize - 2)}px;`;
+                            more.onclick = (ev) => {
+                                ev.stopPropagation();
+                                this.openPopover(`${res.name} — ${periods[pi].top ? periods[pi].top + " " : ""}${periods[pi].label}`,
+                                    `${n} items`, sorted.map(it => ({ code: it.code, name: it.name, extra: "" })),
+                                    ev as MouseEvent, textColor, headerColor, conflictColor, fontSize);
+                            };
+                            td.appendChild(more);
+                        }
+                    }
+                    // clicking the empty part of the cell collapses the person
+                    td.onclick = (ev) => { if (ev.target === td) { this.expanded.delete(res.name); this.render(); } };
+                }
                 tr.appendChild(td);
             });
             tbody.appendChild(tr);
-
-            if (isExp) {
-                const items = Array.from(res.items.values()).sort((a, b) => a.name < b.name ? -1 : (a.name > b.name ? 1 : 0));
-                items.forEach(it => {
-                    const seen = new Set<number>();
-                    it.days.forEach(c => seen.add(indexOf(c)));
-                    const itr = document.createElement("tr");
-                    const ic = document.createElement("th");
-                    ic.style.cssText = `position:sticky;left:0;z-index:1;width:${nameW}px;min-width:${nameW}px;height:${rowH}px;` +
-                        `background:${rowBg};text-align:left;padding:0 6px 0 22px;box-sizing:border-box;` +
-                        `border-bottom:1px solid ${gridColor};border-right:1px solid ${gridColor};font-weight:400;color:${textColor};` +
-                        `white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
-                    ic.textContent = `${it.code}: ${it.name}`; ic.title = `${it.code}: ${it.name}`;
-                    itr.appendChild(ic);
-                    periods.forEach((_p, pi) => {
-                        const active = seen.has(pi);
-                        const td = document.createElement("td");
-                        td.textContent = active ? it.code : "";
-                        td.title = active ? `${it.code}: ${it.name}` : "";
-                        td.style.cssText = `width:${colW}px;min-width:${colW}px;height:${rowH}px;text-align:center;` +
-                            `font-size:${Math.max(7, fontSize - 2)}px;color:#666;box-sizing:border-box;background:${active ? lowColor : rowBg};` +
-                            `border-bottom:1px solid ${gridColor};border-left:1px solid ${gridColor};` +
-                            `white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
-                        itr.appendChild(td);
-                    });
-                    tbody.appendChild(itr);
-                });
-            }
         });
 
         if (legend && s.legend.atBottom.value) container.appendChild(legend);
