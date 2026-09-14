@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "allowJs": false,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "target": "ES2017",
+    "module": "ES2015",
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "outDir": "./.tmp/build/",
+    "declaration": true,
+    "lib": [ "ES2017", "DOM" ],
+    "skipLibCheck": true
+  },
+  "files": [ "./src/visual.ts" ]
+}

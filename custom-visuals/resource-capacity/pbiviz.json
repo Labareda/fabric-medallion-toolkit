@@ -1,0 +1,19 @@
+{
+  "visual": {
+    "name": "resourceCapacityHeatmap",
+    "displayName": "Resource Capacity Heatmap",
+    "guid": "ResourceCapacityHeatmapA7282070C6B65C7D84F719B356A3CE88",
+    "visualClassName": "Visual",
+    "version": "1.0.0.0",
+    "description": "People as rows, weeks as columns; each cell shows how many items a person has that week, shaded by load, expandable to the individual items. A free resource capacity planner.",
+    "supportUrl": "https://community.fabric.microsoft.com/",
+    "gitHubUrl": ""
+  },
+  "apiVersion": "5.11.0",
+  "author": { "name": "Ana", "email": "anacarvalmeida@gmail.com" },
+  "assets": { "icon": "assets/icon.png" },
+  "style": "style/visual.less",
+  "capabilities": "capabilities.json",
+  "dependencies": null,
+  "stringResources": []
+}
