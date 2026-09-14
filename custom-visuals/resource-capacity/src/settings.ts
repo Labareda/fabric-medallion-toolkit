@@ -12,7 +12,7 @@ class AppearanceCard extends FormattingSettingsCard {
     textColor = new formattingSettings.ColorPicker({ name: "textColor", displayName: "Text colour", value: { value: "#333333" } });
     headerColor = new formattingSettings.ColorPicker({ name: "headerColor", displayName: "Header colour", value: { value: "#B21C1A" } });
     nameWidth = new formattingSettings.NumUpDown({ name: "nameWidth", displayName: "Name column width", value: 200 });
-    weekWidth = new formattingSettings.NumUpDown({ name: "weekWidth", displayName: "Week column width", value: 96 });
+    weekWidth = new formattingSettings.NumUpDown({ name: "weekWidth", displayName: "Column width", value: 50 });
 
     name: string = "appearance";
     displayName: string = "Appearance";

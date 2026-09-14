@@ -8,9 +8,12 @@ import DataView = powerbi.DataView;
 import IVisual = powerbi.extensibility.visual.IVisual;
 import VisualConstructorOptions = powerbi.extensibility.visual.VisualConstructorOptions;
 import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
+import IVisualHost = powerbi.extensibility.visual.IVisualHost;
+import ISelectionManager = powerbi.extensibility.ISelectionManager;
+import ISelectionId = powerbi.visuals.ISelectionId;
 
 interface ItemInfo { code: string; name: string; days: Set<number>; }   // days = canonical y*10000+m*100+d
-interface Resource { name: string; items: Map<string, ItemInfo>; }
+interface Resource { name: string; items: Map<string, ItemInfo>; selectionIds: ISelectionId[]; }
 interface Period { start: Date; label: string; top: string; }
 
 type Gran = "year" | "quarter" | "month" | "week" | "day";
@@ -25,6 +28,8 @@ const H2 = 22;
 
 export class Visual implements IVisual {
     private target: HTMLElement;
+    private host: IVisualHost;
+    private selectionManager: ISelectionManager;
     private fmtService: FormattingSettingsService;
     private settings: VisualFormattingSettingsModel;
 
@@ -32,7 +37,7 @@ export class Visual implements IVisual {
     private minDate: Date | null = null;
     private maxDate: Date | null = null;
     private expanded: Set<string> = new Set<string>();
-    private granularity: Gran = "week";
+    private granularity: Gran = "day";
     private dataToken = "";
     private popover: HTMLElement | null = null;
     private vw = 0; private vh = 0;
@@ -40,6 +45,8 @@ export class Visual implements IVisual {
     constructor(options: VisualConstructorOptions) {
         this.target = options.element;
         this.target.style.overflow = "hidden";
+        this.host = options.host;
+        this.selectionManager = this.host.createSelectionManager();
         this.fmtService = new FormattingSettingsService();
     }
 
@@ -75,20 +82,27 @@ export class Visual implements IVisual {
         };
 
         const byName = new Map<string, Resource>();
-        for (const r of dv.table.rows) {
+        const table = dv.table;
+        table.rows.forEach((r, rowIndex) => {
             const name = iRes >= 0 ? asStr(r[iRes]) : "";
             const d = iDate >= 0 ? asDate(r[iDate]) : undefined;
             const code = iCode >= 0 ? asStr(r[iCode]) : "";
-            if (name === "" || !d || code === "") continue;
+            if (name === "" || !d || code === "") return;
             const dm = new Date(d.getFullYear(), d.getMonth(), d.getDate());
             if (!this.minDate || dm < this.minDate) this.minDate = dm;
             if (!this.maxDate || dm > this.maxDate) this.maxDate = dm;
             let res = byName.get(name);
-            if (!res) { res = { name, items: new Map() }; byName.set(name, res); }
+            if (!res) { res = { name, items: new Map(), selectionIds: [] }; byName.set(name, res); }
+            // one selection id per source row -> selecting a person cross-filters
+            // every allocation row that belongs to them (the count comes straight
+            // from these fact rows, so it always matches slicer-filtered data).
+            res.selectionIds.push(
+                this.host.createSelectionIdBuilder().withTable(table, rowIndex).createSelectionId()
+            );
             let item = res.items.get(code);
             if (!item) { item = { code, name: iName >= 0 ? asStr(r[iName]) : code, days: new Set() }; res.items.set(code, item); }
             item.days.add(Visual.ymd(dm));
-        }
+        });
         this.resources = Array.from(byName.values()).sort((a, b) => a.name < b.name ? -1 : (a.name > b.name ? 1 : 0));
     }
 
@@ -103,9 +117,14 @@ export class Visual implements IVisual {
 
         if (g === "day") {
             const base = Date.UTC(min.getFullYear(), min.getMonth(), min.getDate());
+            const WD = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+            const weekTop = (d: Date) => {
+                const s = Visual.monday(d), e = new Date(s.getTime() + 6 * MS_DAY);
+                return `${monthYear(s)} ${s.getDate()}–${e.getDate()}`;
+            };
             for (let t = min.getTime(); t <= max.getTime(); t += MS_DAY) {
                 const d = new Date(t);
-                periods.push({ start: d, label: String(d.getDate()), top: monthYear(d) });
+                periods.push({ start: d, label: `${WD[(d.getDay() + 6) % 7]} ${d.getDate()}`, top: weekTop(d) });
             }
             indexOf = (c) => { const d = Visual.fromYmd(c); return Math.round((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - base) / MS_DAY); };
         } else if (g === "week") {
@@ -228,6 +247,17 @@ export class Visual implements IVisual {
         scroller.style.cssText = "flex:1 1 auto;overflow:auto;position:relative;";
         container.appendChild(scroller);
 
+        // Ctrl + mouse wheel zooms the date grain (day <-> week <-> month <->
+        // quarter <-> year), like the timeline. Plain wheel still scrolls the grid.
+        const order: Gran[] = ["year", "quarter", "month", "week", "day"];
+        scroller.addEventListener("wheel", (ev: WheelEvent) => {
+            if (!(ev.ctrlKey || ev.metaKey)) return;
+            ev.preventDefault();
+            const i = order.indexOf(this.granularity);
+            const ni = ev.deltaY < 0 ? Math.min(order.length - 1, i + 1) : Math.max(0, i - 1);
+            if (ni !== i) { this.granularity = order[ni]; this.render(); }
+        }, { passive: false });
+
         const table = document.createElement("table");
         table.style.cssText = `border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:${fontSize}px;color:${textColor};`;
         scroller.appendChild(table);
@@ -301,7 +331,13 @@ export class Visual implements IVisual {
             chev.onclick = () => { if (isExp) this.expanded.delete(res.name); else this.expanded.add(res.name); this.render(); };
             nameCell.appendChild(chev);
             const nm = document.createElement("span");
-            nm.textContent = res.name; nm.title = res.name;
+            nm.textContent = res.name;
+            nm.title = res.name + "  —  click to cross-filter other visuals";
+            nm.style.cssText = "cursor:pointer;";
+            nm.onclick = (ev) => {
+                ev.stopPropagation();
+                this.selectionManager.select(res.selectionIds, (ev as MouseEvent).ctrlKey || (ev as MouseEvent).metaKey);
+            };
             nameCell.appendChild(nm);
             if (rr.conflicts > 0) {
                 const badge = document.createElement("span");
@@ -326,7 +362,12 @@ export class Visual implements IVisual {
                     `background:${loadColor(n)};color:${cellText};box-sizing:border-box;` +
                     `border-bottom:1px solid ${gridColor};border-left:1px solid ${gridColor};${conf}` +
                     (n > 0 ? "cursor:pointer;" : "");
-                if (n > 0) td.onclick = (ev) => this.showCellDetail(res.name, periods[pi], list, ev as MouseEvent, textColor, headerColor, conflictColor, fontSize, isConf);
+                // click the number -> open the person's item rows (code + summary)
+                if (n > 0) td.onclick = () => {
+                    if (this.expanded.has(res.name)) this.expanded.delete(res.name);
+                    else this.expanded.add(res.name);
+                    this.render();
+                };
                 tr.appendChild(td);
             });
             tbody.appendChild(tr);
@@ -342,7 +383,7 @@ export class Visual implements IVisual {
                         `background:${rowBg};text-align:left;padding:0 6px 0 22px;box-sizing:border-box;` +
                         `border-bottom:1px solid ${gridColor};border-right:1px solid ${gridColor};font-weight:400;color:${textColor};` +
                         `white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
-                    ic.textContent = it.name; ic.title = `${it.code}: ${it.name}`;
+                    ic.textContent = `${it.code}: ${it.name}`; ic.title = `${it.code}: ${it.name}`;
                     itr.appendChild(ic);
                     periods.forEach((_p, pi) => {
                         const active = seen.has(pi);
@@ -368,14 +409,6 @@ export class Visual implements IVisual {
     private closePopover(): void {
         if (this.popover && this.popover.parentNode) this.popover.parentNode.removeChild(this.popover);
         this.popover = null;
-    }
-
-    private showCellDetail(resName: string, period: Period, items: ItemInfo[], ev: MouseEvent,
-        textColor: string, headerColor: string, conflictColor: string, fontSize: number, isConf: boolean): void {
-        const rows = items.slice().sort((a, b) => a.code < b.code ? -1 : 1).map(it => ({ code: it.code, name: it.name, extra: "" }));
-        this.openPopover(`${resName} — ${period.top ? period.top + " " : ""}${period.label}`,
-            `${items.length} item${items.length === 1 ? "" : "s"}${isConf ? " · conflict" : ""}`,
-            rows, ev, textColor, headerColor, conflictColor, fontSize);
     }
 
     private showConflictDetail(res: Resource, byPeriod: Map<number, ItemInfo[]>, periods: Period[], conflictAt: number,
