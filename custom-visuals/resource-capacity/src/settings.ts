@@ -64,31 +64,6 @@ class DetailCard extends FormattingSettingsCard {
     slices: FormattingSettingsSlice[] = [ this.showValue, this.chipBackground, this.chipTextColor, this.chipBorder ];
 }
 
-/** Which days of the week to show (Day view only). */
-class DaysCard extends FormattingSettingsCard {
-    mon = new formattingSettings.ToggleSwitch({ name: "mon", displayName: "Monday", value: true });
-    tue = new formattingSettings.ToggleSwitch({ name: "tue", displayName: "Tuesday", value: true });
-    wed = new formattingSettings.ToggleSwitch({ name: "wed", displayName: "Wednesday", value: true });
-    thu = new formattingSettings.ToggleSwitch({ name: "thu", displayName: "Thursday", value: true });
-    fri = new formattingSettings.ToggleSwitch({ name: "fri", displayName: "Friday", value: true });
-    sat = new formattingSettings.ToggleSwitch({ name: "sat", displayName: "Saturday", value: false });
-    sun = new formattingSettings.ToggleSwitch({ name: "sun", displayName: "Sunday", value: false });
-
-    name: string = "days";
-    displayName: string = "Days of week";
-    slices: FormattingSettingsSlice[] = [ this.mon, this.tue, this.wed, this.thu, this.fri, this.sat, this.sun ];
-}
-
-class ConflictsCard extends FormattingSettingsCard {
-    conflictAt = new formattingSettings.NumUpDown({ name: "conflictAt", displayName: "Conflict when items in a period ≥", value: 5 });
-    minConflicts = new formattingSettings.NumUpDown({ name: "minConflicts", displayName: "Only show people with ≥ N conflicts", value: 0 });
-    conflictColor = new formattingSettings.ColorPicker({ name: "conflictColor", displayName: "Conflict highlight", value: { value: "#C62828" } });
-
-    name: string = "conflicts";
-    displayName: string = "Conflicts";
-    slices: FormattingSettingsSlice[] = [ this.conflictAt, this.minConflicts, this.conflictColor ];
-}
-
 class GridCard extends FormattingSettingsCard {
     gridColor = new formattingSettings.ColorPicker({ name: "gridColor", displayName: "Grid line colour", value: { value: "#E4E4E4" } });
     bandedRows = new formattingSettings.ToggleSwitch({ name: "bandedRows", displayName: "Banded rows", value: false });
@@ -113,12 +88,10 @@ class LegendCard extends FormattingSettingsCard {
 export class VisualFormattingSettingsModel extends FormattingSettingsModel {
     metric = new MetricCard();
     detail = new DetailCard();
-    days = new DaysCard();
     appearance = new AppearanceCard();
     thresholds = new ThresholdsCard();
-    conflicts = new ConflictsCard();
     grid = new GridCard();
     legend = new LegendCard();
 
-    cards: FormattingSettingsCard[] = [ this.metric, this.detail, this.days, this.appearance, this.thresholds, this.conflicts, this.grid, this.legend ];
+    cards: FormattingSettingsCard[] = [ this.metric, this.detail, this.appearance, this.thresholds, this.grid, this.legend ];
 }

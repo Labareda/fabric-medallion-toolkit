@@ -31,6 +31,7 @@ export class Visual implements IVisual {
     private resources: Resource[] = [];
     private table: powerbi.DataViewTable | null = null;
     private hasValue = false;
+    private presentDays: Set<number> = new Set<number>();   // canonical days actually in the (filtered) data
     private minDate: Date | null = null;
     private maxDate: Date | null = null;
     private expanded: Set<string> = new Set<string>();
@@ -66,6 +67,7 @@ export class Visual implements IVisual {
 
     private build(dv: DataView): void {
         this.resources = []; this.minDate = null; this.maxDate = null; this.hasValue = false; this.table = null;
+        this.presentDays = new Set<number>();
         if (!dv || !dv.table || !dv.table.columns || !dv.table.rows) return;
         this.table = dv.table;
         const cols = dv.table.columns;
@@ -101,6 +103,7 @@ export class Visual implements IVisual {
             // main cause of the slowness).
             item.rows.push(rowIndex);
             const c = Visual.ymd(dm);
+            this.presentDays.add(c);
             const v = iValue >= 0 ? asNum(r[iValue]) : 0;
             item.days.set(c, (item.days.get(c) || 0) + v);
         });
@@ -114,59 +117,38 @@ export class Visual implements IVisual {
         this.selectionManager.select(ids, multi);
     }
 
-    private buildPeriods(g: Gran): { periods: Period[]; indexOf: (c: number) => number; nowIndex: number } {
-        const periods: Period[] = [];
+    // Columns come from the days ACTUALLY PRESENT in the (filtered) data -- so a
+    // Date / DayName slicer removes columns natively, and empty days never show.
+    private periodModel(g: Gran): { displayed: { p: Period; pi: number }[]; indexOf: (c: number) => number; nowIndex: number } {
         const min = this.minDate as Date, max = this.maxDate as Date;
         const monthYear = (d: Date) => d.toLocaleDateString(undefined, { month: "short", year: "numeric" });
-        const shortMonth = (d: Date) => d.toLocaleDateString(undefined, { month: "short" });
-        let indexOf: (c: number) => number;
+        const WD = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+        let indexOf: (c: number) => number, startOf: (c: number) => Date, labelOf: (d: Date) => string, topOf: (d: Date) => string;
 
         if (g === "day") {
             const base = Date.UTC(min.getFullYear(), min.getMonth(), min.getDate());
-            const WD = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
-            const weekTop = (d: Date) => {
-                const s = Visual.monday(d), e = new Date(s.getTime() + 6 * MS_DAY);
-                return `${monthYear(s)} ${s.getDate()}–${e.getDate()}`;
-            };
-            for (let t = min.getTime(); t <= max.getTime(); t += MS_DAY) {
-                const d = new Date(t);
-                periods.push({ start: d, label: `${WD[(d.getDay() + 6) % 7]} ${d.getDate()}`, top: weekTop(d) });
-            }
             indexOf = (c) => { const d = Visual.fromYmd(c); return Math.round((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - base) / MS_DAY); };
-        } else if (g === "week") {
+            startOf = (c) => Visual.fromYmd(c);
+            labelOf = (d) => `${WD[(d.getDay() + 6) % 7]} ${d.getDate()}`;
+            topOf = (d) => { const s = Visual.monday(d), e = new Date(s.getTime() + 6 * MS_DAY); return `${monthYear(s)} ${s.getDate()}–${e.getDate()}`; };
+        } else {
             const first = Visual.monday(min);
-            for (let t = first.getTime(); t <= max.getTime(); t += 7 * MS_DAY) {
-                const s = new Date(t), e = new Date(t + 6 * MS_DAY);
-                periods.push({ start: s, label: `${s.getDate()}–${e.getDate()}`, top: monthYear(s) });
-            }
             const fb = Date.UTC(first.getFullYear(), first.getMonth(), first.getDate());
             indexOf = (c) => { const m = Visual.monday(Visual.fromYmd(c)); return Math.round((Date.UTC(m.getFullYear(), m.getMonth(), m.getDate()) - fb) / (7 * MS_DAY)); };
-        } else if (g === "month") {
-            const baseY = min.getFullYear(), baseM = min.getMonth();
-            let y = baseY, m = baseM;
-            while (y < max.getFullYear() || (y === max.getFullYear() && m <= max.getMonth())) {
-                const d = new Date(y, m, 1);
-                periods.push({ start: d, label: shortMonth(d), top: String(y) });
-                m++; if (m > 11) { m = 0; y++; }
-            }
-            indexOf = (c) => { const d = Visual.fromYmd(c); return (d.getFullYear() - baseY) * 12 + (d.getMonth() - baseM); };
-        } else if (g === "quarter") {
-            const baseY = min.getFullYear(), baseQ = Math.floor(min.getMonth() / 3);
-            const lastIdx = (max.getFullYear() - baseY) * 4 + (Math.floor(max.getMonth() / 3) - baseQ);
-            for (let i = 0; i <= lastIdx; i++) {
-                const y = baseY + Math.floor((baseQ + i) / 4), q = (baseQ + i) % 4;
-                periods.push({ start: new Date(y, q * 3, 1), label: `Q${q + 1}`, top: String(y) });
-            }
-            indexOf = (c) => { const d = Visual.fromYmd(c); return (d.getFullYear() - baseY) * 4 + (Math.floor(d.getMonth() / 3) - baseQ); };
-        } else {
-            const baseY = min.getFullYear();
-            for (let y = baseY; y <= max.getFullYear(); y++) periods.push({ start: new Date(y, 0, 1), label: String(y), top: "" });
-            indexOf = (c) => Visual.fromYmd(c).getFullYear() - baseY;
+            startOf = (c) => Visual.monday(Visual.fromYmd(c));
+            labelOf = (d) => { const e = new Date(d.getTime() + 6 * MS_DAY); return `${d.getDate()}–${e.getDate()}`; };
+            topOf = (d) => monthYear(d);
         }
 
+        const map = new Map<number, Period>();
+        this.presentDays.forEach(c => {
+            const pi = indexOf(c);
+            if (!map.has(pi)) { const s = startOf(c); map.set(pi, { start: s, label: labelOf(s), top: topOf(s) }); }
+        });
+        const displayed = Array.from(map.entries()).sort((a, b) => a[0] - b[0]).map(([pi, p]) => ({ p, pi }));
         const today = new Date();
         const nowIndex = (today >= min && today <= max) ? indexOf(Visual.ymd(today)) : -999;
-        return { periods, indexOf, nowIndex };
+        return { displayed, indexOf, nowIndex };
     }
 
     private itemPeriodValue(it: ItemInfo, pi: number, indexOf: (c: number) => number): number {
@@ -212,22 +194,15 @@ export class Visual implements IVisual {
         const zeroColor = s.thresholds.zeroColor.value.value, lowColor = s.thresholds.lowColor.value.value;
         const midColor = s.thresholds.midColor.value.value, highColor = s.thresholds.highColor.value.value;
         const cellText = s.thresholds.cellTextColor.value.value;
-        const conflictAt = s.conflicts.conflictAt.value, minConflicts = s.conflicts.minConflicts.value;
-        const conflictColor = s.conflicts.conflictColor.value.value;
         const loadColor = (n: number) => n <= 0 ? zeroColor : (n <= lowMax ? lowColor : (n <= midMax ? midColor : highColor));
         const fmt = (v: number) => sumMode ? String(Math.round(v * 10) / 10) : String(v);
 
         const g: Gran = s.appearance.dayView.value ? "day" : "week";
         const colW = Math.max(28, s.appearance.weekWidth.value);
-        const { periods, indexOf, nowIndex } = this.buildPeriods(g);
-        // which day columns to show (Day view): per-weekday toggles. getDay(): 0=Sun..6=Sat
-        const dw = s.days;
-        const dayOn = [dw.sun.value, dw.mon.value, dw.tue.value, dw.wed.value, dw.thu.value, dw.fri.value, dw.sat.value];
-        const displayed = periods.map((p, pi) => ({ p, pi }))
-            .filter(x => g !== "day" || dayOn[x.p.start.getDay()]);
+        const { displayed, indexOf, nowIndex } = this.periodModel(g);
 
-        interface RR { res: Resource; byPeriod: Map<number, ItemInfo[]>; byValue: Map<number, number>; conflicts: number; }
-        const rrs: RR[] = [];
+        interface RR { res: Resource; byPeriod: Map<number, ItemInfo[]>; byValue: Map<number, number>; }
+        const visibleRRs: RR[] = [];
         this.resources.forEach(res => {
             const byPeriod = new Map<number, ItemInfo[]>();
             const byValue = new Map<number, number>();
@@ -239,12 +214,8 @@ export class Visual implements IVisual {
                     byValue.set(pi, (byValue.get(pi) || 0) + val);
                 });
             });
-            const metric = (pi: number) => sumMode ? (byValue.get(pi) || 0) : (byPeriod.get(pi) ? byPeriod.get(pi)!.length : 0);
-            let conflicts = 0;
-            byPeriod.forEach((_l, pi) => { if (metric(pi) >= conflictAt) conflicts++; });
-            rrs.push({ res, byPeriod, byValue, conflicts });
+            visibleRRs.push({ res, byPeriod, byValue });
         });
-        const visibleRRs = rrs.filter(rr => rr.conflicts >= minConflicts);
         const metricOf = (rr: RR, pi: number) => sumMode ? (rr.byValue.get(pi) || 0) : (rr.byPeriod.get(pi) ? rr.byPeriod.get(pi)!.length : 0);
 
         const container = document.createElement("div");
@@ -252,7 +223,7 @@ export class Visual implements IVisual {
             `font-family:'Segoe UI',sans-serif;box-sizing:border-box;overflow:hidden;`;
         el.appendChild(container);
 
-        const legend = s.legend.show.value ? this.buildLegend(fontSize, textColor, lowMax, midMax, lowColor, midColor, highColor, conflictColor) : null;
+        const legend = s.legend.show.value ? this.buildLegend(fontSize, textColor, lowMax, midMax, lowColor, midColor, highColor) : null;
         if (legend && !s.legend.atBottom.value) container.appendChild(legend);
 
         const scroller = document.createElement("div");
@@ -337,41 +308,30 @@ export class Visual implements IVisual {
                 this.selectRows(Array.from(res.items.values()).map(it => it.rows[0]), (ev as MouseEvent).ctrlKey || (ev as MouseEvent).metaKey);
             };
             nameCell.appendChild(nm);
-            if (rr.conflicts > 0) {
-                const badge = document.createElement("span");
-                badge.textContent = String(rr.conflicts);
-                badge.title = `${rr.conflicts} conflict period(s) — click for detail`;
-                badge.style.cssText = `margin-left:6px;padding:0 5px;border-radius:8px;background:${conflictColor};` +
-                    `color:#fff;font-size:${Math.max(7, fontSize - 2)}px;cursor:pointer;`;
-                badge.onclick = (ev) => this.showConflictDetail(res, rr.byPeriod, periods, conflictAt, sumMode, indexOf, ev as MouseEvent, textColor, headerColor, conflictColor, fontSize);
-                nameCell.appendChild(badge);
-            }
             tr.appendChild(nameCell);
 
             const CAP = 30;
-            displayed.forEach(({ pi }) => {
+            displayed.forEach(({ p, pi }) => {
                 const list = rr.byPeriod.get(pi) || [];
                 const val = metricOf(rr, pi);
-                const isConf = val >= conflictAt;
-                const conf = isConf ? `box-shadow:inset 0 0 0 2px ${conflictColor};` : "";
                 const td = document.createElement("td");
 
                 if (!isExp) {
                     td.textContent = val > 0 ? fmt(val) : "";
                     td.title = val > 0 ? `${res.name}: ${fmt(val)} — click to open` : "";
                     td.style.cssText = `width:${colW}px;min-width:${colW}px;height:${rowH}px;text-align:center;` +
-                        `background:${loadColor(val)};color:${cellText};box-sizing:border-box;font-weight:${isConf ? 700 : 400};` +
-                        `border-bottom:1px solid ${gridColor};border-left:1px solid ${gridColor};${conf}` +
+                        `background:${loadColor(val)};color:${cellText};box-sizing:border-box;` +
+                        `border-bottom:1px solid ${gridColor};border-left:1px solid ${gridColor};` +
                         (list.length > 0 ? "cursor:pointer;" : "");
                     if (list.length > 0) td.onclick = () => { this.expanded.add(res.name); this.render(); };
                 } else {
                     td.style.cssText = `width:${colW}px;min-width:${colW}px;vertical-align:top;` +
                         `background:${loadColor(val)};color:${cellText};box-sizing:border-box;` +
-                        `border-bottom:1px solid ${gridColor};border-left:1px solid ${gridColor};${conf}cursor:pointer;padding:2px;`;
+                        `border-bottom:1px solid ${gridColor};border-left:1px solid ${gridColor};cursor:pointer;padding:2px;`;
                     if (list.length > 0) {
                         const cnt = document.createElement("div");
                         cnt.textContent = fmt(val);
-                        cnt.style.cssText = `text-align:center;font-weight:700;margin-bottom:2px;font-size:${Math.max(7, fontSize - 1)}px;` + (isConf ? `color:${conflictColor};` : "");
+                        cnt.style.cssText = `text-align:center;font-weight:700;margin-bottom:2px;font-size:${Math.max(7, fontSize - 1)}px;`;
                         td.appendChild(cnt);
                         const sorted = list.slice().sort((a, b) => a.code < b.code ? -1 : 1);
                         sorted.slice(0, CAP).forEach(it => {
@@ -397,9 +357,9 @@ export class Visual implements IVisual {
                             more.style.cssText = `text-align:center;color:#1a6db0;cursor:pointer;font-size:${Math.max(7, fontSize - 2)}px;`;
                             more.onclick = (ev) => {
                                 ev.stopPropagation();
-                                this.openPopover(`${res.name} — ${periods[pi].top ? periods[pi].top + " " : ""}${periods[pi].label}`,
+                                this.openPopover(`${res.name} — ${p.top ? p.top + " " : ""}${p.label}`,
                                     `${list.length} items`, sorted.map(it => ({ code: it.code, name: this.itemLabel(it), extra: "" })),
-                                    ev as MouseEvent, textColor, headerColor, conflictColor, fontSize);
+                                    ev as MouseEvent, textColor, headerColor, fontSize);
                             };
                             td.appendChild(more);
                         }
@@ -419,24 +379,8 @@ export class Visual implements IVisual {
         this.popover = null;
     }
 
-    private showConflictDetail(res: Resource, byPeriod: Map<number, ItemInfo[]>, periods: Period[], conflictAt: number,
-        sumMode: boolean, indexOf: (c: number) => number,
-        ev: MouseEvent, textColor: string, headerColor: string, conflictColor: string, fontSize: number): void {
-        const rows: { code: string; name: string; extra: string }[] = [];
-        byPeriod.forEach((list, pi) => {
-            const metric = sumMode ? list.reduce((a, it) => a + this.itemPeriodValue(it, pi, indexOf), 0) : list.length;
-            if (metric >= conflictAt) {
-                const p = periods[pi];
-                list.slice().sort((a, b) => a.code < b.code ? -1 : 1)
-                    .forEach(it => rows.push({ code: it.code, name: this.itemLabel(it), extra: p ? `${p.top ? p.top + " " : ""}${p.label}` : "" }));
-            }
-        });
-        this.openPopover(`${res.name} — conflicts`, `${rows.length} item-instances in conflict periods`,
-            rows, ev, textColor, headerColor, conflictColor, fontSize);
-    }
-
     private openPopover(title: string, subtitle: string, rows: { code: string; name: string; extra: string }[],
-        ev: MouseEvent, textColor: string, headerColor: string, conflictColor: string, fontSize: number): void {
+        ev: MouseEvent, textColor: string, headerColor: string, fontSize: number): void {
         this.closePopover();
         ev.stopPropagation();
         const pop = document.createElement("div");
@@ -460,7 +404,7 @@ export class Visual implements IVisual {
         pop.appendChild(head);
 
         const sub = document.createElement("div");
-        sub.style.cssText = `padding:3px 8px;color:${conflictColor};border-bottom:1px solid #EEE;`;
+        sub.style.cssText = `padding:3px 8px;color:#888;border-bottom:1px solid #EEE;`;
         sub.textContent = subtitle; pop.appendChild(sub);
 
         const listWrap = document.createElement("div");
@@ -489,16 +433,16 @@ export class Visual implements IVisual {
     }
 
     private buildLegend(fontSize: number, textColor: string, lowMax: number, midMax: number,
-        lowColor: string, midColor: string, highColor: string, conflictColor: string): HTMLElement {
+        lowColor: string, midColor: string, highColor: string): HTMLElement {
         const legend = document.createElement("div");
         legend.style.cssText = `flex:0 0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;` +
             `padding:4px 10px;box-sizing:border-box;font-size:${fontSize}px;color:${textColor};`;
-        const item = (color: string, text: string, outline?: boolean) => {
+        const item = (color: string, text: string) => {
             const wrap = document.createElement("div");
             wrap.style.cssText = "display:flex;align-items:center;gap:5px;";
             const box = document.createElement("span");
             box.style.cssText = `width:12px;height:12px;border-radius:2px;background:${color};display:inline-block;flex:0 0 12px;` +
-                (outline ? `box-shadow:inset 0 0 0 2px ${conflictColor};` : "border:1px solid rgba(0,0,0,.12);");
+                "border:1px solid rgba(0,0,0,.12);";
             wrap.appendChild(box);
             const t = document.createElement("span"); t.textContent = text; wrap.appendChild(t);
             legend.appendChild(wrap);
@@ -506,7 +450,6 @@ export class Visual implements IVisual {
         item(lowColor, `1–${lowMax}`);
         item(midColor, `${lowMax + 1}–${midMax}`);
         item(highColor, `${midMax + 1}+`);
-        item(highColor, "conflict", true);
         return legend;
     }
 

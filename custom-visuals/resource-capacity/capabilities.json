@@ -37,17 +37,6 @@
         "chipBorder": { "type": { "fill": { "solid": { "color": true } } } }
       }
     },
-    "days": {
-      "properties": {
-        "mon": { "type": { "bool": true } },
-        "tue": { "type": { "bool": true } },
-        "wed": { "type": { "bool": true } },
-        "thu": { "type": { "bool": true } },
-        "fri": { "type": { "bool": true } },
-        "sat": { "type": { "bool": true } },
-        "sun": { "type": { "bool": true } }
-      }
-    },
     "appearance": {
       "properties": {
         "dayView": { "type": { "bool": true } },
