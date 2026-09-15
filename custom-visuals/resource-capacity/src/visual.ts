@@ -288,25 +288,23 @@ export class Visual implements IVisual {
             const tr = document.createElement("tr");
 
             const nameCell = document.createElement("th");
+            nameCell.title = "Click to expand / collapse";
             nameCell.style.cssText = `position:sticky;left:0;z-index:1;width:${nameW}px;min-width:${nameW}px;height:${rowH}px;` +
-                `background:${rowBg};text-align:left;padding:3px 6px;box-sizing:border-box;vertical-align:top;` +
+                `background:${rowBg};text-align:left;padding:3px 6px;box-sizing:border-box;vertical-align:top;cursor:pointer;` +
                 `border-bottom:1px solid ${gridColor};border-right:1px solid ${gridColor};font-weight:600;` +
                 `white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
+            // click the NAME to expand / collapse the person
+            nameCell.onclick = () => {
+                if (res.items.size === 0) return;
+                if (isExp) this.expanded.delete(res.name); else this.expanded.add(res.name);
+                this.render();
+            };
             const chev = document.createElement("span");
             chev.textContent = res.items.size > 0 ? (isExp ? "▼ " : "▶ ") : "";
-            chev.style.cssText = "cursor:pointer;color:#888;user-select:none;";
-            chev.onclick = () => { if (isExp) this.expanded.delete(res.name); else this.expanded.add(res.name); this.render(); };
+            chev.style.cssText = "color:#888;user-select:none;";
             nameCell.appendChild(chev);
             const nm = document.createElement("span");
             nm.textContent = res.name;
-            nm.title = res.name + "  —  click to cross-filter other visuals (Ctrl+click to multi-select)";
-            nm.style.cssText = "cursor:pointer;";
-            nm.onclick = (ev) => {
-                ev.stopPropagation();
-                // one representative row per item keeps the id count small but still
-                // covers every issue of this person for cross-filtering.
-                this.selectRows(Array.from(res.items.values()).map(it => it.rows[0]), (ev as MouseEvent).ctrlKey || (ev as MouseEvent).metaKey);
-            };
             nameCell.appendChild(nm);
             tr.appendChild(nameCell);
 
@@ -316,20 +314,27 @@ export class Visual implements IVisual {
                 const val = metricOf(rr, pi);
                 const td = document.createElement("td");
 
+                // click a CELL to cross-filter to all the tasks it counts
+                const selectCell = (ev: MouseEvent) => {
+                    if (list.length === 0) return;
+                    this.selectRows(list.map(it => it.rows[0]), ev.ctrlKey || ev.metaKey);
+                };
+
                 if (!isExp) {
                     td.textContent = val > 0 ? fmt(val) : "";
-                    td.title = val > 0 ? `${res.name}: ${fmt(val)} — click to open` : "";
+                    td.title = val > 0 ? `${res.name}: ${fmt(val)} — click to filter these tasks` : "";
                     td.style.cssText = `width:${colW}px;min-width:${colW}px;height:${rowH}px;text-align:center;` +
                         `background:${loadColor(val)};color:${cellText};box-sizing:border-box;` +
                         `border-bottom:1px solid ${gridColor};border-left:1px solid ${gridColor};` +
                         (list.length > 0 ? "cursor:pointer;" : "");
-                    if (list.length > 0) td.onclick = () => { this.expanded.add(res.name); this.render(); };
+                    if (list.length > 0) td.onclick = (ev) => selectCell(ev as MouseEvent);
                 } else {
                     td.style.cssText = `width:${colW}px;min-width:${colW}px;vertical-align:top;` +
                         `background:${loadColor(val)};color:${cellText};box-sizing:border-box;` +
                         `border-bottom:1px solid ${gridColor};border-left:1px solid ${gridColor};cursor:pointer;padding:2px;`;
+                    let cnt: HTMLElement | undefined;
                     if (list.length > 0) {
-                        const cnt = document.createElement("div");
+                        cnt = document.createElement("div");
                         cnt.textContent = fmt(val);
                         cnt.style.cssText = `text-align:center;font-weight:700;margin-bottom:2px;font-size:${Math.max(7, fontSize - 1)}px;`;
                         td.appendChild(cnt);
@@ -364,7 +369,9 @@ export class Visual implements IVisual {
                             td.appendChild(more);
                         }
                     }
-                    td.onclick = (ev) => { if (ev.target === td) { this.expanded.delete(res.name); this.render(); } };
+                    // clicking the empty part of the cell filters all its tasks;
+                    // clicking a specific chip (below) filters just that task.
+                    td.onclick = (ev) => { if (ev.target === td || ev.target === cnt) selectCell(ev as MouseEvent); };
                 }
                 tr.appendChild(td);
             });
