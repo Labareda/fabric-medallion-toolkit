@@ -33,19 +33,31 @@
       "properties": {
         "showValue": { "type": { "bool": true } },
         "chipBackground": { "type": { "fill": { "solid": { "color": true } } } },
-        "chipTextColor": { "type": { "fill": { "solid": { "color": true } } } }
+        "chipTextColor": { "type": { "fill": { "solid": { "color": true } } } },
+        "chipBorder": { "type": { "fill": { "solid": { "color": true } } } }
+      }
+    },
+    "days": {
+      "properties": {
+        "mon": { "type": { "bool": true } },
+        "tue": { "type": { "bool": true } },
+        "wed": { "type": { "bool": true } },
+        "thu": { "type": { "bool": true } },
+        "fri": { "type": { "bool": true } },
+        "sat": { "type": { "bool": true } },
+        "sun": { "type": { "bool": true } }
       }
     },
     "appearance": {
       "properties": {
+        "dayView": { "type": { "bool": true } },
         "rowHeight": { "type": { "numeric": true } },
         "fontSize": { "type": { "numeric": true } },
         "textColor": { "type": { "fill": { "solid": { "color": true } } } },
         "headerColor": { "type": { "fill": { "solid": { "color": true } } } },
         "headerTextColor": { "type": { "fill": { "solid": { "color": true } } } },
         "nameWidth": { "type": { "numeric": true } },
-        "weekWidth": { "type": { "numeric": true } },
-        "workingDaysOnly": { "type": { "bool": true } }
+        "weekWidth": { "type": { "numeric": true } }
       }
     },
     "thresholds": {

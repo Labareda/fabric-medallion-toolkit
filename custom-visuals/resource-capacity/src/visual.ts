@@ -10,17 +10,12 @@ import VisualConstructorOptions = powerbi.extensibility.visual.VisualConstructor
 import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
 import IVisualHost = powerbi.extensibility.visual.IVisualHost;
 import ISelectionManager = powerbi.extensibility.ISelectionManager;
-import ISelectionId = powerbi.visuals.ISelectionId;
 
-interface ItemInfo { code: string; detail: string[]; days: Map<number, number>; selectionIds: ISelectionId[]; }  // detail = the "Detail" field values, in order; days: canonical ymd -> summed value
-interface Resource { name: string; items: Map<string, ItemInfo>; selectionIds: ISelectionId[]; }
+interface ItemInfo { code: string; detail: string[]; days: Map<number, number>; rows: number[]; }  // detail = "Detail" field values; days: canonical ymd -> summed value; rows: source row indexes (for lazy selection)
+interface Resource { name: string; items: Map<string, ItemInfo>; }
 interface Period { start: Date; label: string; top: string; }
 
 type Gran = "year" | "quarter" | "month" | "week" | "day";
-// Only Week and Day are offered -- the resource plan is read at those grains.
-const PRESETS: { key: Gran; label: string; px: number }[] = [
-    { key: "week", label: "Week", px: 8 }, { key: "day", label: "Day", px: 34 }
-];
 
 const MS_DAY = 86400000;
 const H1 = 20;
@@ -34,11 +29,11 @@ export class Visual implements IVisual {
     private settings: VisualFormattingSettingsModel;
 
     private resources: Resource[] = [];
+    private table: powerbi.DataViewTable | null = null;
     private hasValue = false;
     private minDate: Date | null = null;
     private maxDate: Date | null = null;
     private expanded: Set<string> = new Set<string>();
-    private pxPerDay = 34;             // zoom level (like the timeline's pxPerDay)
     private dataToken = "";
     private popover: HTMLElement | null = null;
     private vw = 0; private vh = 0;
@@ -70,8 +65,9 @@ export class Visual implements IVisual {
     }
 
     private build(dv: DataView): void {
-        this.resources = []; this.minDate = null; this.maxDate = null; this.hasValue = false;
+        this.resources = []; this.minDate = null; this.maxDate = null; this.hasValue = false; this.table = null;
         if (!dv || !dv.table || !dv.table.columns || !dv.table.rows) return;
+        this.table = dv.table;
         const cols = dv.table.columns;
         const idx = (role: string) => cols.findIndex(c => c.roles && (c.roles as any)[role]);
         const iRes = idx("resource"), iDate = idx("date"), iCode = idx("issueCode"), iValue = idx("value");
@@ -97,12 +93,13 @@ export class Visual implements IVisual {
             if (!this.minDate || dm < this.minDate) this.minDate = dm;
             if (!this.maxDate || dm > this.maxDate) this.maxDate = dm;
             let res = byName.get(name);
-            if (!res) { res = { name, items: new Map(), selectionIds: [] }; byName.set(name, res); }
-            const sid = this.host.createSelectionIdBuilder().withTable(table, rowIndex).createSelectionId();
-            res.selectionIds.push(sid);
+            if (!res) { res = { name, items: new Map() }; byName.set(name, res); }
             let item = res.items.get(code);
-            if (!item) { item = { code, detail: detailIdx.map(i => asStr(r[i])), days: new Map(), selectionIds: [] }; res.items.set(code, item); }
-            item.selectionIds.push(sid);
+            if (!item) { item = { code, detail: detailIdx.map(i => asStr(r[i])), days: new Map(), rows: [] }; res.items.set(code, item); }
+            // store the source row index; the ISelectionId is built lazily on click
+            // (building one per row up-front for tens of thousands of rows was the
+            // main cause of the slowness).
+            item.rows.push(rowIndex);
             const c = Visual.ymd(dm);
             const v = iValue >= 0 ? asNum(r[iValue]) : 0;
             item.days.set(c, (item.days.get(c) || 0) + v);
@@ -110,17 +107,11 @@ export class Visual implements IVisual {
         this.resources = Array.from(byName.values()).sort((a, b) => a.name < b.name ? -1 : (a.name > b.name ? 1 : 0));
     }
 
-    /** grain + column width from the continuous zoom (pxPerDay), like the timeline. */
-    private grainFromZoom(): { g: Gran; colW: number } {
-        const px = this.pxPerDay;
-        const minW = Math.max(28, this.settings.appearance.weekWidth.value);
-        let g: Gran, daysPer: number;
-        if (px >= 20) { g = "day"; daysPer = 1; }
-        else if (px >= 5.5) { g = "week"; daysPer = 7; }
-        else if (px >= 1.4) { g = "month"; daysPer = 30.4; }
-        else if (px >= 0.45) { g = "quarter"; daysPer = 91.3; }
-        else { g = "year"; daysPer = 365; }
-        return { g, colW: Math.max(minW, Math.min(360, Math.round(px * daysPer))) };
+    /** Build selection ids lazily (only on click) from stored row indexes. */
+    private selectRows(rows: number[], multi: boolean): void {
+        if (!this.table || rows.length === 0) return;
+        const ids = rows.map(i => this.host.createSelectionIdBuilder().withTable(this.table!, i).createSelectionId());
+        this.selectionManager.select(ids, multi);
     }
 
     private buildPeriods(g: Gran): { periods: Period[]; indexOf: (c: number) => number; nowIndex: number } {
@@ -216,7 +207,7 @@ export class Visual implements IVisual {
         const todayColor = s.grid.todayColor.value.value;
         const chipBg = s.detail.chipBackground.value.value;
         const chipText = s.detail.chipTextColor.value.value;
-        const workingOnly = s.appearance.workingDaysOnly.value;
+        const chipBorder = s.detail.chipBorder.value.value;
         const lowMax = s.thresholds.lowMax.value, midMax = s.thresholds.midMax.value;
         const zeroColor = s.thresholds.zeroColor.value.value, lowColor = s.thresholds.lowColor.value.value;
         const midColor = s.thresholds.midColor.value.value, highColor = s.thresholds.highColor.value.value;
@@ -226,11 +217,14 @@ export class Visual implements IVisual {
         const loadColor = (n: number) => n <= 0 ? zeroColor : (n <= lowMax ? lowColor : (n <= midMax ? midColor : highColor));
         const fmt = (v: number) => sumMode ? String(Math.round(v * 10) / 10) : String(v);
 
-        const { g, colW } = this.grainFromZoom();
+        const g: Gran = s.appearance.dayView.value ? "day" : "week";
+        const colW = Math.max(28, s.appearance.weekWidth.value);
         const { periods, indexOf, nowIndex } = this.buildPeriods(g);
-        // which period columns to actually show: at day grain, optionally drop Sat/Sun
+        // which day columns to show (Day view): per-weekday toggles. getDay(): 0=Sun..6=Sat
+        const dw = s.days;
+        const dayOn = [dw.sun.value, dw.mon.value, dw.tue.value, dw.wed.value, dw.thu.value, dw.fri.value, dw.sat.value];
         const displayed = periods.map((p, pi) => ({ p, pi }))
-            .filter(x => !(workingOnly && g === "day" && (x.p.start.getDay() === 0 || x.p.start.getDay() === 6)));
+            .filter(x => g !== "day" || dayOn[x.p.start.getDay()]);
 
         interface RR { res: Resource; byPeriod: Map<number, ItemInfo[]>; byValue: Map<number, number>; conflicts: number; }
         const rrs: RR[] = [];
@@ -258,41 +252,18 @@ export class Visual implements IVisual {
             `font-family:'Segoe UI',sans-serif;box-sizing:border-box;overflow:hidden;`;
         el.appendChild(container);
 
-        // ---- toolbar: zoom presets + summary ----
-        const toolbar = document.createElement("div");
-        toolbar.style.cssText = `flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:4px 8px;` +
-            `box-sizing:border-box;font-size:${fontSize}px;color:${textColor};`;
-        const gl = document.createElement("span"); gl.textContent = "Zoom:"; gl.style.cssText = "color:#888;margin-right:2px;";
-        toolbar.appendChild(gl);
-        PRESETS.forEach(p => {
-            const b = document.createElement("div");
-            b.textContent = p.label;
-            const active = g === p.key;
-            b.style.cssText = `padding:2px 8px;border-radius:3px;cursor:pointer;user-select:none;` +
-                `border:1px solid ${active ? headerColor : "#CCC"};background:${active ? headerColor : "#FFF"};color:${active ? "#FFF" : "#333"};`;
-            b.onclick = () => { this.pxPerDay = p.px; this.render(); };
-            toolbar.appendChild(b);
-        });
-        const totalConf = visibleRRs.reduce((a, r) => a + r.conflicts, 0);
-        const cs = document.createElement("span");
-        cs.textContent = `${totalConf} conflict${totalConf === 1 ? "" : "s"} · ${visibleRRs.length} people`;
-        cs.style.cssText = `margin-left:auto;color:${conflictColor};font-weight:600;`;
-        toolbar.appendChild(cs);
-        container.appendChild(toolbar);
-
         const legend = s.legend.show.value ? this.buildLegend(fontSize, textColor, lowMax, midMax, lowColor, midColor, highColor, conflictColor) : null;
         if (legend && !s.legend.atBottom.value) container.appendChild(legend);
 
         const scroller = document.createElement("div");
         scroller.style.cssText = "flex:1 1 auto;overflow:auto;position:relative;";
         container.appendChild(scroller);
-        // No wheel-zoom: the wheel scrolls the table normally; zoom is by the buttons.
 
         const table = document.createElement("table");
         table.style.cssText = `border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:${fontSize}px;color:${textColor};`;
         scroller.appendChild(table);
 
-        const twoRow = g !== "year";
+        const twoRow = true;   // day view = week+day rows; week view = month+week rows
         const thead = document.createElement("thead");
         table.appendChild(thead);
 
@@ -361,7 +332,9 @@ export class Visual implements IVisual {
             nm.style.cssText = "cursor:pointer;";
             nm.onclick = (ev) => {
                 ev.stopPropagation();
-                this.selectionManager.select(res.selectionIds, (ev as MouseEvent).ctrlKey || (ev as MouseEvent).metaKey);
+                // one representative row per item keeps the id count small but still
+                // covers every issue of this person for cross-filtering.
+                this.selectRows(Array.from(res.items.values()).map(it => it.rows[0]), (ev as MouseEvent).ctrlKey || (ev as MouseEvent).metaKey);
             };
             nameCell.appendChild(nm);
             if (rr.conflicts > 0) {
@@ -409,12 +382,12 @@ export class Visual implements IVisual {
                             const label = parts.length ? parts.join("  ") : it.code;
                             chip.textContent = label;
                             chip.title = label + "  —  click to show details in linked visuals";
-                            chip.style.cssText = `background:${chipBg};border:1px solid ${gridColor};border-radius:2px;margin:1px 0;padding:0 3px;color:${chipText};` +
+                            chip.style.cssText = `background:${chipBg};border:1px solid ${chipBorder};border-radius:2px;margin:1px 0;padding:0 3px;color:${chipText};` +
                                 `font-size:${Math.max(7, fontSize - 2)}px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;`;
                             // click an item -> cross-filter other visuals to that item (detail elsewhere)
                             chip.onclick = (ev) => {
                                 ev.stopPropagation();
-                                this.selectionManager.select(it.selectionIds, (ev as MouseEvent).ctrlKey || (ev as MouseEvent).metaKey);
+                                this.selectRows(it.rows, (ev as MouseEvent).ctrlKey || (ev as MouseEvent).metaKey);
                             };
                             td.appendChild(chip);
                         });

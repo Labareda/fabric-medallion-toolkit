@@ -7,20 +7,20 @@ import FormattingSettingsSlice = formattingSettings.Slice;
 import FormattingSettingsModel = formattingSettings.Model;
 
 class AppearanceCard extends FormattingSettingsCard {
+    dayView = new formattingSettings.ToggleSwitch({ name: "dayView", displayName: "Day view (off = week view)", value: true });
     rowHeight = new formattingSettings.NumUpDown({ name: "rowHeight", displayName: "Row height", value: 26 });
     fontSize = new formattingSettings.NumUpDown({ name: "fontSize", displayName: "Text size", value: 11 });
     textColor = new formattingSettings.ColorPicker({ name: "textColor", displayName: "Text colour", value: { value: "#333333" } });
     headerColor = new formattingSettings.ColorPicker({ name: "headerColor", displayName: "Header background", value: { value: "#B21C1A" } });
     headerTextColor = new formattingSettings.ColorPicker({ name: "headerTextColor", displayName: "Header text", value: { value: "#FFFFFF" } });
     nameWidth = new formattingSettings.NumUpDown({ name: "nameWidth", displayName: "Name column width", value: 200 });
-    weekWidth = new formattingSettings.NumUpDown({ name: "weekWidth", displayName: "Min column width", value: 40 });
-    workingDaysOnly = new formattingSettings.ToggleSwitch({ name: "workingDaysOnly", displayName: "Working days only (hide Sat/Sun)", value: true });
+    weekWidth = new formattingSettings.NumUpDown({ name: "weekWidth", displayName: "Column width", value: 46 });
 
     name: string = "appearance";
     displayName: string = "Appearance";
     slices: FormattingSettingsSlice[] = [
-        this.rowHeight, this.fontSize, this.textColor, this.headerColor, this.headerTextColor,
-        this.nameWidth, this.weekWidth, this.workingDaysOnly
+        this.dayView, this.rowHeight, this.fontSize, this.textColor, this.headerColor, this.headerTextColor,
+        this.nameWidth, this.weekWidth
     ];
 }
 
@@ -57,10 +57,26 @@ class DetailCard extends FormattingSettingsCard {
     showValue = new formattingSettings.ToggleSwitch({ name: "showValue", displayName: "Append Value to each item (when summing)", value: true });
     chipBackground = new formattingSettings.ColorPicker({ name: "chipBackground", displayName: "Item background", value: { value: "#FFFFFF" } });
     chipTextColor = new formattingSettings.ColorPicker({ name: "chipTextColor", displayName: "Item text", value: { value: "#333333" } });
+    chipBorder = new formattingSettings.ColorPicker({ name: "chipBorder", displayName: "Item border", value: { value: "#E4E4E4" } });
 
     name: string = "detail";
     displayName: string = "Item detail";
-    slices: FormattingSettingsSlice[] = [ this.showValue, this.chipBackground, this.chipTextColor ];
+    slices: FormattingSettingsSlice[] = [ this.showValue, this.chipBackground, this.chipTextColor, this.chipBorder ];
+}
+
+/** Which days of the week to show (Day view only). */
+class DaysCard extends FormattingSettingsCard {
+    mon = new formattingSettings.ToggleSwitch({ name: "mon", displayName: "Monday", value: true });
+    tue = new formattingSettings.ToggleSwitch({ name: "tue", displayName: "Tuesday", value: true });
+    wed = new formattingSettings.ToggleSwitch({ name: "wed", displayName: "Wednesday", value: true });
+    thu = new formattingSettings.ToggleSwitch({ name: "thu", displayName: "Thursday", value: true });
+    fri = new formattingSettings.ToggleSwitch({ name: "fri", displayName: "Friday", value: true });
+    sat = new formattingSettings.ToggleSwitch({ name: "sat", displayName: "Saturday", value: false });
+    sun = new formattingSettings.ToggleSwitch({ name: "sun", displayName: "Sunday", value: false });
+
+    name: string = "days";
+    displayName: string = "Days of week";
+    slices: FormattingSettingsSlice[] = [ this.mon, this.tue, this.wed, this.thu, this.fri, this.sat, this.sun ];
 }
 
 class ConflictsCard extends FormattingSettingsCard {
@@ -97,11 +113,12 @@ class LegendCard extends FormattingSettingsCard {
 export class VisualFormattingSettingsModel extends FormattingSettingsModel {
     metric = new MetricCard();
     detail = new DetailCard();
+    days = new DaysCard();
     appearance = new AppearanceCard();
     thresholds = new ThresholdsCard();
     conflicts = new ConflictsCard();
     grid = new GridCard();
     legend = new LegendCard();
 
-    cards: FormattingSettingsCard[] = [ this.metric, this.detail, this.appearance, this.thresholds, this.conflicts, this.grid, this.legend ];
+    cards: FormattingSettingsCard[] = [ this.metric, this.detail, this.days, this.appearance, this.thresholds, this.conflicts, this.grid, this.legend ];
 }
