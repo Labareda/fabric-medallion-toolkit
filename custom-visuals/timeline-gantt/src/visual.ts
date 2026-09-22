@@ -50,6 +50,7 @@ export class Visual implements IVisual {
 
     private root: TaskNode | null = null;
     private collapsed: Set<string> = new Set<string>();
+    private selectedId: string | null = null;   // highlighted / selected issue (drives the drill-through button)
     private lastWidth = 0;
     private lastHeight = 0;
     private zoomTransform: any = null;   // d3 zoom transform, preserved across re-renders
@@ -533,10 +534,22 @@ export class Visual implements IVisual {
         visible.forEach((n, i) => {
             const row = document.createElement("div");
             row.style.cssText = `position:absolute;top:${i * rowH}px;left:0;` +
-                `width:${leftW}px;height:${rowH}px;display:flex;align-items:center;` +
+                `width:${leftW}px;height:${rowH}px;display:flex;align-items:center;cursor:pointer;` +
                 `box-sizing:border-box;font-size:${fontSize}px;color:${textColor};` +
-                (bandedRows && i % 2 === 1 ? `background:${bandColor};` : "") +
+                (n.id === this.selectedId ? "background:#D6E8FB;"
+                    : (bandedRows && i % 2 === 1 ? `background:${bandColor};` : "")) +
                 (rowLines ? `border-bottom:1px solid ${rowLineColor};` : "");
+            // click the issue in the name column -> select it (sets the filter
+            // context a drill-through button reacts to); right-click -> native menu.
+            row.onclick = (ev) => {
+                if (n.selectionId) this.selectionManager.select(n.selectionId, ev.ctrlKey || ev.metaKey);
+                this.selectedId = this.selectedId === n.id ? null : n.id;
+                this.render();
+            };
+            row.oncontextmenu = (ev) => {
+                ev.preventDefault();
+                if (n.selectionId) this.selectionManager.showContextMenu(n.selectionId, { x: ev.clientX, y: ev.clientY });
+            };
             left.appendChild(row);
 
             const colBorder = colLines ? `border-right:1px solid ${colLineColor};` : "";
@@ -553,7 +566,8 @@ export class Visual implements IVisual {
             chevron.style.cssText = `flex:0 0 12px;width:12px;cursor:pointer;color:#888;` +
                 `font-size:${Math.max(7, fontSize - 2)}px;user-select:none;text-align:center;`;
             if (hasChildren) {
-                chevron.onclick = () => {
+                chevron.onclick = (ev) => {
+                    ev.stopPropagation();   // don't also select the row
                     if (this.collapsed.has(n.id)) this.collapsed.delete(n.id);
                     else this.collapsed.add(n.id);
                     this.render();
@@ -669,6 +683,8 @@ export class Visual implements IVisual {
             .on("click", (event: any) => {
                 event.stopPropagation();
                 if (n.selectionId) this.selectionManager.select(n.selectionId, event.ctrlKey || event.metaKey);
+                this.selectedId = this.selectedId === n.id ? null : n.id;
+                this.render();
             })
             .on("contextmenu", (event: any) => {
                 event.preventDefault(); event.stopPropagation();
