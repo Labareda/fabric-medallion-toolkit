@@ -30,16 +30,12 @@ schema = fmt.TableSchema(
     key_column="IssueType_Key",
     columns={
         "IssueType_Id":    {"type": "string", "merge_field": True, "missing": "Unknown"},
+        # IssueType_Name is normalised in the query below: "Subtask" and
+        # "Sub-task" are the same type, so both are stored as "Sub-task". Every
+        # other name is kept exactly as Jira has it -- the several rows that
+        # share a name (different type IDs / descriptions) collapse to one value
+        # on their own in any slicer, so no extra "clean" column is needed.
         "IssueType_Name":  {"type": "string", "default": "Unknown"},
-        # ONE canonical name per REAL issue type. Jira lets anyone create types,
-        # so the same real type turns up under several spellings/casings (and
-        # sometimes different descriptions). Reports and slicers should group by
-        # THIS column, not the raw IssueType_Name -- every raw type ID still gets
-        # its own dim row (FK integrity), but they collapse to one clean value.
-        # Unmapped names fall back to a trimmed, title-cased version, which alone
-        # merges pure casing/whitespace duplicates; add true synonyms to the
-        # CASE in the query below.
-        "Clean_Type_Name": {"type": "string", "default": "Unknown"},
         "Description":     {"type": "string", "default": "Unknown"},
         "Hierarchy_Level": {"type": "int", "default": 0},
         # The reporting grouping that lets ONE model serve delivery, RAID,
@@ -54,56 +50,12 @@ schema = fmt.TableSchema(
 df = spark.sql("""
     SELECT
         it.id             AS IssueType_Id,
-        it.name           AS IssueType_Name,
-        -- Canonical clean name. The ELSE tidies every unmapped name (trim +
-        -- title-case), which already collapses "Change request" / "CHANGE
-        -- REQUEST" / " Change Request " into one value. The WHENs above it merge
-        -- real SYNONYMS (different words, same meaning). Match on
-        -- LOWER(TRIM(...)) so casing/spacing never matters. Add a WHEN line per
-        -- synonym you find in the data -- this is the one place to maintain it.
-        CASE LOWER(TRIM(it.name))
-            WHEN 'epic'                THEN 'Epic'
-            WHEN 'task'                THEN 'Task'
-            WHEN 'sub-task'            THEN 'Sub-task'
-            WHEN 'subtask'             THEN 'Sub-task'
-            WHEN 'milestone'           THEN 'Milestone'
-            WHEN 'new feature'         THEN 'New Feature'
-            WHEN 'improvement'         THEN 'Improvement'
-            WHEN 'story'               THEN 'Story'
-            WHEN 'user story'          THEN 'Story'
-            WHEN 'requirement'         THEN 'Requirement'
-            WHEN 'bug'                 THEN 'Bug'
-            WHEN 'defect'              THEN 'Bug'
-            WHEN 'change request'      THEN 'Change Request'
-            WHEN 'change item'         THEN 'Change Item'
-            WHEN 'risk'                THEN 'Risk'
-            WHEN 'issue'               THEN 'Issue'
-            WHEN 'assumption'          THEN 'Assumption'
-            WHEN 'dependencies'        THEN 'Dependency'
-            WHEN 'dependency'          THEN 'Dependency'
-            WHEN 'constraints'         THEN 'Constraint'
-            WHEN 'constraint'          THEN 'Constraint'
-            WHEN 'decision'            THEN 'Decision'
-            WHEN 'key design decision' THEN 'Key Design Decision'
-            WHEN 'action'              THEN 'Action'
-            WHEN 'lesson'              THEN 'Lesson'
-            WHEN 'meeting'             THEN 'Meeting'
-            WHEN 'programme'           THEN 'Programme'
-            WHEN 'initiative'          THEN 'Initiative'
-            WHEN 'release'             THEN 'Release'
-            WHEN 'workstream'          THEN 'Workstream'
-            WHEN 'policy initiative'   THEN 'Policy Initiative'
-            WHEN 'policy'              THEN 'Policy'
-            WHEN 'cost item'           THEN 'Cost Item'
-            WHEN 'integration'         THEN 'Integration'
-            WHEN 'test'                THEN 'Test'
-            WHEN 'test case'           THEN 'Test'
-            WHEN 'test set'            THEN 'Test Set'
-            WHEN 'test plan'           THEN 'Test Plan'
-            WHEN 'test execution'      THEN 'Test Execution'
-            WHEN 'precondition'        THEN 'Precondition'
-            ELSE INITCAP(TRIM(it.name))
-        END AS Clean_Type_Name,
+        -- Normalise the one real inconsistency: "Subtask" and "Sub-task" are the
+        -- same type, so store both as "Subtask". Every other name is kept
+        -- exactly as Jira has it. (The multiple rows that share a name -- same
+        -- name, different type id/description -- collapse to one value on their
+        -- own in any slicer, so nothing else needs cleaning here.)
+        CASE WHEN LOWER(TRIM(it.name)) IN ('subtask', 'sub-task') THEN 'Subtask' ELSE it.name END AS IssueType_Name,
         it.description    AS Description,
         it.hierarchyLevel AS Hierarchy_Level,
         CASE
