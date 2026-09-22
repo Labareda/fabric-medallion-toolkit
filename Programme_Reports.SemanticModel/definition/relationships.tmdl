@@ -19,6 +19,7 @@ relationship f473b7fe-9cd9-2502-1ef9-ff9f7aae5514
 	toColumn: 'Dim Issue Type'.'IssueType Key'
 
 relationship 4988896a-3ef8-c880-a0ca-ba7ec260a70f
+	crossFilteringBehavior: bothDirections
 	fromColumn: 'Fact Resource Allocation'.'Issue Key'
 	toColumn: 'Dim Issue'.'Issue Key'
 

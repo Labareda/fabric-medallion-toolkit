@@ -9,6 +9,11 @@ import DataView = powerbi.DataView;
 import IVisual = powerbi.extensibility.visual.IVisual;
 import VisualConstructorOptions = powerbi.extensibility.visual.VisualConstructorOptions;
 import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
+import IVisualHost = powerbi.extensibility.visual.IVisualHost;
+import ISelectionManager = powerbi.extensibility.ISelectionManager;
+import ISelectionId = powerbi.visuals.ISelectionId;
+import ITooltipService = powerbi.extensibility.ITooltipService;
+import VisualTooltipDataItem = powerbi.extensibility.VisualTooltipDataItem;
 
 /** One node in the task tree (an issue, or an ancestor grouping that is also an issue). */
 interface TaskNode {
@@ -26,6 +31,9 @@ interface TaskNode {
     isMilestone: boolean;
     children: TaskNode[];
     hasData: boolean;        // whether an issue row was attached to this node
+    isFirst?: boolean;       // first child of its parent (top of its group / standalone)
+    selectionId?: ISelectionId;         // for native selection, context menu, drill-through
+    tooltip?: VisualTooltipDataItem[];  // native tooltip rows
 }
 
 const SCROLLBAR_W = 16;
@@ -34,6 +42,9 @@ const INDENT = 14;
 
 export class Visual implements IVisual {
     private target: HTMLElement;
+    private host: IVisualHost;
+    private selectionManager: ISelectionManager;
+    private tooltipService: ITooltipService;
     private formattingSettingsService: FormattingSettingsService;
     private settings: VisualFormattingSettingsModel;
 
@@ -47,6 +58,9 @@ export class Visual implements IVisual {
     constructor(options: VisualConstructorOptions) {
         this.target = options.element;
         this.target.style.overflow = "hidden";
+        this.host = options.host;
+        this.selectionManager = this.host.createSelectionManager();
+        this.tooltipService = this.host.tooltipService;
         this.formattingSettingsService = new FormattingSettingsService();
     }
 
@@ -94,6 +108,7 @@ export class Visual implements IVisual {
         const iStatus = firstIdx("status");
         const iMile = firstIdx("milestone");
         const iSort = firstIdx("sortPath");
+        const tooltipIdx: number[] = cols.map((c, i) => (c.roles && (c.roles as any)["tooltips"]) ? i : -1).filter(i => i >= 0);
 
         const asStr = (v: any): string => (v === null || v === undefined) ? "" : String(v);
         const asDate = (v: any): Date | undefined => {
@@ -123,30 +138,47 @@ export class Visual implements IVisual {
         // not depth-placed, so they don't describe the parent chain.
         const SEP = "!";
         const nodes: TaskNode[] = [];
-        let seq = 0;
-        for (const r of rows) {
+        const fmtDate = (d?: Date) => d ? d.toLocaleDateString() : undefined;
+        rows.forEach((r, rowIndex) => {
             const issueCode = iIssue >= 0 ? asStr(r[iIssue]) : "";
             const summary = iName >= 0 ? asStr(r[iName]) : "";
+            const lead = iLead >= 0 ? asStr(r[iLead]) : "";
+            const resources = iRes >= 0 ? asStr(r[iRes]) : "";
+            const status = iStatus >= 0 ? asStr(r[iStatus]) : "";
+            const start = iStart >= 0 ? asDate(r[iStart]) : undefined;
+            const end = iEnd >= 0 ? asDate(r[iEnd]) : undefined;
+            const aStart = iAStart >= 0 ? asDate(r[iAStart]) : undefined;
+            const aEnd = iAEnd >= 0 ? asDate(r[iAEnd]) : undefined;
             let path = iSort >= 0 ? asStr(r[iSort]) : "";
             // Rows with no Sort_Path still appear, ordered after everything else.
-            if (path === "") path = "￿" + String(seq).padStart(9, "0");
-            seq++;
+            if (path === "") path = "￿" + String(rowIndex).padStart(9, "0");
+
+            // native tooltip rows: key fields, plus anything dropped in the Tooltips well
+            const tip: VisualTooltipDataItem[] = [];
+            const addTip = (name: string, val?: string) => { if (val !== undefined && val !== "") tip.push({ displayName: name, value: val }); };
+            addTip("Issue", issueCode);
+            addTip("Task", summary);
+            addTip("Status", status);
+            addTip("Lead", lead);
+            addTip("Resources", resources);
+            addTip("Planned start", fmtDate(start));
+            addTip("Planned end", fmtDate(end));
+            addTip("Actual start", fmtDate(aStart));
+            addTip("Actual end", fmtDate(aEnd));
+            tooltipIdx.forEach(i => addTip(cols[i].displayName, asStr(r[i])));
+
             nodes.push({
                 id: path,
                 label: issueCode && summary ? `${issueCode}: ${summary}` : (issueCode || summary || issueCode),
                 depth: 1,
                 sortKey: path,
-                start: iStart >= 0 ? asDate(r[iStart]) : undefined,
-                end: iEnd >= 0 ? asDate(r[iEnd]) : undefined,
-                aStart: iAStart >= 0 ? asDate(r[iAStart]) : undefined,
-                aEnd: iAEnd >= 0 ? asDate(r[iAEnd]) : undefined,
-                lead: iLead >= 0 ? asStr(r[iLead]) : "",
-                resources: iRes >= 0 ? asStr(r[iRes]) : "",
-                status: iStatus >= 0 ? asStr(r[iStatus]) : "",
+                start, end, aStart, aEnd, lead, resources, status,
                 isMilestone: iMile >= 0 ? asBool(r[iMile]) : false,
-                children: [], hasData: true
+                children: [], hasData: true,
+                selectionId: this.host.createSelectionIdBuilder().withTable(dv.table, rowIndex).createSelectionId(),
+                tooltip: tip
             });
-        }
+        });
 
         // Plain lexical sort of Sort_Path == the exact tree (DFS) order.
         nodes.sort((a, b) => a.sortKey < b.sortKey ? -1 : (a.sortKey > b.sortKey ? 1 : 0));
@@ -162,6 +194,7 @@ export class Visual implements IVisual {
             }
             const parent = anc.length ? anc[anc.length - 1] : rootNode;
             node.depth = parent === rootNode ? 1 : parent.depth + 1;
+            node.isFirst = parent.children.length === 0;   // first task of its group / standalone
             parent.children.push(node);
             anc.push(node);
         }
@@ -416,9 +449,9 @@ export class Visual implements IVisual {
                 if (n.isMilestone && n.end) {
                     const mx = cx(n.end);
                     if (mx < -mSize || mx > timelineW + mSize) return;
-                    gBars.append("path")
+                    this.attach(gBars.append("path")
                         .attr("d", `M${mx} ${cy - mSize} L${mx + mSize} ${cy} L${mx} ${cy + mSize} L${mx - mSize} ${cy} Z`)
-                        .attr("fill", mColor);
+                        .attr("fill", mColor), n);
                     if (showLabels) this.barLabel(gBars, mx + mSize + 4, cy, n.label, fontSize, timelineW);
                 } else {
                     // main bar = planned range if present, else actual range
@@ -428,11 +461,11 @@ export class Visual implements IVisual {
                     const x0 = cx(mS);
                     const x1 = Math.max(x0 + 2, cx(mE));
                     if (x1 < 0 || x0 > timelineW) return;
-                    gBars.append("rect")
+                    this.attach(gBars.append("rect")
                         .attr("x", x0).attr("y", cy - barH / 2)
                         .attr("width", x1 - x0).attr("height", barH)
                         .attr("rx", corner).attr("ry", corner)
-                        .attr("fill", barColor(n));
+                        .attr("fill", barColor(n)), n);
                     // actual baseline: thin bar along the bottom, only when BOTH
                     // planned and actual are present (so it reads as plan vs actual)
                     if (showActual && n.start && n.end && n.aStart && n.aEnd) {
@@ -530,8 +563,10 @@ export class Visual implements IVisual {
             const labelSpan = document.createElement("span");
             labelSpan.textContent = n.label;
             labelSpan.title = n.label;
+            // bold the top task of every group (a parent) AND the first task of
+            // each group / any standalone task (isFirst).
             labelSpan.style.cssText = `white-space:nowrap;overflow:hidden;text-overflow:ellipsis;` +
-                (hasChildren ? "font-weight:600;" : "");
+                ((hasChildren || n.isFirst) ? "font-weight:600;" : "");
             nameCell.appendChild(labelSpan);
             row.appendChild(nameCell);
 
@@ -625,6 +660,25 @@ export class Visual implements IVisual {
             .attr("font-size", `${Math.max(7, fontSize - 1)}px`)
             .attr("fill", "#8A8A8A")
             .text(text);
+    }
+
+    /** Wire native tooltip, click-to-select and right-click (drill-through) onto a bar. */
+    private attach(sel: any, n: TaskNode): void {
+        const ids = n.selectionId ? [n.selectionId] : [];
+        sel.style("cursor", "pointer")
+            .on("click", (event: any) => {
+                event.stopPropagation();
+                if (n.selectionId) this.selectionManager.select(n.selectionId, event.ctrlKey || event.metaKey);
+            })
+            .on("contextmenu", (event: any) => {
+                event.preventDefault(); event.stopPropagation();
+                if (n.selectionId) this.selectionManager.showContextMenu(n.selectionId, { x: event.clientX, y: event.clientY });
+            })
+            .on("mouseover", (event: any) =>
+                this.tooltipService.show({ dataItems: n.tooltip || [], identities: ids, coordinates: [event.clientX, event.clientY], isTouchEvent: false }))
+            .on("mousemove", (event: any) =>
+                this.tooltipService.move({ dataItems: n.tooltip || [], identities: ids, coordinates: [event.clientX, event.clientY], isTouchEvent: false }))
+            .on("mouseout", () => this.tooltipService.hide({ immediately: false, isTouchEvent: false }));
     }
 
     public getFormattingModel(): powerbi.visuals.FormattingModel {

@@ -13,7 +13,8 @@
     { "displayName": "Status", "name": "status", "kind": "Grouping" },
     { "displayName": "Is Milestone", "name": "milestone", "kind": "Grouping" },
     { "displayName": "Sort Path", "name": "sortPath", "kind": "Grouping" },
-    { "displayName": "Predecessor Issue Code", "name": "predecessor", "kind": "Grouping" }
+    { "displayName": "Predecessor Issue Code", "name": "predecessor", "kind": "Grouping" },
+    { "displayName": "Tooltips", "name": "tooltips", "kind": "Grouping" }
   ],
   "dataViewMappings": [
     {
@@ -32,7 +33,8 @@
             { "for": { "in": "status" } },
             { "for": { "in": "milestone" } },
             { "for": { "in": "sortPath" } },
-            { "for": { "in": "predecessor" } }
+            { "for": { "in": "predecessor" } },
+            { "for": { "in": "tooltips" } }
           ],
           "dataReductionAlgorithm": { "window": { "count": 30000 } }
         }
