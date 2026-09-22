@@ -329,12 +329,15 @@ export class Visual implements IVisual {
         const rowLineColor = grid.rowBorderColor.value.value;
         const colLines = grid.colBorders.value;
         const colLineColor = grid.colBorderColor.value.value;
-        visible.forEach((_n, i) => {
-            if (bandedRows && i % 2 === 1) {
-                gBands.append("rect")
-                    .attr("x", 0).attr("y", i * rowH)
-                    .attr("width", timelineW).attr("height", rowH)
-                    .attr("fill", bandColor);
+        visible.forEach((n, i) => {
+            const y = i * rowH;
+            // selected-row highlight spans the WHOLE row (behind the bars)
+            if (n.id === this.selectedId) {
+                gBands.append("rect").attr("x", 0).attr("y", y)
+                    .attr("width", timelineW).attr("height", rowH).attr("fill", "#D6E8FB");
+            } else if (bandedRows && i % 2 === 1) {
+                gBands.append("rect").attr("x", 0).attr("y", y)
+                    .attr("width", timelineW).attr("height", rowH).attr("fill", bandColor);
             }
             if (rowLines) {
                 gBands.append("line")
@@ -342,6 +345,17 @@ export class Visual implements IVisual {
                     .attr("y1", (i + 1) * rowH).attr("y2", (i + 1) * rowH)
                     .attr("stroke", rowLineColor).attr("stroke-width", 1);
             }
+            // transparent full-width click target: click ANYWHERE on the row to
+            // select the issue (behind the bars, so bars still handle their own).
+            gBands.append("rect").attr("x", 0).attr("y", y)
+                .attr("width", timelineW).attr("height", rowH).attr("fill", "transparent")
+                .style("cursor", "pointer")
+                .on("click", (event: any) => {
+                    event.stopPropagation();
+                    if (n.selectionId) this.selectionManager.select(n.selectionId, event.ctrlKey || event.metaKey);
+                    this.selectedId = this.selectedId === n.id ? null : n.id;
+                    this.render();
+                });
         });
 
         const statusColor = (status: string): string => {
@@ -546,10 +560,6 @@ export class Visual implements IVisual {
                 this.selectedId = this.selectedId === n.id ? null : n.id;
                 this.render();
             };
-            row.oncontextmenu = (ev) => {
-                ev.preventDefault();
-                if (n.selectionId) this.selectionManager.showContextMenu(n.selectionId, { x: ev.clientX, y: ev.clientY });
-            };
             left.appendChild(row);
 
             const colBorder = colLines ? `border-right:1px solid ${colLineColor};` : "";
@@ -685,10 +695,6 @@ export class Visual implements IVisual {
                 if (n.selectionId) this.selectionManager.select(n.selectionId, event.ctrlKey || event.metaKey);
                 this.selectedId = this.selectedId === n.id ? null : n.id;
                 this.render();
-            })
-            .on("contextmenu", (event: any) => {
-                event.preventDefault(); event.stopPropagation();
-                if (n.selectionId) this.selectionManager.showContextMenu(n.selectionId, { x: event.clientX, y: event.clientY });
             })
             .on("mouseover", (event: any) =>
                 this.tooltipService.show({ dataItems: n.tooltip || [], identities: ids, coordinates: [event.clientX, event.clientY], isTouchEvent: false }))
