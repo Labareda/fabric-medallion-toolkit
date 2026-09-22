@@ -563,10 +563,10 @@ export class Visual implements IVisual {
             const labelSpan = document.createElement("span");
             labelSpan.textContent = n.label;
             labelSpan.title = n.label;
-            // bold the top task of every group (a parent) AND the first task of
-            // each group / any standalone task (isFirst).
+            // bold only the TOP-LEVEL tasks (depth 1) -- the outermost items;
+            // everything nested beneath them is normal weight.
             labelSpan.style.cssText = `white-space:nowrap;overflow:hidden;text-overflow:ellipsis;` +
-                ((hasChildren || n.isFirst) ? "font-weight:600;" : "");
+                (n.depth === 1 ? "font-weight:600;" : "");
             nameCell.appendChild(labelSpan);
             row.appendChild(nameCell);
 
