@@ -10,6 +10,30 @@ table 'Fact Issue History'
 		formatString: 0
 		lineageTag: fecb5005-6ac1-44fb-b7b9-53ca3e7c6283
 
+	/// Total time spent in a stage (calendar days). Use for the per-requirement stacked breakdown.
+	measure 'Total Days in Status' = SUM('Fact Issue History'[Days In Period])
+		lineageTag: a1c2e3f4-1b2c-4d5e-8f90-11a2b3c4d5e6
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Average days in a stage, EXCLUDING the still-open current period (fairer cycle time).
+	measure 'Avg Days in Status (completed)' = CALCULATE(AVERAGE('Fact Issue History'[Days In Period]), 'Fact Issue History'[Is Current] = False)
+		lineageTag: b2d3f4a5-2c3d-4e6f-9a01-22b3c4d5e6f7
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Working-day version (excludes weekends + UK bank holidays). Total per stage.
+	measure 'Total Working Days in Status' = SUM('Fact Issue History'[Working Days In Period])
+		lineageTag: c3e4a5b6-3d4e-4f70-ab12-33c4d5e6f708
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Working-day average per stage, excluding the still-open current period.
+	measure 'Avg Working Days in Status (completed)' = CALCULATE(AVERAGE('Fact Issue History'[Working Days In Period]), 'Fact Issue History'[Is Current] = False)
+		lineageTag: d4f5b6c7-4e5f-4081-bc23-44d5e6f70819
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
 	column 'Issue Id'
 		dataType: string
 		isHidden
@@ -129,6 +153,16 @@ table 'Fact Issue History'
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
+	column 'Working Days In Period'
+		dataType: double
+		lineageTag: e9c3a4b5-6f7a-4b8c-9d0e-3a4b5c6d7e82
+		summarizeBy: sum
+		sourceColumn: Working Days In Period
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
 	column 'Period Count'
 		dataType: int64
 		formatString: 0
@@ -155,6 +189,17 @@ table 'Fact Issue History'
 		lineageTag: d4db25dd-8a00-4432-a655-831015338984
 		summarizeBy: none
 		sourceColumn: Status Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'IssueType Key'
+		dataType: string
+		isHidden
+		lineageTag: f1a2b3c4-6d7e-4f80-9a1b-55c6d7e8f901
+		summarizeBy: none
+		sourceColumn: IssueType Key
 
 		changedProperty = IsHidden
 

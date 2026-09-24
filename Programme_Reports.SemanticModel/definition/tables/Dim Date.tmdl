@@ -115,6 +115,24 @@ table 'Dim Date'
 
 		annotation SummarizationSetBy = Automatic
 
+	column 'Is Holiday'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: c7a1e2b3-4d5f-4a6b-9c8d-1e2f3a4b5c60
+		summarizeBy: none
+		sourceColumn: Is Holiday
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Working Day'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: d8b2f3c4-5e6a-4b7c-8d9e-2f3a4b5c6d71
+		summarizeBy: none
+		sourceColumn: Is Working Day
+
+		annotation SummarizationSetBy = Automatic
+
 	column 'Year Month'
 		dataType: string
 		lineageTag: c914a053-de8b-4aa7-a34e-900f96b03b5e

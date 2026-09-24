@@ -1,0 +1,78 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
+  "name": "9b10751642b2a2ccd39f",
+  "position": {
+    "x": 24,
+    "y": 84,
+    "z": 14000,
+    "height": 600,
+    "width": 590,
+    "tabOrder": 14000
+  },
+  "visual": {
+    "visualType": "clusteredBarChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Status"
+                    }
+                  },
+                  "Property": "Status Name"
+                }
+              },
+              "queryRef": "Dim Status.Status Name",
+              "nativeQueryRef": "Status Name"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Fact Issue History"
+                    }
+                  },
+                  "Property": "Avg Days in Status (completed)"
+                }
+              },
+              "queryRef": "Fact Issue History.Avg Days in Status (completed)",
+              "nativeQueryRef": "Avg Days in Status (completed)"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true,
+    "objects": {
+      "title": [
+        {
+          "properties": {
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Average days per stage'"
+                }
+              }
+            },
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

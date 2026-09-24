@@ -19,7 +19,6 @@ relationship f473b7fe-9cd9-2502-1ef9-ff9f7aae5514
 	toColumn: 'Dim Issue Type'.'IssueType Key'
 
 relationship 4988896a-3ef8-c880-a0ca-ba7ec260a70f
-	crossFilteringBehavior: bothDirections
 	fromColumn: 'Fact Resource Allocation'.'Issue Key'
 	toColumn: 'Dim Issue'.'Issue Key'
 
@@ -46,6 +45,10 @@ relationship 8f4b0d23-5e77-4a9c-8b24-d6f5a7b9e034
 relationship AutoDetected_5ea34dd1-0989-404c-83a7-1359af784501
 	fromColumn: 'Fact Issue History'.'Status Key'
 	toColumn: 'Dim Status'.'Status Key'
+
+relationship 9a4c1d02-6e88-4f1a-b2c3-66d7e8f90a1b
+	fromColumn: 'Fact Issue History'.'IssueType Key'
+	toColumn: 'Dim Issue Type'.'IssueType Key'
 
 relationship cbf0e1be-d944-6b49-e979-1ab2297f66b0
 	fromColumn: 'Fact Issue'.'Rollup End Date'

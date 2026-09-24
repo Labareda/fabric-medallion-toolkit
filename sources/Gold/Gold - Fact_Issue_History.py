@@ -68,6 +68,10 @@ schema = fmt.TableSchema(
         "Is_Seed_Period":   {"type": "boolean", "default": False},
         "Days_In_Period":   {"type": "double"},
         "Hours_In_Period":  {"type": "double"},
+        # Working days in the period = calendar days MINUS weekends and UK bank
+        # holidays, counted against Dim_Date.is_working_day (see the join below).
+        # Lets a report show "time in stage" as working time, not elapsed time.
+        "Working_Days_In_Period": {"type": "double", "default": 0.0},
         "Period_Count":     {"type": "int", "default": 1},
         "Issue_Key": {
             "type": "string",
@@ -93,6 +97,14 @@ schema = fmt.TableSchema(
             "type": "string",
             "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_status",
                                      "natural_key_column": "Status_Id", "key_column": "Status_Key",
+                                     "unknown_value": "Unknown"},
+        },
+        # The issue's CURRENT type, so an issue-type slicer filters the stage
+        # history in one hop. Resolves to the Unknown member if absent.
+        "IssueType_Key": {
+            "type": "string",
+            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_issue_type",
+                                     "natural_key_column": "IssueType_Id", "key_column": "IssueType_Key",
                                      "unknown_value": "Unknown"},
         },
         "Changed_By_Key": {
@@ -232,6 +244,7 @@ df = spark.sql(f"""
         project.Project_Key,
         team.Team_Key,
         st.Status_Key,
+        issue_type.IssueType_Key,
         res.Resource_Key AS Changed_By_Key
     FROM filled f
     LEFT JOIN status_by_name st ON st.Status_Name = f.status
@@ -240,8 +253,35 @@ df = spark.sql(f"""
     LEFT JOIN {GOLD_SCHEMA}.dim_issue di     ON f.issue_id = di.Issue_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_project project ON i.fields_project_id = project.Project_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_team team    ON i.fields_team_name = team.Team_Name
+    LEFT JOIN {GOLD_SCHEMA}.dim_issue_type issue_type ON i.fields_issuetype_id = issue_type.IssueType_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_resource res ON f.author_account_id = res.Resource_Id
 """)
+
+# MARKDOWN ********************
+
+# ## Working days in each period
+# Count Dim_Date rows flagged is_working_day between the period's start and end
+# (open periods run to today). One range join, grouped per period, then joined
+# back on the period grain (Issue_Id + Valid_From).
+
+# CELL ********************
+from pyspark.sql import functions as F
+
+df.createOrReplaceTempView("_fih_periods")
+working_days = spark.sql(f"""
+    SELECT /*+ BROADCAST(d) */
+        p.Issue_Id, p.Valid_From,
+        CAST(COUNT(*) AS DOUBLE) AS Working_Days_In_Period
+    FROM _fih_periods p
+    JOIN {GOLD_SCHEMA}.dim_date d
+      ON d.date >= CAST(p.Valid_From AS DATE)
+     AND d.date <  COALESCE(CAST(p.Valid_To AS DATE), DATE_ADD(CURRENT_DATE(), 1))
+     AND d.is_working_day = TRUE
+    GROUP BY p.Issue_Id, p.Valid_From
+""")
+df = (df.join(working_days, ["Issue_Id", "Valid_From"], "left")
+        .withColumn("Working_Days_In_Period",
+                    F.coalesce(F.col("Working_Days_In_Period"), F.lit(0.0))))
 
 # MARKDOWN ********************
 
