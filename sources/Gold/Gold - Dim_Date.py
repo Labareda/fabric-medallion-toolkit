@@ -9,7 +9,11 @@
 # Snapshot, Worklog Started. One active, the rest inactive + USERELATIONSHIP.
 
 # CELL ********************
+from pyspark.sql import functions as F
 import fabric_medallion_toolkit as fmt
+from fabric_medallion_toolkit.config import DateDimensionConfig
+from datetime import date, timedelta
+from pyspark.sql import functions as F
 
 GOLD_SCHEMA = "Gold.gold"
 
@@ -17,15 +21,20 @@ GOLD_SCHEMA = "Gold.gold"
 # Range starts before the earliest Jira created date and runs well past the
 # latest target end -- widen if the programme extends. Fiscal year = calendar
 # year here; set fiscal_year_start_month=4 if the client reports on an April FY.
-fmt.build_date_dimension(
-    spark,
-    fmt.DateDimensionConfig(
-        table_name=f"{GOLD_SCHEMA}.dim_date",
-        start_date="2020-01-01",
-        end_date="2032-12-31",
-        fiscal_year_start_month=1,
-    ),
-)
+end_date = spark.sql("""
+    SELECT date_format(
+        add_months(GREATEST(COALESCE(MAX(fields_duedate), current_date()), current_date()), 24),
+        'yyyy-MM-dd'
+    ) AS end_date
+    FROM Silver.jira.issues
+""").collect()[0]["end_date"]
+
+## Merge into Gold
+fmt.build_date_dimension(spark, DateDimensionConfig(
+    table_name=f"{GOLD_SCHEMA}.dim_date",
+    start_date="2020-01-01",
+    end_date=end_date,
+))
 
 # CELL ********************
 # Sentinel row. Fact_Issue deliberately keeps NULL dates (see its notes), so
@@ -42,8 +51,6 @@ fmt.add_date_dimension_sentinel(spark, f"{GOLD_SCHEMA}.dim_date", sentinel_date=
 # fixed-Monday holidays, plus the known one-offs (Jubilee/Funeral/Coronation).
 # These are England & Wales dates; Scotland/NI differ -- change the list below
 # if the programme reports on a different nation's calendar.
-from datetime import date, timedelta
-from pyspark.sql import functions as F
 
 def _easter(y):
     a = y % 19; b = y // 100; c = y % 100; d = b // 4; e = b % 4
