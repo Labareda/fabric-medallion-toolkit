@@ -1,0 +1,206 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
+  "name": "4abcb599db02ab0b167f",
+  "position": {
+    "x": 540,
+    "y": 418,
+    "z": 5000,
+    "height": 282,
+    "width": 716,
+    "tabOrder": 5000
+  },
+  "visual": {
+    "visualType": "pivotTable",
+    "query": {
+      "queryState": {
+        "Rows": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dim Team"
+                    }
+                  },
+                  "Property": "Team Name"
+                }
+              },
+              "queryRef": "Dim Team.Team Name",
+              "nativeQueryRef": "Team Name"
+            }
+          ]
+        },
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Fact Issue"
+                    }
+                  },
+                  "Property": "Total Issues"
+                }
+              },
+              "queryRef": "Fact Issue.Total Issues",
+              "nativeQueryRef": "Total Issues"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Fact Issue"
+                    }
+                  },
+                  "Property": "Requirements with Tests"
+                }
+              },
+              "queryRef": "Fact Issue.Requirements with Tests",
+              "nativeQueryRef": "Requirements with Tests"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Fact Issue"
+                    }
+                  },
+                  "Property": "Test Coverage %"
+                }
+              },
+              "queryRef": "Fact Issue.Test Coverage %",
+              "nativeQueryRef": "Test Coverage %"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Fact Issue"
+                    }
+                  },
+                  "Property": "Requirements with Defects"
+                }
+              },
+              "queryRef": "Fact Issue.Requirements with Defects",
+              "nativeQueryRef": "Requirements with Defects"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Fact Issue"
+                    }
+                  },
+                  "Property": "Defect Coverage %"
+                }
+              },
+              "queryRef": "Fact Issue.Defect Coverage %",
+              "nativeQueryRef": "Defect Coverage %"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true,
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Traceability: requirement -> test -> defect (by team)'"
+                }
+              }
+            },
+            "heading": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Heading3'"
+                }
+              }
+            },
+            "alignment": {
+              "expr": {
+                "Literal": {
+                  "Value": "'center'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "603ebab6e57ac000a8ec",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Dim Issue Type"
+              }
+            },
+            "Property": "Issue Type Name"
+          }
+        },
+        "type": "Categorical",
+        "filter": {
+          "Version": 2,
+          "From": [
+            {
+              "Name": "f",
+              "Entity": "Dim Issue Type",
+              "Type": 0
+            }
+          ],
+          "Where": [
+            {
+              "Condition": {
+                "In": {
+                  "Expressions": [
+                    {
+                      "Column": {
+                        "Expression": {
+                          "SourceRef": {
+                            "Source": "f"
+                          }
+                        },
+                        "Property": "Issue Type Name"
+                      }
+                    }
+                  ],
+                  "Values": [
+                    [
+                      {
+                        "Literal": {
+                          "Value": "'Story'"
+                        }
+                      }
+                    ]
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "howCreated": "User"
+      }
+    ]
+  }
+}

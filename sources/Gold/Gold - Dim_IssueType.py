@@ -38,11 +38,6 @@ schema = fmt.TableSchema(
         "IssueType_Name":  {"type": "string", "default": "Unknown"},
         "Description":     {"type": "string", "default": "Unknown"},
         "Hierarchy_Level": {"type": "int", "default": 0},
-        # The reporting grouping that lets ONE model serve delivery, RAID,
-        # requirements, governance and testing dashboards without separate
-        # structures. Everything in this Jira is an issue; this says which
-        # kind of report it belongs to.
-        "Issue_Category":  {"type": "string", "default": "Other"},
     },
 )
 
@@ -57,18 +52,7 @@ df = spark.sql("""
         -- own in any slicer, so nothing else needs cleaning here.)
         CASE WHEN LOWER(TRIM(it.name)) IN ('subtask', 'sub-task') THEN 'Subtask' ELSE it.name END AS IssueType_Name,
         it.description    AS Description,
-        it.hierarchyLevel AS Hierarchy_Level,
-        CASE
-            WHEN it.name IN ('Programme','Initiative','Release')            THEN 'Programme'
-            WHEN it.name IN ('Bug','Defect')                                THEN 'Defect'
-            WHEN it.name IN ('Requirement','User Story','Story')            THEN 'Requirement'
-            WHEN it.name IN ('Risk','Issue','Assumption','Dependency')      THEN 'RAID'
-            WHEN it.name IN ('Decision','Action','Key Design Decision')     THEN 'Governance'
-            WHEN it.name IN ('Policy')                                      THEN 'Policy'
-            WHEN it.name LIKE 'Test%'                                       THEN 'Test'
-            WHEN it.name IN ('Epic','Task','Sub-task','Subtask','Milestone') THEN 'Delivery'
-            ELSE 'Other'
-        END AS Issue_Category
+        it.hierarchyLevel AS Hierarchy_Level
     FROM Silver.jira.issuetypes it
 """)
 

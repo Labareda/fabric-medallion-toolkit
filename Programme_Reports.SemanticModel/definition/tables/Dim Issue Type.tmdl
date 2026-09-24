@@ -55,14 +55,6 @@ table 'Dim Issue Type'
 
 		annotation SummarizationSetBy = Automatic
 
-	column 'Issue Category'
-		dataType: string
-		lineageTag: 2fc2fb6b-0871-4796-b7cc-b11c45c13612
-		summarizeBy: none
-		sourceColumn: Issue Category
-
-		annotation SummarizationSetBy = Automatic
-
 	partition 'Dim Issue Type' = m
 		mode: import
 		source =

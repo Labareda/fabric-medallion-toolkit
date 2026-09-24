@@ -18,6 +18,7 @@ table 'Dim Status'
 		lineageTag: fa5cffe4-af0c-404e-ab2f-9cdd458c686c
 		summarizeBy: none
 		sourceColumn: Status Name
+		sortByColumn: 'Sort Order'
 
 		annotation SummarizationSetBy = Automatic
 
@@ -78,7 +79,7 @@ table 'Dim Status'
 		dataType: int64
 		formatString: 0
 		lineageTag: 60c9cdfd-1a53-4b91-86e1-6bb367f8bac9
-		summarizeBy: sum
+		summarizeBy: none
 		sourceColumn: Sort Order
 
 		annotation SummarizationSetBy = Automatic

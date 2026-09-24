@@ -6,6 +6,41 @@ table 'Fact Issue'
 		formatString: 0
 		lineageTag: 610252c6-4bd4-4582-bb13-1badf2adb0d6
 
+	/// Requirements Lifecycle: filter the page/visual to Issue Type = Story so
+	/// "requirement" context is set; these measures then read against it.
+	/// Requirements with NO linked Test = the stakeholder's "orphaned" list.
+	measure 'Orphaned Requirements' = CALCULATE(COUNTROWS('Fact Issue'), 'Fact Issue'[Has Linked Test] = FALSE)
+		formatString: 0
+		lineageTag: a7f1c2d3-0011-4a22-9b33-100000000001
+
+	measure 'Requirements with Tests' = CALCULATE(COUNTROWS('Fact Issue'), 'Fact Issue'[Has Linked Test] = TRUE)
+		formatString: 0
+		lineageTag: a7f1c2d3-0011-4a22-9b33-100000000002
+
+	/// Share of requirements (in context) that have at least one linked Test.
+	measure 'Test Coverage %' = DIVIDE([Requirements with Tests], COUNTROWS('Fact Issue'))
+		formatString: 0.0%
+		lineageTag: a7f1c2d3-0011-4a22-9b33-100000000003
+
+	measure 'Requirements with Defects' = CALCULATE(COUNTROWS('Fact Issue'), 'Fact Issue'[Has Linked Defect] = TRUE)
+		formatString: 0
+		lineageTag: a7f1c2d3-0011-4a22-9b33-100000000004
+
+	measure 'Defect Coverage %' = DIVIDE([Requirements with Defects], COUNTROWS('Fact Issue'))
+		formatString: 0.0%
+		lineageTag: a7f1c2d3-0011-4a22-9b33-100000000005
+
+	/// Approval lead time: average calendar days Created -> first Approved.
+	/// AVERAGE ignores the NULLs (never-approved), so this is the mean over
+	/// requirements that HAVE been approved. Pair with Approved Count for n.
+	measure 'Avg Approval Lead Time' = AVERAGE('Fact Issue'[Approval Lead Time Days])
+		formatString: 0.0
+		lineageTag: a7f1c2d3-0011-4a22-9b33-100000000006
+
+	measure 'Approved Count' = CALCULATE(COUNTROWS('Fact Issue'), 'Fact Issue'[Is Approved] = TRUE)
+		formatString: 0
+		lineageTag: a7f1c2d3-0011-4a22-9b33-100000000007
+
 	column 'Issue Id'
 		dataType: string
 		isHidden
@@ -314,6 +349,60 @@ table 'Fact Issue'
 		annotation SummarizationSetBy = Automatic
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Linked Test Count'
+		dataType: int64
+		formatString: 0
+		lineageTag: b8c2d3e4-0022-4b33-9c44-200000000001
+		summarizeBy: sum
+		sourceColumn: Linked Test Count
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Linked Defect Count'
+		dataType: int64
+		formatString: 0
+		lineageTag: b8c2d3e4-0022-4b33-9c44-200000000002
+		summarizeBy: sum
+		sourceColumn: Linked Defect Count
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Has Linked Test'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: b8c2d3e4-0022-4b33-9c44-200000000003
+		summarizeBy: none
+		sourceColumn: Has Linked Test
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Has Linked Defect'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: b8c2d3e4-0022-4b33-9c44-200000000004
+		summarizeBy: none
+		sourceColumn: Has Linked Defect
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Approved'
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: b8c2d3e4-0022-4b33-9c44-200000000005
+		summarizeBy: none
+		sourceColumn: Is Approved
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Approval Lead Time Days'
+		dataType: int64
+		formatString: 0
+		lineageTag: b8c2d3e4-0022-4b33-9c44-200000000006
+		summarizeBy: none
+		sourceColumn: Approval Lead Time Days
+
+		annotation SummarizationSetBy = Automatic
 
 	partition 'Fact Issue' = m
 		mode: import
