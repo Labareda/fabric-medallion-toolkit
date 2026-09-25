@@ -154,82 +154,66 @@ schema = fmt.TableSchema(
 
 # MARKDOWN ********************
 
-# ## Actual start, from the changelog
-# histories has the timestamp, history_items has the field-level detail,
-# they join on history_id. First move into any status that is NOT a
-# start/queue state is the actual start.
-
-# CELL ********************
-actual_start_df = spark.sql(f"""
-    SELECT hi.issue_id AS Issue_Id,
-           CAST(MIN(h.created) AS date) AS Changelog_Actual_Start
-    FROM Silver.jira.history_items hi
-    JOIN Silver.jira.histories h ON hi.history_id = h.history_id
-    JOIN {GOLD_SCHEMA}.dim_status ds ON ds.Status_Name = hi.new_value_formatted
-    WHERE hi.field_name = 'status'
-      AND ds.Flow_State IN ('Active', 'Wait')
-    GROUP BY hi.issue_id
-""")
-actual_start_df.createOrReplaceTempView("actual_start")
-
-# MARKDOWN ********************
-
-# ## First "Approved" transition, from the changelog
-# Same histories+history_items join as the actual start, but looking for the
-# FIRST move INTO an Approved status. new_value_formatted is the status name;
-# matching on '%approv%' catches "Approved", "Approved for Build", etc. Tune
-# the pattern if the client's approval status is named differently.
-
-# CELL ********************
-approved_df = spark.sql("""
-    SELECT hi.issue_id AS Issue_Id,
-           CAST(MIN(h.created) AS date) AS First_Approved_Date
-    FROM Silver.jira.history_items hi
-    JOIN Silver.jira.histories h ON hi.history_id = h.history_id
-    WHERE hi.field_name = 'status'
-      AND LOWER(hi.new_value_formatted) LIKE '%approv%'
-    GROUP BY hi.issue_id
-""")
-approved_df.createOrReplaceTempView("first_approved")
-
-# MARKDOWN ********************
-
-# ## Link coverage, from Jira issue links
-# One row per (issue, linked issue), typed by the LINKED issue's type via
-# Dim_Issue, so we can count how many Tests and Defects each issue is linked
-# to. Jira stores each link from both perspectives; DISTINCT on the anchor +
-# linked pair stops a two-way link double-counting. Xray does NOT create issue
-# links (see Bridge_Issue_Link notes), so "linked Test" here means a Jira link
-# to a Test issue -- the client's traceability signal. Edit the type lists to
-# match the instance's issue-type names (e.g. 'Defect' vs 'Bug').
-
-# CELL ********************
-coverage_df = spark.sql(f"""
-    SELECT
-        anchor AS Issue_Code,
-        SUM(is_test)   AS Linked_Test_Count,
-        SUM(is_defect) AS Linked_Defect_Count
-    FROM (
-        SELECT DISTINCT
-            il.issue_key AS anchor,
-            COALESCE(il.outward_issue_key, il.inward_issue_key) AS linked_code,
-            CASE WHEN LOWER(ldi.Issue_Type_Name) = 'test'            THEN 1 ELSE 0 END AS is_test,
-            CASE WHEN LOWER(ldi.Issue_Type_Name) IN ('bug', 'defect') THEN 1 ELSE 0 END AS is_defect
-        FROM Silver.jira.issue_links il
-        JOIN {GOLD_SCHEMA}.dim_issue ldi
-            ON ldi.Issue_Code = COALESCE(il.outward_issue_key, il.inward_issue_key)
-        WHERE COALESCE(il.outward_issue_key, il.inward_issue_key) IS NOT NULL
-    )
-    GROUP BY anchor
-""")
-coverage_df.createOrReplaceTempView("link_coverage")
-
-# MARKDOWN ********************
-
 # ## Build the fact
+# One SELECT, like the other fact notebooks (see Fact_Test / Fact_Worklog).
+# The three changelog/link derivations are CTEs rather than separate temp
+# views + DataFrame joins:
+#   actual_start   -- first move into an Active/Wait status (the actual start).
+#                     histories carries the timestamp, history_items the field
+#                     change; they join on history_id.
+#   first_approved -- first move INTO an Approved status. '%approv%' catches
+#                     "Approved", "Approved for Build", etc. Tune if the
+#                     client's approval status is named differently.
+#   link_coverage  -- how many Tests / Defects each issue links to, typed by
+#                     the LINKED issue via Dim_Issue. Jira stores every link
+#                     from both perspectives, so DISTINCT on (anchor, linked)
+#                     stops a two-way link double-counting. Xray does NOT add
+#                     issue links (see Bridge_Issue_Link), so "linked Test"
+#                     means a Jira link to a Test issue. Edit the type lists to
+#                     match the instance's names (e.g. 'Defect' vs 'Bug').
+# The rollup and Duration below stay as DataFrame steps -- the rollup is a
+# Python helper (fmt.rollup_hierarchy_dates_by_sort_path) that can't live in
+# SQL, and Duration is computed from its output.
 
 # CELL ********************
 df = spark.sql(f"""
+    WITH actual_start AS (
+        SELECT hi.issue_id AS Issue_Id,
+               CAST(MIN(h.created) AS date) AS Changelog_Actual_Start
+        FROM Silver.jira.history_items hi
+        JOIN Silver.jira.histories h ON hi.history_id = h.history_id
+        JOIN {GOLD_SCHEMA}.dim_status ds ON ds.Status_Name = hi.new_value_formatted
+        WHERE hi.field_name = 'status'
+          AND ds.Flow_State IN ('Active', 'Wait')
+        GROUP BY hi.issue_id
+    ),
+    first_approved AS (
+        SELECT hi.issue_id AS Issue_Id,
+               CAST(MIN(h.created) AS date) AS First_Approved_Date
+        FROM Silver.jira.history_items hi
+        JOIN Silver.jira.histories h ON hi.history_id = h.history_id
+        WHERE hi.field_name = 'status'
+          AND LOWER(hi.new_value_formatted) LIKE '%approv%'
+        GROUP BY hi.issue_id
+    ),
+    link_coverage AS (
+        SELECT
+            anchor AS Issue_Code,
+            SUM(is_test)   AS Linked_Test_Count,
+            SUM(is_defect) AS Linked_Defect_Count
+        FROM (
+            SELECT DISTINCT
+                il.issue_key AS anchor,
+                COALESCE(il.outward_issue_key, il.inward_issue_key) AS linked_code,
+                CASE WHEN LOWER(ldi.Issue_Type_Name) = 'test'            THEN 1 ELSE 0 END AS is_test,
+                CASE WHEN LOWER(ldi.Issue_Type_Name) IN ('bug', 'defect') THEN 1 ELSE 0 END AS is_defect
+            FROM Silver.jira.issue_links il
+            JOIN {GOLD_SCHEMA}.dim_issue ldi
+                ON ldi.Issue_Code = COALESCE(il.outward_issue_key, il.inward_issue_key)
+            WHERE COALESCE(il.outward_issue_key, il.inward_issue_key) IS NOT NULL
+        )
+        GROUP BY anchor
+    )
     SELECT
         i.id AS Issue_Id,
         i.key AS Issue_Code,
@@ -263,6 +247,17 @@ df = spark.sql(f"""
          AND CAST(i.fields_duedate AS date) < CURRENT_DATE()) AS Is_Overdue,
         i.fields_resolutiondate IS NOT NULL AS Is_Done,
 
+        -- Requirements Lifecycle coverage + approval lead time (dashboard 4).
+        -- Counts default to 0; the Has_* flags derive from them. Approval days
+        -- stay NULL when never approved (Is_Approved is the testable flag)
+        -- rather than a misleading 0.
+        COALESCE(cov.Linked_Test_Count,   0)     AS Linked_Test_Count,
+        COALESCE(cov.Linked_Defect_Count, 0)     AS Linked_Defect_Count,
+        COALESCE(cov.Linked_Test_Count,   0) > 0 AS Has_Linked_Test,
+        COALESCE(cov.Linked_Defect_Count, 0) > 0 AS Has_Linked_Defect,
+        fa.First_Approved_Date IS NOT NULL       AS Is_Approved,
+        DATEDIFF(fa.First_Approved_Date, CAST(i.fields_created AS date)) AS Approval_Lead_Time_Days,
+
         -- Both story point fields exist on this instance and different teams
         -- populate different ones. Taking only story_point_estimate silently
         -- zeroed every team using the other. COALESCE picks whichever is set.
@@ -276,7 +271,9 @@ df = spark.sql(f"""
         i.fields_total_tests                    AS Total_Tests,
         i.fields_passed_tests                   AS Passed_Tests
     FROM Silver.jira.issues i
-    LEFT JOIN actual_start a                      ON i.id = a.Issue_Id
+    LEFT JOIN actual_start a                      ON i.id  = a.Issue_Id
+    LEFT JOIN first_approved fa                   ON i.id  = fa.Issue_Id
+    LEFT JOIN link_coverage cov                   ON i.key = cov.Issue_Code
     LEFT JOIN {GOLD_SCHEMA}.dim_issue dim_issue   ON i.id = dim_issue.Issue_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_project project   ON i.fields_project_id = project.Project_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_status status     ON i.fields_status_id = status.Status_Id
@@ -324,30 +321,6 @@ from pyspark.sql import functions as F
 df = df.withColumn(
     "Duration_Days",
     F.datediff(F.col("Rollup_End_Date"), F.col("Rollup_Start_Date")),
-)
-
-# MARKDOWN ********************
-
-# ## Attach coverage + approval lead time
-# Left joins so an issue with no links / never approved still keeps its row.
-# Counts default to 0; Has_* flags derive from them; Approval_Lead_Time_Days
-# stays NULL (never approved) rather than a misleading 0, with Is_Approved as
-# the testable flag.
-
-# CELL ********************
-df = (
-    df.join(coverage_df, on="Issue_Code", how="left")
-      .join(approved_df, on="Issue_Id", how="left")
-)
-df = (
-    df.withColumn("Linked_Test_Count",   F.coalesce(F.col("Linked_Test_Count"),   F.lit(0)))
-      .withColumn("Linked_Defect_Count", F.coalesce(F.col("Linked_Defect_Count"), F.lit(0)))
-      .withColumn("Has_Linked_Test",     F.col("Linked_Test_Count")   > 0)
-      .withColumn("Has_Linked_Defect",   F.col("Linked_Defect_Count") > 0)
-      .withColumn("Is_Approved",         F.col("First_Approved_Date").isNotNull())
-      .withColumn("Approval_Lead_Time_Days",
-                  F.datediff(F.col("First_Approved_Date"), F.col("Created_Date")))
-      .drop("First_Approved_Date")
 )
 
 # CELL ********************
