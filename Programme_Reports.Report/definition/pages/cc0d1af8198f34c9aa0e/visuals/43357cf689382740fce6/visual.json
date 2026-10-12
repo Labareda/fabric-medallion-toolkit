@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "Dim Status.Status Name",
-              "nativeQueryRef": "Status Name"
+              "nativeQueryRef": "Status Name",
+              "active": true
             }
           ]
         },
@@ -51,7 +52,6 @@
         }
       }
     },
-    "drillFilterOtherVisuals": true,
     "visualContainerObjects": {
       "title": [
         {
@@ -87,7 +87,8 @@
           }
         }
       ]
-    }
+    },
+    "drillFilterOtherVisuals": true
   },
   "filterConfig": {
     "filters": [

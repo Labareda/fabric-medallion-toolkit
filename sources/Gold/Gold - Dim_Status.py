@@ -33,6 +33,11 @@ schema = fmt.TableSchema(
         "Is_Done":         {"type": "boolean", "default": False},
         "Is_Blocked":      {"type": "boolean", "default": False},
         "Sort_Order":      {"type": "int", "default": 99},
+        # Orders the THREE Jira status categories for a category-level axis:
+        # To Do -> In Progress -> Done, with anything else (incl. the Unknown
+        # sentinel) last. Status_Name sorts by Sort_Order; Status_Category sorts
+        # by this.
+        "Category_Sort":   {"type": "int", "default": 4},
     },
 )
 
@@ -95,7 +100,9 @@ df = spark.sql("""
             WHEN s.statusCategory_key = 'new'  THEN 5
             WHEN s.statusCategory_key = 'done' THEN 92
             ELSE 60
-        END AS Sort_Order
+        END AS Sort_Order,
+        CASE s.statusCategory_key WHEN 'new' THEN 1 WHEN 'indeterminate' THEN 2
+                                  WHEN 'done' THEN 3 ELSE 4 END AS Category_Sort
     FROM Silver.jira.statuses s
 """)
 

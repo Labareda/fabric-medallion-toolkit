@@ -26,29 +26,9 @@ relationship 179ad2ec-12ae-af8c-624e-eb5f47966f46
 	fromColumn: 'Fact Resource Allocation'.'Resource Key'
 	toColumn: 'Dim Resource'.'Resource Key'
 
-relationship 5c1e7a90-2b44-4d6e-9f81-a3d2c4e6b701
-	fromColumn: 'Fact Resource Allocation'.'Status Key'
-	toColumn: 'Dim Status'.'Status Key'
-
-relationship 6d2f8b01-3c55-4e7f-8a92-b4e3d5f7c812
-	fromColumn: 'Fact Resource Allocation'.'IssueType Key'
-	toColumn: 'Dim Issue Type'.'IssueType Key'
-
-relationship 7e3a9c12-4d66-4f8b-9a13-c5e4f6a8d923
-	fromColumn: 'Fact Resource Day Allocation'.'Status Key'
-	toColumn: 'Dim Status'.'Status Key'
-
-relationship 8f4b0d23-5e77-4a9c-8b24-d6f5a7b9e034
-	fromColumn: 'Fact Resource Day Allocation'.'IssueType Key'
-	toColumn: 'Dim Issue Type'.'IssueType Key'
-
 relationship AutoDetected_5ea34dd1-0989-404c-83a7-1359af784501
 	fromColumn: 'Fact Issue History'.'Status Key'
 	toColumn: 'Dim Status'.'Status Key'
-
-relationship 9a4c1d02-6e88-4f1a-b2c3-66d7e8f90a1b
-	fromColumn: 'Fact Issue History'.'IssueType Key'
-	toColumn: 'Dim Issue Type'.'IssueType Key'
 
 relationship cbf0e1be-d944-6b49-e979-1ab2297f66b0
 	fromColumn: 'Fact Issue'.'Rollup End Date'
@@ -175,4 +155,24 @@ relationship AutoDetected_048e1be1-7902-411f-b661-5f064708e9dc
 relationship 31dc342d-3098-0b51-4df6-e0b9359b4e86
 	fromColumn: 'Bridge Issue Link'.'Issue Key'
 	toColumn: 'Dim Issue'.'Issue Key'
+
+relationship 5c1e7a90-2b44-4d6e-9f81-a3d2c4e6b701
+	fromColumn: 'Fact Resource Allocation'.'Status Key'
+	toColumn: 'Dim Status'.'Status Key'
+
+relationship 6d2f8b01-3c55-4e7f-8a92-b4e3d5f7c812
+	fromColumn: 'Fact Resource Allocation'.'IssueType Key'
+	toColumn: 'Dim Issue Type'.'IssueType Key'
+
+relationship 7e3a9c12-4d66-4f8b-9a13-c5e4f6a8d923
+	fromColumn: 'Fact Resource Day Allocation'.'Status Key'
+	toColumn: 'Dim Status'.'Status Key'
+
+relationship 8f4b0d23-5e77-4a9c-8b24-d6f5a7b9e034
+	fromColumn: 'Fact Resource Day Allocation'.'IssueType Key'
+	toColumn: 'Dim Issue Type'.'IssueType Key'
+
+relationship 9a4c1d02-6e88-4f1a-b2c3-66d7e8f90a1b
+	fromColumn: 'Fact Issue History'.'IssueType Key'
+	toColumn: 'Dim Issue Type'.'IssueType Key'
 

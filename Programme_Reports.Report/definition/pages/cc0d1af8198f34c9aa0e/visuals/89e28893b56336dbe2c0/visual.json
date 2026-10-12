@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "Dim Team.Team Name",
-              "nativeQueryRef": "Team Name"
+              "nativeQueryRef": "Team Name",
+              "active": true
             }
           ]
         },
@@ -51,7 +52,6 @@
         }
       }
     },
-    "drillFilterOtherVisuals": true,
     "visualContainerObjects": {
       "title": [
         {
@@ -87,7 +87,8 @@
           }
         }
       ]
-    }
+    },
+    "drillFilterOtherVisuals": true
   },
   "filterConfig": {
     "filters": [
@@ -144,6 +145,34 @@
           ]
         },
         "howCreated": "User"
+      },
+      {
+        "name": "eacdb216ee0d169e8cba",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Dim Team"
+              }
+            },
+            "Property": "Team Name"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "e58fe4bd664403ab56c8",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Fact Issue"
+              }
+            },
+            "Property": "Avg Approval Lead Time"
+          }
+        },
+        "type": "Advanced"
       }
     ]
   }

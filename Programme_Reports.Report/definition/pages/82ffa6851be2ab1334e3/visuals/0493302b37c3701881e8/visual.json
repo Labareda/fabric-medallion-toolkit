@@ -27,25 +27,8 @@
                 }
               },
               "queryRef": "Dim Issue.Issue Code",
-              "nativeQueryRef": "Issue Code"
-            }
-          ]
-        },
-        "Y": {
-          "projections": [
-            {
-              "field": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Fact Issue History"
-                    }
-                  },
-                  "Property": "Total Days in Status"
-                }
-              },
-              "queryRef": "Fact Issue History.Total Days in Status",
-              "nativeQueryRef": "Total Days in Status"
+              "nativeQueryRef": "Issue Code",
+              "active": true
             }
           ]
         },
@@ -66,31 +49,27 @@
               "nativeQueryRef": "Status Name"
             }
           ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Fact Issue History"
+                    }
+                  },
+                  "Property": "Total Days in Status"
+                }
+              },
+              "queryRef": "Fact Issue History.Total Days in Status",
+              "nativeQueryRef": "Total Days in Status"
+            }
+          ]
         }
       }
     },
-    "drillFilterOtherVisuals": true,
-    "objects": {
-      "title": [
-        {
-          "properties": {
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Time per stage by requirement'"
-                }
-              }
-            },
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
-                }
-              }
-            }
-          }
-        }
-      ]
-    }
+    "drillFilterOtherVisuals": true
   }
 }

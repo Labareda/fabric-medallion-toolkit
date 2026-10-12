@@ -38,6 +38,16 @@ table 'Dim Status'
 		lineageTag: 227c2683-7948-44a5-9efe-6a594039db6d
 		summarizeBy: none
 		sourceColumn: Status Category
+		sortByColumn: 'Category Sort'
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Category Sort'
+		dataType: int64
+		formatString: 0
+		lineageTag: 60c9cdfd-1a53-4b91-86e1-6bb367f8ba70
+		summarizeBy: none
+		sourceColumn: Category Sort
 
 		annotation SummarizationSetBy = Automatic
 

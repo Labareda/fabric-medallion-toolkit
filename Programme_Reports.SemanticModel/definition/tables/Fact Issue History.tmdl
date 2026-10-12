@@ -34,6 +34,29 @@ table 'Fact Issue History'
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
+	/// DUE-ADJUSTED time in a status category. To Do time counts only from the
+	/// issue's Planned Start onward, so not-yet-due backlog ages 0 days. Group
+	/// by Dim Status[Status Category] (To Do / In Progress / Done) for the
+	/// "how long in each category" view; it orders To Do -> In Progress -> Done.
+	measure 'Days in Status (due-adjusted)' = SUM('Fact Issue History'[Effective Days In Period])
+		lineageTag: d4f5b6c7-4e5f-4081-bc23-44d5e60a0001
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Working-day version of the due-adjusted time in status (weekends + UK
+	/// bank holidays removed).
+	measure 'Working Days in Status (due-adjusted)' = SUM('Fact Issue History'[Effective Working Days In Period])
+		lineageTag: d4f5b6c7-4e5f-4081-bc23-44d5e60a0002
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Average due-adjusted days per period, excluding the still-open current
+	/// period (fairer typical "time to move on" per stage).
+	measure 'Avg Days in Status (due-adjusted)' = CALCULATE(AVERAGE('Fact Issue History'[Effective Days In Period]), 'Fact Issue History'[Is Current] = False)
+		lineageTag: d4f5b6c7-4e5f-4081-bc23-44d5e60a0003
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
 	column 'Issue Id'
 		dataType: string
 		isHidden
@@ -153,16 +176,6 @@ table 'Fact Issue History'
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	column 'Working Days In Period'
-		dataType: double
-		lineageTag: e9c3a4b5-6f7a-4b8c-9d0e-3a4b5c6d7e82
-		summarizeBy: sum
-		sourceColumn: Working Days In Period
-
-		annotation SummarizationSetBy = Automatic
-
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
-
 	column 'Period Count'
 		dataType: int64
 		formatString: 0
@@ -189,17 +202,6 @@ table 'Fact Issue History'
 		lineageTag: d4db25dd-8a00-4432-a655-831015338984
 		summarizeBy: none
 		sourceColumn: Status Key
-
-		changedProperty = IsHidden
-
-		annotation SummarizationSetBy = Automatic
-
-	column 'IssueType Key'
-		dataType: string
-		isHidden
-		lineageTag: f1a2b3c4-6d7e-4f80-9a1b-55c6d7e8f901
-		summarizeBy: none
-		sourceColumn: IssueType Key
 
 		changedProperty = IsHidden
 
@@ -265,6 +267,47 @@ table 'Fact Issue History'
 		lineageTag: 8aff485f-01e8-4f73-8d58-512da6574767
 		summarizeBy: none
 		sourceColumn: Changed By Key
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Working Days In Period'
+		dataType: double
+		lineageTag: e9c3a4b5-6f7a-4b8c-9d0e-3a4b5c6d7e82
+		summarizeBy: sum
+		sourceColumn: Working Days In Period
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Effective Days In Period'
+		dataType: double
+		lineageTag: e9c3a4b5-6f7a-4b8c-9d0e-3a4b5c6d7e83
+		summarizeBy: sum
+		sourceColumn: Effective Days In Period
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Effective Working Days In Period'
+		dataType: double
+		lineageTag: e9c3a4b5-6f7a-4b8c-9d0e-3a4b5c6d7e84
+		summarizeBy: sum
+		sourceColumn: Effective Working Days In Period
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'IssueType Key'
+		dataType: string
+		isHidden
+		lineageTag: f1a2b3c4-6d7e-4f80-9a1b-55c6d7e8f901
+		summarizeBy: none
+		sourceColumn: IssueType Key
+
+		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
 
