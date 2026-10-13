@@ -42,11 +42,11 @@
                       "Entity": "Fact Issue History"
                     }
                   },
-                  "Property": "Avg Days in Status (completed)"
+                  "Property": "Avg Days in Status"
                 }
               },
-              "queryRef": "Fact Issue History.Avg Days in Status (completed)",
-              "nativeQueryRef": "Avg Days in Status (completed)"
+              "queryRef": "Fact Issue History.Avg Days in Status",
+              "nativeQueryRef": "Avg Days in Status"
             }
           ]
         }

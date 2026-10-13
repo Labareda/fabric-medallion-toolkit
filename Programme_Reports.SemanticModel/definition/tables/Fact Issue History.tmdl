@@ -1,6 +1,9 @@
 table 'Fact Issue History'
 	lineageTag: 9e2d5d2c-ed36-45c4-8e67-92d8a2a4efc1
 
+	/// Average calendar days in a stage. Durations are due-adjusted on To Do and
+	/// capped at the resolution date on Done, so no still-open period inflates
+	/// the average -- which is why there is no separate "(completed)" variant.
 	measure 'Avg Days in Status' = AVERAGE('Fact Issue History'[Days In Period])
 		lineageTag: 2861c36e-61cb-4f25-9ac7-861ea784d1a9
 
@@ -19,20 +22,14 @@ table 'Fact Issue History'
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	/// Average days in a stage, EXCLUDING the still-open current period (fairer cycle time).
-	measure 'Avg Days in Status (completed)' = CALCULATE(AVERAGE('Fact Issue History'[Days In Period]), 'Fact Issue History'[Is Current] = False)
-		lineageTag: b2d3f4a5-2c3d-4e6f-9a01-22b3c4d5e6f7
-
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
-
 	/// Working-day version (excludes weekends + UK bank holidays). Total per stage.
 	measure 'Total Working Days in Status' = SUM('Fact Issue History'[Working Days In Period])
 		lineageTag: c3e4a5b6-3d4e-4f70-ab12-33c4d5e6f708
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	/// Working-day average per stage, excluding the still-open current period.
-	measure 'Avg Working Days in Status (completed)' = CALCULATE(AVERAGE('Fact Issue History'[Working Days In Period]), 'Fact Issue History'[Is Current] = False)
+	/// Average working days in a stage (weekends + UK bank holidays removed).
+	measure 'Avg Working Days in Status' = AVERAGE('Fact Issue History'[Working Days In Period])
 		lineageTag: d4f5b6c7-4e5f-4081-bc23-44d5e6f70819
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
@@ -80,14 +77,6 @@ table 'Fact Issue History'
 		lineageTag: b1be8f61-fd0d-41fe-a131-735ab2e914be
 		summarizeBy: none
 		sourceColumn: Is Current
-
-		annotation SummarizationSetBy = Automatic
-
-	column 'Status Name'
-		dataType: string
-		lineageTag: fa4a9c41-c1fe-4a7d-98e3-d1039b738647
-		summarizeBy: none
-		sourceColumn: Status Name
 
 		annotation SummarizationSetBy = Automatic
 
@@ -209,28 +198,6 @@ table 'Fact Issue History'
 		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
-
-	column 'Valid From Date'
-		dataType: dateTime
-		formatString: Long Date
-		lineageTag: d43dd8e1-cefb-4fb4-8d2c-0e22ee1365f3
-		summarizeBy: none
-		sourceColumn: Valid From Date
-
-		annotation SummarizationSetBy = Automatic
-
-		annotation UnderlyingDateTimeDataType = Date
-
-	column 'Valid To Date'
-		dataType: dateTime
-		formatString: Long Date
-		lineageTag: 606c260e-6dcb-4bb6-aa86-be6b317c1842
-		summarizeBy: none
-		sourceColumn: Valid To Date
-
-		annotation SummarizationSetBy = Automatic
-
-		annotation UnderlyingDateTimeDataType = Date
 
 	column 'Changed By Key'
 		dataType: string

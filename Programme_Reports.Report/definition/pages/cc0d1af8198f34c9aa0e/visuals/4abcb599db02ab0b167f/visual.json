@@ -144,7 +144,109 @@
         }
       ]
     },
-    "drillFilterOtherVisuals": true
+    "drillFilterOtherVisuals": true,
+    "objects": {
+      "values": [
+        {
+          "properties": {
+            "backColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "FillRule": {
+                      "Input": {
+                        "Measure": {
+                          "Expression": {
+                            "SourceRef": {
+                              "Entity": "Fact Issue"
+                            }
+                          },
+                          "Property": "Test Coverage %"
+                        }
+                      },
+                      "FillRule": {
+                        "linearGradient2": {
+                          "min": {
+                            "color": {
+                              "expr": {
+                                "Literal": {
+                                  "Value": "'#F8696B'"
+                                }
+                              }
+                            }
+                          },
+                          "max": {
+                            "color": {
+                              "expr": {
+                                "Literal": {
+                                  "Value": "'#63BE7B'"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Fact Issue.Test Coverage %"
+          }
+        },
+        {
+          "properties": {
+            "backColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "FillRule": {
+                      "Input": {
+                        "Measure": {
+                          "Expression": {
+                            "SourceRef": {
+                              "Entity": "Fact Issue"
+                            }
+                          },
+                          "Property": "Defect Coverage %"
+                        }
+                      },
+                      "FillRule": {
+                        "linearGradient2": {
+                          "min": {
+                            "color": {
+                              "expr": {
+                                "Literal": {
+                                  "Value": "'#F8696B'"
+                                }
+                              }
+                            }
+                          },
+                          "max": {
+                            "color": {
+                              "expr": {
+                                "Literal": {
+                                  "Value": "'#63BE7B'"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Fact Issue.Defect Coverage %"
+          }
+        }
+      ]
+    }
   },
   "filterConfig": {
     "filters": [

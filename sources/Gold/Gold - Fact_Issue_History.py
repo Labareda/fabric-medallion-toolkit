@@ -49,16 +49,24 @@ schema = fmt.TableSchema(
     table_name=f"{GOLD_SCHEMA}.fact_issue_history",
     table_type="fact",
     key_column="Issue_History_Key",
+    # MERGE (the default), deliberately NOT overwrite. Jira/Silver is pulled
+    # incrementally, so an issue that hasn't changed recently (and its older
+    # status periods) may no longer be in Silver on a given run. This fact is
+    # therefore the SYSTEM OF RECORD for that history -- overwrite would re-derive
+    # only what Silver currently holds and silently lose the rest. Merge matches
+    # on (Issue_Id, Valid_From): a period that closes since last run is UPDATEd
+    # in place (valid_to/Is_Current corrected), new periods are inserted, and
+    # periods for issues absent from this run's Silver are left untouched. One
+    # consequence: columns removed from this schema are NOT auto-dropped from the
+    # table on disk -- the one-off cleanup cell at the end handles that.
     columns={
         "Issue_Id":   {"type": "string", "merge_field": True},
         "Valid_From": {"type": "timestamp", "merge_field": True},
         "Issue_Code": {"type": "string", "default": "Unknown"},
         "Valid_To":   {"type": "timestamp"},          # NULL = still current
-        "Valid_From_Date": {"type": "date"},
-        "Valid_To_Date":   {"type": "date"},
         "Is_Current":      {"type": "boolean", "default": False},
-        # State in force during this period
-        "Status_Name":      {"type": "string", "default": "Unknown"},
+        # State in force during this period. The status NAME is reached through
+        # Status_Key -> Dim_Status[Status_Name]; it is not duplicated here.
         "From_Status_Name": {"type": "string"},
         "Story_Points":     {"type": "double"},
         "Is_Done":          {"type": "boolean", "default": False},
@@ -230,29 +238,45 @@ df = spark.sql(f"""
         f.issue_id  AS Issue_Id,
         f.issue_key AS Issue_Code,
         f.changed_at AS Valid_From,
-        f.valid_to   AS Valid_To,
-        CAST(f.changed_at AS DATE) AS Valid_From_Date,
-        CAST(f.valid_to  AS DATE)  AS Valid_To_Date,
+        -- Valid_To: a closed period ends at its own next transition (the raw
+        -- LEAD). The still-open LAST period stays open (NULL) while the issue is
+        -- in flight -- BUT once it reaches a DONE status the timeline is closed
+        -- at the resolution date (when Done was reached), so a resolved issue's
+        -- Done row no longer runs to today. Is_Current below is taken from the
+        -- RAW LEAD, so the latest period is still flagged current (Done rows
+        -- included) even though their Valid_To is now set.
+        CASE WHEN f.valid_to IS NOT NULL THEN f.valid_to
+             WHEN COALESCE(st.Is_Done, false)
+                  THEN COALESCE(CAST(i.fields_resolutiondate AS TIMESTAMP), f.changed_at)
+             ELSE NULL END                                              AS Valid_To,
         f.valid_to IS NULL         AS Is_Current,
-        f.status                   AS Status_Name,
         f.from_status              AS From_Status_Name,
         f.story_points             AS Story_Points,
         COALESCE(st.Is_Done, false) AS Is_Done,
         -- came from a done status into a not-done one
         COALESCE(sf.Is_Done, false) AND NOT COALESCE(st.Is_Done, false) AS Is_Reopen,
         f.is_seed                  AS Is_Seed_Period,
-        -- Time in this status, CALENDAR days, DUE-ADJUSTED. For a To Do period
-        -- with a Planned Start, clamp the period start FORWARD to that date
-        -- (GREATEST), so only time from when it was due to start counts; floored
-        -- at 0 for a period that ended before its planned start (started early).
-        -- Other categories, and To Do periods with no planned start, keep their
-        -- real start. Effective_From_Date is that clamped start; it also drives
-        -- the working-day count below, then is dropped (not a stored column).
+        -- Clamped START of the period for duration: for a To Do period with a
+        -- Planned Start, move the start FORWARD to that date (due-adjusted, so
+        -- not-yet-due backlog ages 0); other categories keep their real start.
         CAST(CASE WHEN st.Status_Category = 'To Do' AND i.fields_start_date IS NOT NULL
                   THEN GREATEST(f.changed_at, CAST(i.fields_start_date AS TIMESTAMP))
                   ELSE f.changed_at END AS DATE)                              AS Effective_From_Date,
+        -- EXCLUSIVE upper bound for the working-day count, matching Valid_To:
+        -- closed period -> its next transition; terminal Done -> resolution day
+        -- (inclusive, hence +1); still-open in-flight period -> today (+1).
+        CASE WHEN f.valid_to IS NOT NULL
+                  THEN CAST(f.valid_to AS DATE)
+             WHEN COALESCE(st.Is_Done, false)
+                  THEN DATE_ADD(CAST(COALESCE(i.fields_resolutiondate, f.changed_at) AS DATE), 1)
+             ELSE DATE_ADD(CURRENT_DATE(), 1) END                          AS Calc_End_Excl,
+        -- Time in this status, CALENDAR days: due-adjusted start to the SAME
+        -- capped end as Valid_To; floored at 0.
         GREATEST(0.0,
-            (BIGINT(COALESCE(f.valid_to, CURRENT_TIMESTAMP()))
+            (BIGINT(CASE WHEN f.valid_to IS NOT NULL THEN f.valid_to
+                         WHEN COALESCE(st.Is_Done, false)
+                              THEN COALESCE(CAST(i.fields_resolutiondate AS TIMESTAMP), f.changed_at)
+                         ELSE CURRENT_TIMESTAMP() END)
              - BIGINT(CASE WHEN st.Status_Category = 'To Do' AND i.fields_start_date IS NOT NULL
                            THEN GREATEST(f.changed_at, CAST(i.fields_start_date AS TIMESTAMP))
                            ELSE f.changed_at END)) / 86400.0)                 AS Days_In_Period,
@@ -277,34 +301,29 @@ df = spark.sql(f"""
 # MARKDOWN ********************
 
 # ## Working days in each period
-# Count Dim_Date rows flagged is_working_day between the period's start and end
-# (open periods run to today). One range join, grouped per period, then joined
-# back on the period grain (Issue_Id + Valid_From).
+# Count Dim_Date working days from Effective_From_Date (the due-adjusted start)
+# to Calc_End_Excl (the resolution-capped end). Both are carried from the SELECT
+# so the window matches the calendar Days_In_Period exactly, then dropped.
 
 # CELL ********************
 from pyspark.sql import functions as F
 
 df.createOrReplaceTempView("_fih_periods")
-# Working days in the DUE-ADJUSTED window: count Dim_Date working days from
-# Effective_From_Date (the clamped start) to the period end. Effective_From_Date
-# is always >= the period start, so the range join's broad window covers it and
-# the CASE keeps only the on/after-due days.
 working_days = spark.sql(f"""
     SELECT /*+ BROADCAST(d) */
         p.Issue_Id, p.Valid_From,
-        CAST(SUM(CASE WHEN d.date >= p.Effective_From_Date THEN 1 ELSE 0 END) AS DOUBLE)
-            AS Working_Days_In_Period
+        CAST(COUNT(*) AS DOUBLE) AS Working_Days_In_Period
     FROM _fih_periods p
     JOIN {GOLD_SCHEMA}.dim_date d
-      ON d.date >= CAST(p.Valid_From AS DATE)
-     AND d.date <  COALESCE(CAST(p.Valid_To AS DATE), DATE_ADD(CURRENT_DATE(), 1))
+      ON d.date >= p.Effective_From_Date
+     AND d.date <  p.Calc_End_Excl
      AND d.is_working_day = TRUE
     GROUP BY p.Issue_Id, p.Valid_From
 """)
 df = (df.join(working_days, ["Issue_Id", "Valid_From"], "left")
         .withColumn("Working_Days_In_Period",
                     F.coalesce(F.col("Working_Days_In_Period"), F.lit(0.0)))
-        .drop("Effective_From_Date"))
+        .drop("Effective_From_Date", "Calc_End_Excl"))
 
 # MARKDOWN ********************
 
@@ -313,3 +332,37 @@ df = (df.join(working_days, ["Issue_Id", "Valid_From"], "left")
 # CELL ********************
 fmt.merge(spark, df, schema)
 print("Fact_Issue_History built successfully")
+
+# MARKDOWN ********************
+
+# ## One-off cleanup: drop retired columns
+# Because this table MERGEs (to preserve history Silver no longer holds), a
+# column removed from the schema above still lingers physically on disk --
+# merge never drops columns. This cell removes the retired ones. It is
+# NON-DESTRUCTIVE to the data: it reads the FACT ITSELF (not Silver), drops
+# only these columns, and keeps every historical row. Staged via a temp table
+# because Spark forbids overwriting a Delta table you're also reading (same
+# pattern as Dim_Date). Self-guarding and idempotent -- it only touches columns
+# that are still present, so it no-ops on every run after the first. Safe to
+# delete this cell once it has run once.
+
+# CELL ********************
+_fact = f"{GOLD_SCHEMA}.fact_issue_history"
+_retired = [
+    "Effective_Days_In_Period", "Effective_Working_Days_In_Period",  # from the earlier prune
+    "Hours_In_Period",                                               # from the earlier prune
+    "Status_Name", "Valid_From_Date", "Valid_To_Date",              # retired now
+]
+if spark.catalog.tableExists(_fact):
+    _present = {f.name for f in spark.table(_fact).schema.fields}
+    _to_drop = [c for c in _retired if c in _present]
+    if _to_drop:
+        _tmp = f"{GOLD_SCHEMA}.fact_issue_history_cleanup_tmp"
+        (spark.table(_fact).drop(*_to_drop)
+            .write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(_tmp))
+        (spark.table(_tmp)
+            .write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(_fact))
+        spark.sql(f"DROP TABLE IF EXISTS {_tmp}")
+        print(f"Dropped retired columns (history preserved): {_to_drop}")
+    else:
+        print("No retired columns to drop -- table already clean.")
