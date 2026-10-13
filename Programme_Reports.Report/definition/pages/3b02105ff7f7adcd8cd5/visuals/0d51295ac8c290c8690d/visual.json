@@ -41,11 +41,11 @@
                       "Entity": "Fact Issue History"
                     }
                   },
-                  "Property": "Days in Status (due-adjusted)"
+                  "Property": "Total Days in Status"
                 }
               },
-              "queryRef": "Fact Issue History.Days in Status (due-adjusted)",
-              "nativeQueryRef": "Days in Status (due-adjusted)"
+              "queryRef": "Fact Issue History.Total Days in Status",
+              "nativeQueryRef": "Total Days in Status"
             }
           ]
         }

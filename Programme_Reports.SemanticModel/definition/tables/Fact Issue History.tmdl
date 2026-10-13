@@ -10,7 +10,10 @@ table 'Fact Issue History'
 		formatString: 0
 		lineageTag: fecb5005-6ac1-44fb-b7b9-53ca3e7c6283
 
-	/// Total time spent in a stage (calendar days). Use for the per-requirement stacked breakdown.
+	/// Total time in a stage (calendar days, due-adjusted: To Do time counts
+	/// only from the issue's Planned Start onward). Group by Dim Status[Status
+	/// Category] for the "time in each category" view, or by Status Name for the
+	/// per-requirement stacked breakdown.
 	measure 'Total Days in Status' = SUM('Fact Issue History'[Days In Period])
 		lineageTag: a1c2e3f4-1b2c-4d5e-8f90-11a2b3c4d5e6
 
@@ -31,29 +34,6 @@ table 'Fact Issue History'
 	/// Working-day average per stage, excluding the still-open current period.
 	measure 'Avg Working Days in Status (completed)' = CALCULATE(AVERAGE('Fact Issue History'[Working Days In Period]), 'Fact Issue History'[Is Current] = False)
 		lineageTag: d4f5b6c7-4e5f-4081-bc23-44d5e6f70819
-
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
-
-	/// DUE-ADJUSTED time in a status category. To Do time counts only from the
-	/// issue's Planned Start onward, so not-yet-due backlog ages 0 days. Group
-	/// by Dim Status[Status Category] (To Do / In Progress / Done) for the
-	/// "how long in each category" view; it orders To Do -> In Progress -> Done.
-	measure 'Days in Status (due-adjusted)' = SUM('Fact Issue History'[Effective Days In Period])
-		lineageTag: d4f5b6c7-4e5f-4081-bc23-44d5e60a0001
-
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
-
-	/// Working-day version of the due-adjusted time in status (weekends + UK
-	/// bank holidays removed).
-	measure 'Working Days in Status (due-adjusted)' = SUM('Fact Issue History'[Effective Working Days In Period])
-		lineageTag: d4f5b6c7-4e5f-4081-bc23-44d5e60a0002
-
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
-
-	/// Average due-adjusted days per period, excluding the still-open current
-	/// period (fairer typical "time to move on" per stage).
-	measure 'Avg Days in Status (due-adjusted)' = CALCULATE(AVERAGE('Fact Issue History'[Effective Days In Period]), 'Fact Issue History'[Is Current] = False)
-		lineageTag: d4f5b6c7-4e5f-4081-bc23-44d5e60a0003
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
@@ -166,16 +146,6 @@ table 'Fact Issue History'
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	column 'Hours In Period'
-		dataType: double
-		lineageTag: bdfa87f3-af30-43ab-8404-a7a6e656a294
-		summarizeBy: sum
-		sourceColumn: Hours In Period
-
-		annotation SummarizationSetBy = Automatic
-
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
-
 	column 'Period Count'
 		dataType: int64
 		formatString: 0
@@ -275,26 +245,6 @@ table 'Fact Issue History'
 		lineageTag: e9c3a4b5-6f7a-4b8c-9d0e-3a4b5c6d7e82
 		summarizeBy: sum
 		sourceColumn: Working Days In Period
-
-		annotation SummarizationSetBy = Automatic
-
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
-
-	column 'Effective Days In Period'
-		dataType: double
-		lineageTag: e9c3a4b5-6f7a-4b8c-9d0e-3a4b5c6d7e83
-		summarizeBy: sum
-		sourceColumn: Effective Days In Period
-
-		annotation SummarizationSetBy = Automatic
-
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
-
-	column 'Effective Working Days In Period'
-		dataType: double
-		lineageTag: e9c3a4b5-6f7a-4b8c-9d0e-3a4b5c6d7e84
-		summarizeBy: sum
-		sourceColumn: Effective Working Days In Period
 
 		annotation SummarizationSetBy = Automatic
 

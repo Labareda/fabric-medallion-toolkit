@@ -66,20 +66,16 @@ schema = fmt.TableSchema(
         # unnecessary. Describes the change that STARTED this period.
         "Is_Reopen":        {"type": "boolean", "default": False},
         "Is_Seed_Period":   {"type": "boolean", "default": False},
+        # Time in this status, CALENDAR days, DUE-ADJUSTED: To Do time counts
+        # only from the issue's Planned Start date onward, so a requirement
+        # sitting in To Do before it is due to start ages 0 days. In Progress /
+        # Done / Unknown keep their real elapsed time. (See the SELECT for the
+        # clamp.) This IS the single "time in stage" number -- there is no
+        # separate raw-elapsed column.
         "Days_In_Period":   {"type": "double"},
-        "Hours_In_Period":  {"type": "double"},
-        # Working days in the period = calendar days MINUS weekends and UK bank
+        # Same measure, WORKING days: calendar days minus weekends and UK bank
         # holidays, counted against Dim_Date.is_working_day (see the join below).
-        # Lets a report show "time in stage" as working time, not elapsed time.
         "Working_Days_In_Period": {"type": "double", "default": 0.0},
-        # "Due-adjusted" durations: To Do time counts only from the issue's
-        # Planned Start date onward, so a requirement that is sitting in To Do
-        # before it is due to start ages 0 days (it was not supposed to have
-        # started yet). In Progress / Done / Unknown periods are unaffected --
-        # work has started, so their real duration stands. One pair: calendar
-        # and working-day (weekends + UK bank holidays removed).
-        "Effective_Days_In_Period":         {"type": "double", "default": 0.0},
-        "Effective_Working_Days_In_Period": {"type": "double", "default": 0.0},
         "Period_Count":     {"type": "int", "default": 1},
         "Issue_Key": {
             "type": "string",
@@ -245,15 +241,13 @@ df = spark.sql(f"""
         -- came from a done status into a not-done one
         COALESCE(sf.Is_Done, false) AND NOT COALESCE(st.Is_Done, false) AS Is_Reopen,
         f.is_seed                  AS Is_Seed_Period,
-        (BIGINT(COALESCE(f.valid_to, CURRENT_TIMESTAMP())) - BIGINT(f.changed_at)) / 86400.0 AS Days_In_Period,
-        (BIGINT(COALESCE(f.valid_to, CURRENT_TIMESTAMP())) - BIGINT(f.changed_at)) / 3600.0  AS Hours_In_Period,
-        -- Due-adjusted calendar duration. For a To Do period with a Planned
-        -- Start, clamp the period start FORWARD to that date (GREATEST), so only
-        -- time from when it was due to start counts; floored at 0 for a period
-        -- that ended before its planned start (it started early). Other
-        -- categories, and To Do periods with no planned start, keep their real
-        -- start. Effective_From_Date drives the working-day count below, then
-        -- is dropped -- it is not a stored column.
+        -- Time in this status, CALENDAR days, DUE-ADJUSTED. For a To Do period
+        -- with a Planned Start, clamp the period start FORWARD to that date
+        -- (GREATEST), so only time from when it was due to start counts; floored
+        -- at 0 for a period that ended before its planned start (started early).
+        -- Other categories, and To Do periods with no planned start, keep their
+        -- real start. Effective_From_Date is that clamped start; it also drives
+        -- the working-day count below, then is dropped (not a stored column).
         CAST(CASE WHEN st.Status_Category = 'To Do' AND i.fields_start_date IS NOT NULL
                   THEN GREATEST(f.changed_at, CAST(i.fields_start_date AS TIMESTAMP))
                   ELSE f.changed_at END AS DATE)                              AS Effective_From_Date,
@@ -261,7 +255,7 @@ df = spark.sql(f"""
             (BIGINT(COALESCE(f.valid_to, CURRENT_TIMESTAMP()))
              - BIGINT(CASE WHEN st.Status_Category = 'To Do' AND i.fields_start_date IS NOT NULL
                            THEN GREATEST(f.changed_at, CAST(i.fields_start_date AS TIMESTAMP))
-                           ELSE f.changed_at END)) / 86400.0)                 AS Effective_Days_In_Period,
+                           ELSE f.changed_at END)) / 86400.0)                 AS Days_In_Period,
         1 AS Period_Count,
         di.Issue_Key,
         project.Project_Key,
@@ -291,16 +285,15 @@ df = spark.sql(f"""
 from pyspark.sql import functions as F
 
 df.createOrReplaceTempView("_fih_periods")
-# One range join over the full period window gives both counts: the plain
-# working days (every working day in the period) and the due-adjusted working
-# days (only those on/after Effective_From_Date). Effective_From_Date is always
-# >= the period start, so the broad window covers it.
+# Working days in the DUE-ADJUSTED window: count Dim_Date working days from
+# Effective_From_Date (the clamped start) to the period end. Effective_From_Date
+# is always >= the period start, so the range join's broad window covers it and
+# the CASE keeps only the on/after-due days.
 working_days = spark.sql(f"""
     SELECT /*+ BROADCAST(d) */
         p.Issue_Id, p.Valid_From,
-        CAST(COUNT(*) AS DOUBLE) AS Working_Days_In_Period,
         CAST(SUM(CASE WHEN d.date >= p.Effective_From_Date THEN 1 ELSE 0 END) AS DOUBLE)
-            AS Effective_Working_Days_In_Period
+            AS Working_Days_In_Period
     FROM _fih_periods p
     JOIN {GOLD_SCHEMA}.dim_date d
       ON d.date >= CAST(p.Valid_From AS DATE)
@@ -311,8 +304,6 @@ working_days = spark.sql(f"""
 df = (df.join(working_days, ["Issue_Id", "Valid_From"], "left")
         .withColumn("Working_Days_In_Period",
                     F.coalesce(F.col("Working_Days_In_Period"), F.lit(0.0)))
-        .withColumn("Effective_Working_Days_In_Period",
-                    F.coalesce(F.col("Effective_Working_Days_In_Period"), F.lit(0.0)))
         .drop("Effective_From_Date"))
 
 # MARKDOWN ********************
