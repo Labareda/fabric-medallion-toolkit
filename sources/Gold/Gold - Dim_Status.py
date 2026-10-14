@@ -65,19 +65,21 @@ STAGES = [
         "Open", "New",
     ]),
     ("To Do", [
-        "To Do", "Backlog", "Proposed", "Selected for Development",
+        "To Do", "Triage", "Triage (GoJ)", "Triage (P247)",
+        "Backlog", "Proposed", "Selected for Development",
         "Ratify Need", "Reopened", "Needs a CR", "Defect with Configuration",
     ]),
     ("Draft", [
         "Draft", "Drafting",
     ]),
     ("Scoping & ROM", [
-        "Identify Datasets", "Assign Integration Pattern",
+        "Workshop Review", "Identify Datasets", "Assign Integration Pattern",
+        "Write Business Reqs Spec", "Write Technical Specification",
         "Awaiting ROM", "ROM Review", "ROM complete", "ROM Complete",
         "Awaiting Refined Cost", "Refined Cost Complete", "Awaiting Tech Spec Approval",
     ]),
     ("Review & Approval", [
-        "In BA Review", "Review", "In Review", "More info needed",
+        "In BA Review", "Review", "In Review", "Under Review", "More info needed",
         "Awaiting Bus Reqs Product Team Approval", "Awaiting Bus reqs vendor approval",
         "ROM Approved", "Refined cost approved", "Approved",
     ]),
@@ -93,7 +95,7 @@ STAGES = [
         "Ready for Test", "Ready to test", "System Testing", "In Test Review",
         "Testing Review", "REACT Re-tests", "Blocked",
         "Testing complete", "System Testing complete", "Testing Feedback Complete",
-        "Ready for UAT",
+        "Ready for UAT", "UAT", "UAT Testing", "UAT Complete",
     ]),
     ("Launch / Release", [
         "Ready for Launch", "Ready / Live", "Launched",
