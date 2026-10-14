@@ -23,11 +23,11 @@
                       "Entity": "Dim Status"
                     }
                   },
-                  "Property": "Status Category"
+                  "Property": "Status Stage"
                 }
               },
-              "queryRef": "Dim Status.Status Category",
-              "nativeQueryRef": "Status Category"
+              "queryRef": "Dim Status.Status Stage",
+              "nativeQueryRef": "Status Stage"
             }
           ]
         },

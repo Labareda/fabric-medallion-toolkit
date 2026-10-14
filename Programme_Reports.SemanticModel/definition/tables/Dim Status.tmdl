@@ -51,6 +51,24 @@ table 'Dim Status'
 
 		annotation SummarizationSetBy = Automatic
 
+	column 'Status Stage'
+		dataType: string
+		lineageTag: 60c9cdfd-1a53-4b91-86e1-6bb367f8ba71
+		summarizeBy: none
+		sourceColumn: Status Stage
+		sortByColumn: 'Stage Sort'
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Stage Sort'
+		dataType: int64
+		formatString: 0
+		lineageTag: 60c9cdfd-1a53-4b91-86e1-6bb367f8ba72
+		summarizeBy: none
+		sourceColumn: Stage Sort
+
+		annotation SummarizationSetBy = Automatic
+
 	column 'Status Group'
 		dataType: string
 		lineageTag: 6d447d94-9a20-43dc-8cde-ade52b898662
