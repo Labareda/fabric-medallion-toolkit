@@ -18,6 +18,25 @@ table 'Dim Priority'
 		lineageTag: 842c3acf-e62b-42f4-9e63-6431a11a3268
 		summarizeBy: none
 		sourceColumn: Priority Name
+		sortByColumn: 'Sort Order'
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Priority Category'
+		dataType: string
+		lineageTag: 842c3acf-e62b-42f4-9e63-6431a11a3269
+		summarizeBy: none
+		sourceColumn: Priority Category
+		sortByColumn: 'Priority Category Sort'
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Priority Category Sort'
+		dataType: int64
+		formatString: 0
+		lineageTag: 842c3acf-e62b-42f4-9e63-6431a11a3270
+		summarizeBy: none
+		sourceColumn: Priority Category Sort
 
 		annotation SummarizationSetBy = Automatic
 

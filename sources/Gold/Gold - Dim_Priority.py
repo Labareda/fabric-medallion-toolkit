@@ -32,6 +32,13 @@ schema = fmt.TableSchema(
         "Priority_Name":  {"type": "string", "default": "Unknown"},
         "Description":    {"type": "string", "default": "Unknown"},
         "Sort_Order":     {"type": "int", "default": 9},
+        # Unified band that collapses BOTH naming schemes (Highest/.../Lowest AND
+        # P1-P4) onto one set: Critical / High / Medium / Low / Unknown (Lowest
+        # folds into Low). Lets a report group priority without caring which
+        # scheme an issue used. Priority_Category_Sort orders the bands (Low and
+        # Lowest share it, so it can't reuse the per-name Sort_Order).
+        "Priority_Category":      {"type": "string", "default": "Unknown"},
+        "Priority_Category_Sort": {"type": "int", "default": 9},
     },
 )
 
@@ -48,7 +55,27 @@ df = spark.sql("""
             WHEN LOWER(p.name) LIKE '%lowest%'  OR LOWER(p.name) LIKE 'p5%'                                    THEN 5
             WHEN LOWER(p.name) LIKE '%low%'     OR LOWER(p.name) LIKE 'p4%'                                    THEN 4
             ELSE 9
-        END AS Sort_Order
+        END AS Sort_Order,
+        -- Band LABEL (Lowest folds into Low -> four bands + Unknown) and the
+        -- band ORDER. Same keyword logic as Sort_Order; keep all three CASEs in
+        -- step if you edit any. Lowest/p5 are listed with Low so both map to
+        -- 'Low' / 4.
+        CASE
+            WHEN LOWER(p.name) LIKE '%highest%' OR LOWER(p.name) LIKE '%critical%' OR LOWER(p.name) LIKE 'p1%' THEN 'Critical'
+            WHEN LOWER(p.name) LIKE '%high%'    OR LOWER(p.name) LIKE 'p2%'                                    THEN 'High'
+            WHEN LOWER(p.name) LIKE '%medium%'  OR LOWER(p.name) LIKE 'p3%'                                    THEN 'Medium'
+            WHEN LOWER(p.name) LIKE '%lowest%'  OR LOWER(p.name) LIKE 'p5%'
+              OR LOWER(p.name) LIKE '%low%'     OR LOWER(p.name) LIKE 'p4%'                                    THEN 'Low'
+            ELSE 'Unknown'
+        END AS Priority_Category,
+        CASE
+            WHEN LOWER(p.name) LIKE '%highest%' OR LOWER(p.name) LIKE '%critical%' OR LOWER(p.name) LIKE 'p1%' THEN 1
+            WHEN LOWER(p.name) LIKE '%high%'    OR LOWER(p.name) LIKE 'p2%'                                    THEN 2
+            WHEN LOWER(p.name) LIKE '%medium%'  OR LOWER(p.name) LIKE 'p3%'                                    THEN 3
+            WHEN LOWER(p.name) LIKE '%lowest%'  OR LOWER(p.name) LIKE 'p5%'
+              OR LOWER(p.name) LIKE '%low%'     OR LOWER(p.name) LIKE 'p4%'                                    THEN 4
+            ELSE 9
+        END AS Priority_Category_Sort
     FROM Silver.jira.priorities p
 """)
 
