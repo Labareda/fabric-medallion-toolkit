@@ -46,10 +46,12 @@ schema = fmt.TableSchema(
         "Role_Name":           {"type": "string", "default": "Unknown"},
         "Allocated_Hours":     {"type": "double", "default": 0.0},
         # Carried straight through from Fact_Resource_Allocation, which already
-        # resolved them (to the dim's "Unknown" member when absent), so a status
-        # or issue-type slicer filters the day-level resource matrix in one hop.
+        # resolved them (to the dim's "Unknown" member when absent), so a status,
+        # issue-type or priority slicer filters the day-level resource matrix in
+        # one hop.
         "Status_Key":          {"type": "string", "default": "Unknown"},
         "IssueType_Key":       {"type": "string", "default": "Unknown"},
+        "Priority_Key":        {"type": "string", "default": "Unknown"},
         "Resource_Key": {
             "type": "string",
             "lookup_missing_from": {
@@ -87,7 +89,7 @@ df = spark.sql(f"""
     allocations AS (
         SELECT
             Resource_Id, Issue_Id, Role_Name, Allocation_Weight,
-            Status_Key, IssueType_Key,
+            Status_Key, IssueType_Key, Priority_Key,
             Planned_Start_Date, Planned_End_Date, Original_Estimate_Hours
         FROM (
             SELECT
@@ -97,6 +99,7 @@ df = spark.sql(f"""
                 fra.Allocation_Weight,
                 fra.Status_Key,
                 fra.IssueType_Key,
+                fra.Priority_Key,
                 fi.Planned_Start_Date,
                 fi.Planned_End_Date,
                 COALESCE(fi.Original_Estimate_Hours, 0) AS Original_Estimate_Hours,
@@ -119,7 +122,7 @@ df = spark.sql(f"""
     working_days AS (
         SELECT
             a.Resource_Id, a.Issue_Id, a.Role_Name, a.Allocation_Weight,
-            a.Status_Key, a.IssueType_Key,
+            a.Status_Key, a.IssueType_Key, a.Priority_Key,
             a.Original_Estimate_Hours,
             d.date AS Alloc_Date
         FROM allocations a
@@ -142,6 +145,7 @@ df = spark.sql(f"""
         (wd.Original_Estimate_Hours / dc.Working_Day_Count) * wd.Allocation_Weight AS Allocated_Hours,
         wd.Status_Key,
         wd.IssueType_Key,
+        wd.Priority_Key,
         res.Resource_Key,
         di.Issue_Key
     FROM working_days wd

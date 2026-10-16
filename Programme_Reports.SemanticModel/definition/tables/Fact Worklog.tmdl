@@ -85,6 +85,17 @@ table 'Fact Worklog'
 
 		annotation SummarizationSetBy = Automatic
 
+	column 'Priority Key'
+		dataType: string
+		isHidden
+		lineageTag: 14411ef4-a13a-4b34-87d4-f6a9975057a1
+		summarizeBy: none
+		sourceColumn: Priority Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
 	column 'Resource Key'
 		dataType: string
 		isHidden

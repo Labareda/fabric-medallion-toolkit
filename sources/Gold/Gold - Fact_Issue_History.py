@@ -119,6 +119,14 @@ schema = fmt.TableSchema(
                                      "natural_key_column": "IssueType_Id", "key_column": "IssueType_Key",
                                      "unknown_value": "Unknown"},
         },
+        # The issue's CURRENT priority, so a priority slicer filters the stage
+        # history in one hop. Unknown-member fallback when absent.
+        "Priority_Key": {
+            "type": "string",
+            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_priority",
+                                     "natural_key_column": "Priority_Id", "key_column": "Priority_Key",
+                                     "unknown_value": "Unknown"},
+        },
         "Changed_By_Key": {
             "type": "string",
             "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_resource",
@@ -286,6 +294,7 @@ df = spark.sql(f"""
         team.Team_Key,
         st.Status_Key,
         issue_type.IssueType_Key,
+        priority.Priority_Key,
         res.Resource_Key AS Changed_By_Key
     FROM filled f
     LEFT JOIN status_by_name st ON st.Status_Name = f.status
@@ -295,6 +304,7 @@ df = spark.sql(f"""
     LEFT JOIN {GOLD_SCHEMA}.dim_project project ON i.fields_project_id = project.Project_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_team team    ON i.fields_team_name = team.Team_Name
     LEFT JOIN {GOLD_SCHEMA}.dim_issue_type issue_type ON i.fields_issuetype_id = issue_type.IssueType_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_priority priority ON i.fields_priority_id = priority.Priority_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_resource res ON f.author_account_id = res.Resource_Id
 """)
 

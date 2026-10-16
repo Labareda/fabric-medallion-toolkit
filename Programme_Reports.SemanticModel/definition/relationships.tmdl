@@ -14,6 +14,22 @@ relationship 4cf3028b-f304-2032-1dfb-7c66aecacfa7
 	fromColumn: 'Fact Issue'.'Priority Key'
 	toColumn: 'Dim Priority'.'Priority Key'
 
+relationship a1b2c3d4-0001-4a00-9000-000000000001
+	fromColumn: 'Fact Issue History'.'Priority Key'
+	toColumn: 'Dim Priority'.'Priority Key'
+
+relationship a1b2c3d4-0002-4a00-9000-000000000002
+	fromColumn: 'Fact Resource Allocation'.'Priority Key'
+	toColumn: 'Dim Priority'.'Priority Key'
+
+relationship a1b2c3d4-0003-4a00-9000-000000000003
+	fromColumn: 'Fact Resource Day Allocation'.'Priority Key'
+	toColumn: 'Dim Priority'.'Priority Key'
+
+relationship a1b2c3d4-0004-4a00-9000-000000000004
+	fromColumn: 'Fact Worklog'.'Priority Key'
+	toColumn: 'Dim Priority'.'Priority Key'
+
 relationship f473b7fe-9cd9-2502-1ef9-ff9f7aae5514
 	fromColumn: 'Fact Issue'.'IssueType Key'
 	toColumn: 'Dim Issue Type'.'IssueType Key'

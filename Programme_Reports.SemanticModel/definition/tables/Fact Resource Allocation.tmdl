@@ -152,6 +152,17 @@ table 'Fact Resource Allocation'
 
 		annotation SummarizationSetBy = Automatic
 
+	column 'Priority Key'
+		dataType: string
+		isHidden
+		lineageTag: 3b0a5d22-8e4f-4c1b-ad32-60f9c1e2b0a1
+		summarizeBy: none
+		sourceColumn: Priority Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
 	partition 'Fact Resource Allocation' = m
 		mode: import
 		source =

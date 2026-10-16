@@ -76,6 +76,14 @@ schema = fmt.TableSchema(
                                      "natural_key_column": "IssueType_Id", "key_column": "IssueType_Key",
                                      "unknown_value": "Unknown"},
         },
+        # The issue's CURRENT priority, so a priority slicer filters the resource
+        # views in one hop. Same Unknown-member fallback as Status/Type.
+        "Priority_Key": {
+            "type": "string",
+            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_priority",
+                                     "natural_key_column": "Priority_Id", "key_column": "Priority_Key",
+                                     "unknown_value": "Unknown"},
+        },
         # Project_Key/Team_Key sit directly on every fact table so a project
         # or team slicer filters in one hop -- matches Fact_Issue.
         "Project_Key": {
@@ -122,7 +130,7 @@ df = spark.sql(f"""
     SELECT a.Issue_Id, a.Issue_Code, a.Resource_Id,
            a.Allocation_Weight, 1 AS Allocation_Count,
            dim_issue.Issue_Key, res.Resource_Key, role.Resource_Role_Key,
-           status.Status_Key, issue_type.IssueType_Key,
+           status.Status_Key, issue_type.IssueType_Key, priority.Priority_Key,
            project.Project_Key, team.Team_Key
     FROM allocations a
     LEFT JOIN Silver.jira.issues i2b            ON a.Issue_Id = i2b.id
@@ -131,6 +139,7 @@ df = spark.sql(f"""
     LEFT JOIN {GOLD_SCHEMA}.dim_resourcerole role ON a.Role_Name = role.Role_Name
     LEFT JOIN {GOLD_SCHEMA}.dim_status status     ON i2b.fields_status_id = status.Status_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_issue_type issue_type ON i2b.fields_issuetype_id = issue_type.IssueType_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_priority priority ON i2b.fields_priority_id = priority.Priority_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_project project ON i2b.fields_project_id = project.Project_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_team team       ON i2b.fields_team_name = team.Team_Name
 """)

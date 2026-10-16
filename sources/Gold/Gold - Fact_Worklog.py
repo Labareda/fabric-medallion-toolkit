@@ -61,6 +61,14 @@ schema = fmt.TableSchema(
                                      "natural_key_column": "Role_Name", "key_column": "Resource_Role_Key",
                                      "unknown_value": "Unknown"},
         },
+        # The issue's CURRENT priority, so a priority slicer filters logged time
+        # in one hop. Unknown-member fallback when absent.
+        "Priority_Key": {
+            "type": "string",
+            "lookup_missing_from": {"table": f"{GOLD_SCHEMA}.dim_priority",
+                                     "natural_key_column": "Priority_Id", "key_column": "Priority_Key",
+                                     "unknown_value": "Unknown"},
+        },
     },
 )
 
@@ -84,13 +92,15 @@ df = spark.sql(f"""
         w.time_spent_seconds / 3600.0 AS Time_Spent_Hours,
         dim_issue.Issue_Key,
         res.Resource_Key AS Author_Key,
-        role.Resource_Role_Key
+        role.Resource_Role_Key,
+        priority.Priority_Key
     FROM Silver.jira.worklogs w
     LEFT JOIN Silver.jira.issues i               ON w.issue_id = i.id
     LEFT JOIN involved_pairs ip                  ON w.issue_id = ip.issue_id
                                                  AND w.author_account_id = ip.person_account_id
     LEFT JOIN {GOLD_SCHEMA}.dim_issue dim_issue  ON w.issue_id = dim_issue.Issue_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_resource res     ON w.author_account_id = res.Resource_Id
+    LEFT JOIN {GOLD_SCHEMA}.dim_priority priority ON i.fields_priority_id = priority.Priority_Id
     LEFT JOIN {GOLD_SCHEMA}.dim_resourcerole role ON role.Role_Name = COALESCE(
         CASE WHEN w.author_account_id = i.fields_assignee_accountId THEN 'Lead' END,
         CASE WHEN ip.person_account_id IS NOT NULL THEN 'Involved' END

@@ -228,6 +228,17 @@ table 'Fact Issue History'
 
 		annotation SummarizationSetBy = Automatic
 
+	column 'Priority Key'
+		dataType: string
+		isHidden
+		lineageTag: f1a2b3c4-6d7e-4f80-9a1b-55c6d7e8fa01
+		summarizeBy: none
+		sourceColumn: Priority Key
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
 	partition 'Fact Issue History' = m
 		mode: import
 		source =
