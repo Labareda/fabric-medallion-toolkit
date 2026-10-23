@@ -2,22 +2,18 @@
 
 # MARKDOWN ********************
 
-# ## dim_benefit_type -- Navision benefit types as a Gold dimension
+# ## dim_benefit_type -- Navision benefit types (pure dimension)
 #
-# Benefit types from Silver ess_benefit_type as a standalone dimension. SCD-1
-# upsert via fmt.merge on Benefit_Code (insert new + update changed in one -- the
-# old Step 2 INSERT and Step 3 UPDATE).
+# A clean star-schema dimension: benefit ATTRIBUTES only, keyed on Benefit_Code.
+# SCD-1 upsert via fmt.merge (insert new + update changed in one).
 #
-# INDEPENDENT of the other dimensions. It carries the benefit's G/L account and
-# dimension CODES as natural keys -- it does NOT read Dim_G_L_Account_Mapping to
-# resolve a mapping id. A fact that needs the account-mapping key resolves it by
-# joining these natural keys to dim_g_l_account_mapping (the medallion way: facts
-# resolve FKs to dims; dims don't read other dims).
+# It does NOT carry G/L account keys -- the benefit->account mapping that links a
+# benefit to the GL fact lives in fact_gl, which resolves Benefit_Type_Key from
+# Silver ess_benefit_type. That keeps this dimension independent and the model a
+# proper star (facts hold the foreign keys; dimensions don't reference each other).
 #
-# NCDG (non-contributory death grants) don't map correctly in the source, so for
-# Benefit_Code = 'NCDG' the G/L account natural keys are overridden to
-# 4631 / STATES / BENEFITS / RETIREMENT / NCD GRANT and the row flagged manually
-# adjusted.
+# Record_Manually_Adjusted_Ind flags NCDG (its account mapping is corrected in the
+# fact's resolution).
 
 # CELL ********************
 
@@ -43,52 +39,23 @@ schema = fmt.TableSchema(
         "Active_Ind":                   {"type": "boolean", "default": False},
         "Non_Contributory_Benefit_Ind": {"type": "boolean", "default": False},
         "Record_Manually_Adjusted_Ind": {"type": "boolean", "default": False},
-
-        # Benefit G/L account as NATURAL KEYS (resolve to dim_g_l_account_mapping
-        # in a fact, not here -- keeps this dim independent).
-        "G_L_Account":         {"type": "string"},
-        "Business_Unit_Code":  {"type": "string"},
-        "Department_Code":     {"type": "string"},
-        "Fund_Code":           {"type": "string"},
-        "Project_Code":        {"type": "string"},
-
-        # Balance G/L account natural keys.
-        "Bal_G_L_Account":        {"type": "string"},
-        "Bal_Business_Unit_Code": {"type": "string"},
-        "Bal_Department_Code":    {"type": "string"},
-        "Bal_Fund_Code":          {"type": "string"},
-        "Bal_Project_Code":       {"type": "string"},
     },
 )
 
 # MARKDOWN ********************
 
-# ##### Build the dimension (SCD-1 on Benefit_Code -- no cross-dim dependency)
+# ##### Build the dimension (SCD-1 on Benefit_Code -- pure, no account keys)
 
 # CELL ********************
 
 df = spark.sql(f"""
     SELECT
-        bt.benefit_code                     AS Benefit_Code,
-        bt.description                      AS Benefit_Description,
-        CAST(bt.payment_limit AS DOUBLE)    AS Current_Payment_Limit,
-        CAST(bt.active AS BOOLEAN)         AS Active_Ind,
-        CAST(bt.ncb    AS BOOLEAN)         AS Non_Contributory_Benefit_Ind,
-        CASE WHEN bt.benefit_code = 'NCDG' THEN TRUE ELSE FALSE END AS Record_Manually_Adjusted_Ind,
-
-        -- Benefit G/L account natural keys, with the NCDG override baked in.
-        CASE WHEN bt.benefit_code = 'NCDG' THEN '4631'       ELSE bt.g_l_account        END AS G_L_Account,
-        CASE WHEN bt.benefit_code = 'NCDG' THEN 'STATES'     ELSE bt.global_dim__1_code END AS Business_Unit_Code,
-        CASE WHEN bt.benefit_code = 'NCDG' THEN 'BENEFITS'   ELSE bt.global_dim__2_code END AS Department_Code,
-        CASE WHEN bt.benefit_code = 'NCDG' THEN 'RETIREMENT' ELSE bt.global_dim__3_code END AS Fund_Code,
-        CASE WHEN bt.benefit_code = 'NCDG' THEN 'NCD GRANT'  ELSE bt.global_dim__4_code END AS Project_Code,
-
-        bt.bal__g_l_account        AS Bal_G_L_Account,
-        bt.bal__global_dim__1_code AS Bal_Business_Unit_Code,
-        bt.bal__global_dim__2_code AS Bal_Department_Code,
-        bt.bal__global_dim__3_code AS Bal_Fund_Code,
-        bt.bal__global_dim__4_code AS Bal_Project_Code
-
+        bt.benefit_code                  AS Benefit_Code,
+        bt.description                   AS Benefit_Description,
+        CAST(bt.payment_limit AS DOUBLE) AS Current_Payment_Limit,
+        CAST(bt.active AS BOOLEAN)       AS Active_Ind,
+        CAST(bt.ncb    AS BOOLEAN)       AS Non_Contributory_Benefit_Ind,
+        CASE WHEN bt.benefit_code = 'NCDG' THEN TRUE ELSE FALSE END AS Record_Manually_Adjusted_Ind
     FROM {SILVER_SCHEMA}.ess_benefit_type bt
 """)
 

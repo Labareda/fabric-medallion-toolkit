@@ -2,25 +2,26 @@
 
 # MARKDOWN ********************
 
-# ## fact_gl -- Navision General Ledger entries as a Gold fact
+# ## fact_gl -- Navision General Ledger entries (star-schema fact)
 #
-# Grain: ONE ROW PER G/L ENTRY (entry_no_).
+# Grain: ONE ROW PER G/L ENTRY (entry_no_). The central fact: measures + surrogate
+# foreign keys to the dimensions + degenerate columns. It resolves EVERY foreign
+# key itself (dimensions never reference each other).
 #
-# The original dw_Navision load used a Delta_Control watermark + Landing_ staging
-# tables + TRUNCATE/INSERT. The medallion doesn't need any of that: Silver already
-# holds the clean, full copy of ess_g_l_entry each run, so this is simply
-#   read Silver -> resolve FKs -> fmt.merge on Entry_No
-# and merge is idempotent (new entries inserted, changed ones updated).
+# The medallion drops the original Delta_Control watermark + Landing_ staging +
+# TRUNCATE/INSERT: Silver already holds the clean full copy, so this is
+#   read Silver -> resolve FKs -> fmt.merge on Entry_No  (idempotent).
 #
-# FKs resolved here (facts resolve keys to dims):
+# FKs:
 #   * Account_Key       -> dim_account, on (account, dimension set)
-#   * Benefit_Type_Key  -> dim_benefit_type, on account + the four dimension codes
-#                          (reusing the account dim's resolved codes). Most entries
-#                          aren't benefit postings, so this is 'Unknown' for them.
+#   * Benefit_Type_Key  -> dim_benefit_type, via a benefit->account map read from
+#                          SILVER ess_benefit_type (so dim_benefit_type stays pure).
+#                          NCDG's mapping is corrected here. 'Unknown' for the vast
+#                          majority of entries that aren't benefit postings.
 #   * Posting_Date      -> relate to dim_date in the model (date kept here)
 #   * Register_No       -> ess_g_l_register, via the entry-range (BETWEEN)
 #
-# Build AFTER dim_account and dim_benefit_type (both are looked up here).
+# Build AFTER dim_account and dim_benefit_type.
 #
 # NOTE: the source notebook was truncated at "Step 5 (transform)", so this is a
 # best-effort fact following the Jira fact conventions. Verify the column list.
@@ -32,8 +33,7 @@ import fabric_medallion_toolkit as fmt
 SILVER_SCHEMA = "silver.navision"   # cleaned ess_* tables
 GOLD_SCHEMA   = "Gold.navision"     # set to your Navision Gold lakehouse/schema
 
-# Only entries on/after this date (matches the account dim's scope). Widen for
-# more history.
+# Only entries on/after this date (matches the account dim's scope).
 POSTED_SINCE = "2015-01-01"
 
 # MARKDOWN ********************
@@ -103,12 +103,25 @@ schema = fmt.TableSchema(
 
 # MARKDOWN ********************
 
-# ##### Build the fact (merge on Entry_No -- insert new, update changed)
+# ##### Build the fact (merge on Entry_No; resolves all FKs from Silver + dims)
 
 # CELL ********************
 
 df = spark.sql(f"""
-    SELECT /*+ BROADCAST(gl_r) */
+    WITH benefit_map AS (
+        -- Which benefit posts to each account + dimension combination, read from
+        -- SILVER (not dim_benefit_type, which stays a pure dimension). NCDG's
+        -- mapping is corrected here, matching the source fix.
+        SELECT
+            benefit_code,
+            CASE WHEN benefit_code = 'NCDG' THEN '4631'       ELSE CAST(g_l_account AS STRING) END AS b_account,
+            CASE WHEN benefit_code = 'NCDG' THEN 'STATES'     ELSE global_dim__1_code           END AS b_bu,
+            CASE WHEN benefit_code = 'NCDG' THEN 'BENEFITS'   ELSE global_dim__2_code           END AS b_dept,
+            CASE WHEN benefit_code = 'NCDG' THEN 'RETIREMENT' ELSE global_dim__3_code           END AS b_fund,
+            CASE WHEN benefit_code = 'NCDG' THEN 'NCD GRANT'  ELSE global_dim__4_code           END AS b_proj
+        FROM {SILVER_SCHEMA}.ess_benefit_type
+    )
+    SELECT /*+ BROADCAST(gl_r, bm, bt) */
         gl_e.entry_no_                              AS Entry_No,
 
         CAST(gl_e.amount                      AS DOUBLE) AS Amount,
@@ -158,26 +171,25 @@ df = spark.sql(f"""
 
     FROM {SILVER_SCHEMA}.ess_g_l_entry gl_e
 
-    -- Register number via the entry range. Registers are non-overlapping (1:1);
-    -- any overlap would trip the merge's key-uniqueness check rather than
-    -- silently duplicate the entry.
+    -- Register number via the entry range (registers are non-overlapping -> 1:1).
     LEFT JOIN {SILVER_SCHEMA}.ess_g_l_register gl_r
         ON gl_e.entry_no_ BETWEEN gl_r.from_entry_no_ AND gl_r.to_entry_no_
 
-    -- Account mapping dimension, on account + dimension set.
+    -- Account dimension, on account + dimension set (gives Account_Key + codes).
     LEFT JOIN {GOLD_SCHEMA}.dim_account am
         ON  am.G_L_Account_No   = gl_e.g_l_account_no_
         AND am.Dimension_Set_ID = gl_e.dimension_set_id
 
-    -- Benefit dimension: a benefit posts to a specific account + dimension combo,
-    -- so match the entry's account and the account dim's four resolved codes to
-    -- the benefit's natural keys. 'Unknown' for non-benefit entries.
+    -- Benefit: match the entry's account + the account dim's resolved codes to a
+    -- benefit, then look up its key. 'Unknown' for non-benefit entries.
+    LEFT JOIN benefit_map bm
+        ON  bm.b_account = CAST(gl_e.g_l_account_no_ AS STRING)
+        AND bm.b_bu      = am.Business_Unit_Code
+        AND bm.b_dept    = am.Department_Code
+        AND bm.b_fund    = am.Fund_Code
+        AND bm.b_proj    = am.Project_Code
     LEFT JOIN {GOLD_SCHEMA}.dim_benefit_type bt
-        ON  bt.G_L_Account        = CAST(gl_e.g_l_account_no_ AS STRING)
-        AND bt.Business_Unit_Code = am.Business_Unit_Code
-        AND bt.Department_Code    = am.Department_Code
-        AND bt.Fund_Code          = am.Fund_Code
-        AND bt.Project_Code       = am.Project_Code
+        ON bt.Benefit_Code = bm.benefit_code
 
     WHERE gl_e.posting_date >= '{POSTED_SINCE}'
 """)
