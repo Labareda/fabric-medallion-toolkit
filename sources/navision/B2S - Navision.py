@@ -21,6 +21,8 @@ reports = fmt.run_file_silver(
     silver_schema="navision",              # schema folder -> Tables/navision/<table>
     exclude_prefixes=("$", "dbo_"),        # NAV system tables + SQL-mirror artifacts
     cast=False,                            # keep codes that look numeric as strings
+    flag_duplicates=False,                 # a shuffle per table -- opt in only if needed
+    max_workers=8,                         # process tables concurrently (Navision has ~1595)
     prune=True,                            # drop Silver tables whose source is gone
     overrides={
         # "Customer":        {"pk": ["No_"], "no_trim": ["Comment"]},

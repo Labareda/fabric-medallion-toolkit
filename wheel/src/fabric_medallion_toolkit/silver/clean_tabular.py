@@ -7,24 +7,25 @@ source is a few lines rather than a copied notebook.
 
 Two entry points:
   * clean_tabular(df, ...)   -- PURE transform, DataFrame in / (DataFrame, report)
-                                out. No I/O, so it's trivial to unit-test and
-                                reuse anywhere.
-  * run_file_silver(...)     -- the whole loop: discover one-folder-per-table
-                                Parquet under a Bronze Lakehouse Files path,
-                                cleanse each, overwrite into a (optionally
-                                schema-foldered) Silver Lakehouse, skip empty
-                                tables, prune Silver tables whose source is gone,
-                                refresh the endpoint.
+                                out. No I/O, trivial to unit-test and reuse.
+  * run_file_silver(...)     -- discover one-folder-per-table datasets under a
+                                Bronze Lakehouse Files path, cleanse each, write
+                                into a (optionally schema-foldered) Silver
+                                Lakehouse, skip empties, prune removed tables.
 
-CASTING IS OFF BY DEFAULT, on purpose. A string that looks numeric is very often
-a CODE, not a number -- a Navision "No." field, a postal code, a leading-zero id.
-Casting it to a double loses the leading zeros and breaks every string join. Turn
-casting on per source (cast=True) only where you know the string columns really
-are numbers/dates, and still exempt individual columns with no_cast.
+BUILT FOR MANY TABLES. A source can have thousands of (mostly small/empty)
+tables, so the defaults are tuned for that:
+  * tables are processed CONCURRENTLY (max_workers) -- one-at-a-time leaves the
+    cluster idle on small tables; concurrent job submission keeps it busy.
+  * per table there are only ~2 Spark actions: ONE agg (row count + per-column
+    null counts together) and the write. Trim + empty->null is a single select.
+  * DUPLICATE FLAGGING IS OFF BY DEFAULT. The full-row duplicate check is a
+    Window.partitionBy over EVERY column -- a full shuffle per table. Turn it on
+    (flag_duplicates=True) only when you actually need the flags.
 
-PERFORMANCE: column statistics are computed in single aggregation passes, not one
-count() per column -- so a wide table does not fan out into hundreds of tiny
-Spark jobs (the main cost in the hand-rolled version).
+CASTING IS ALSO OFF BY DEFAULT. A string that looks numeric is usually a CODE
+(Navision "No." field, postal code, leading-zero id); casting it to a double
+loses leading zeros and breaks joins. Opt in per source/table with cast=True.
 """
 
 from pyspark.sql import functions as F
@@ -35,8 +36,6 @@ from fabric_medallion_toolkit.utils.logging_utils import get_logger
 
 logger = get_logger("silver.clean_tabular")
 
-# A value is "numeric-shaped" if it's an optional sign, digits/commas, optional
-# decimal part -- the thousands comma is stripped before the cast.
 _NUMERIC_RE = r"^-?[\d,]+\.?\d*$"
 
 
@@ -52,56 +51,57 @@ def _string_cols(df, exclude):
             if isinstance(f.dataType, StringType) and f.name not in exclude]
 
 
-def clean_tabular(df, *, no_trim=(), no_cast=(), cast=False, pk=None):
+def clean_tabular(df, *, no_trim=(), no_cast=(), cast=False, pk=None,
+                  flag_duplicates=False):
     """Cleanse one already-tabular DataFrame. Returns (clean_df, report).
 
-    Steps, in order:
-      1. trim leading/trailing whitespace on string columns (except `no_trim`)
-      2. normalise empty strings ("", "   ") to null
-      3. drop columns that are 100% null (run after 1+2, so all-whitespace/all-
-         empty-string columns are caught too)
-      4. OPTIONAL casting (`cast=False` by default): a string column whose every
-         non-null value is cleanly numeric- or ISO-date-shaped is cast to that
-         type. See the module note on why this is off by default; exempt columns
-         with `no_cast`.
-      5. flag `_is_full_duplicate` (always) and `_is_pk_duplicate` (when `pk`
-         given) -- rows are KEPT, never dropped
-      6. add `_silver_processed_at`
+    Steps:
+      1. trim string columns (except `no_trim`) AND normalise ""/"   " to null --
+         in a single projection
+      2. drop columns that are 100% null -- using the same agg that counts rows
+      3. OPTIONAL casting (cast=False): numeric-/ISO-date-shaped string columns
+         (off by default; see module note). Exempt columns with `no_cast`.
+      4. OPTIONAL duplicate flags (flag_duplicates=False): `_is_full_duplicate`
+         and `_is_pk_duplicate` (full-row flag is a full shuffle -- opt in).
+      5. add `_silver_processed_at`
 
     report keys: rows, dropped_empty_columns, cast_columns, full_duplicates,
-    pk_duplicates, pk_used.
+    pk_duplicates (None when flagging off), pk_used.
     """
     no_trim = set(no_trim or ())
     no_cast = set(no_cast or ())
     pk = list(pk or [])
+    report = {"rows": 0, "dropped_empty_columns": [], "cast_columns": [],
+              "full_duplicates": None, "pk_duplicates": None, "pk_used": pk}
 
-    total = df.count()
-    report = {"rows": total, "dropped_empty_columns": [], "cast_columns": [],
-              "full_duplicates": 0, "pk_duplicates": 0, "pk_used": pk}
+    # 1. trim + empty->null in ONE select (cheap to plan even on wide tables)
+    proj = []
+    for f in df.schema.fields:
+        c = f.name
+        if isinstance(f.dataType, StringType):
+            col = F.col(c) if c in no_trim else F.trim(F.col(c))
+            proj.append(F.when(col == "", None).otherwise(col).alias(c))
+        else:
+            proj.append(F.col(c))
+    df = df.select(*proj)
+
+    # 2. ONE agg: row count + per-column null count together -> empty-table check
+    #    and fully-empty-column drop, in a single pass over the data.
+    data_cols = [c for c in df.columns if not c.startswith("_")]
+    agg = [F.count(F.lit(1)).alias("__rows__")]
+    agg += [F.sum(F.when(F.col(c).isNull(), 1).otherwise(0)).alias(c) for c in data_cols]
+    row = df.agg(*agg).collect()[0].asDict()
+    total = int(row["__rows__"] or 0)
+    report["rows"] = total
     if total == 0:
         return df, report
 
-    # 1. trim
-    for name in _string_cols(df, no_trim):
-        df = df.withColumn(name, F.trim(F.col(name)))
+    dropped = [c for c in data_cols if (row[c] or 0) == total]
+    if dropped:
+        df = df.drop(*dropped)
+        report["dropped_empty_columns"] = dropped
 
-    # 2. empty string -> null (all string columns, incl. no_trim ones)
-    for name in _string_cols(df, set()):
-        df = df.withColumn(name, F.when(F.col(name) == "", None).otherwise(F.col(name)))
-
-    # 3. drop fully-empty columns -- ONE aggregation pass over all data columns
-    data_cols = [c for c in df.columns if not c.startswith("_")]
-    if data_cols:
-        null_counts = df.agg(*[
-            F.sum(F.when(F.col(c).isNull(), 1).otherwise(0)).alias(c) for c in data_cols
-        ]).collect()[0].asDict()
-        dropped = [c for c, n in null_counts.items() if (n or 0) == total]
-        if dropped:
-            df = df.drop(*dropped)
-            report["dropped_empty_columns"] = dropped
-
-    # 4. optional casting -- ONE aggregation pass computes eligibility for every
-    #    candidate string column at once (not three count()s per column)
+    # 3. optional casting -- ONE agg computes eligibility for all candidates
     if cast:
         candidates = _string_cols(df, no_cast)
         if candidates:
@@ -115,8 +115,7 @@ def clean_tabular(df, *, no_trim=(), no_cast=(), cast=False, pk=None):
                 ]
             stats = df.agg(*exprs).collect()[0].asDict()
             for c in candidates:
-                nn = stats[f"{c}\x00nn"] or 0
-                if nn == 0:
+                if (stats[f"{c}\x00nn"] or 0) == 0:
                     continue
                 if (stats[f"{c}\x00nonnum"] or 0) == 0:
                     df = df.withColumn(c, F.regexp_replace(F.col(c), ",", "").cast(DoubleType()))
@@ -125,26 +124,21 @@ def clean_tabular(df, *, no_trim=(), no_cast=(), cast=False, pk=None):
                     df = df.withColumn(c, F.col(c).cast(DateType()))
                     report["cast_columns"].append((c, "date"))
 
-    # 5. duplicate flags (full-row over the data columns; PK over pk if present)
-    df = df.withColumn("_is_full_duplicate",
-                       F.count("*").over(Window.partitionBy(*df.columns)) > 1)
-    pk_in = [p for p in pk if p in df.columns]
-    if pk_in:
+    # 4. optional duplicate flags (expensive -- a shuffle per table -- so opt-in)
+    if flag_duplicates:
+        df = df.withColumn("_is_full_duplicate",
+                           F.count("*").over(Window.partitionBy(*df.columns)) > 1)
+        pk_in = [p for p in pk if p in df.columns]
         df = df.withColumn("_is_pk_duplicate",
-                           F.count("*").over(Window.partitionBy(*pk_in)) > 1)
-    else:
-        df = df.withColumn("_is_pk_duplicate", F.lit(False))
+                           (F.count("*").over(Window.partitionBy(*pk_in)) > 1)
+                           if pk_in else F.lit(False))
+        d = df.agg(F.sum(F.col("_is_full_duplicate").cast("int")).alias("f"),
+                   F.sum(F.col("_is_pk_duplicate").cast("int")).alias("p")).collect()[0]
+        report["full_duplicates"] = int(d["f"] or 0)
+        report["pk_duplicates"] = int(d["p"] or 0)
 
-    # 6. processed timestamp
+    # 5. processed timestamp
     df = df.withColumn("_silver_processed_at", F.current_timestamp())
-
-    # dup counts for the report -- ONE pass
-    dups = df.agg(
-        F.sum(F.col("_is_full_duplicate").cast("int")).alias("full"),
-        F.sum(F.col("_is_pk_duplicate").cast("int")).alias("pk"),
-    ).collect()[0]
-    report["full_duplicates"] = int(dups["full"] or 0)
-    report["pk_duplicates"] = int(dups["pk"] or 0)
     return df, report
 
 
@@ -167,7 +161,6 @@ def _get_mssparkutils(mssparkutils):
 
 
 def _attr(obj, key):
-    """Field access that works whether an SDK returns dicts or objects."""
     if isinstance(obj, dict):
         return obj.get(key)
     return getattr(obj, key, None)
@@ -179,8 +172,8 @@ def _is_dir(entry):
 
 
 def resolve_lakehouse_path(mssparkutils, lakehouse_name):
-    """ABFS storage path of a Lakehouse, by its Workspace display name. The path
-    lives under .properties.abfsPath in Fabric, not as a top-level field."""
+    """ABFS storage path of a Lakehouse, by Workspace display name (the path is
+    under .properties.abfsPath in Fabric, not a top-level field)."""
     lakehouses = mssparkutils.lakehouse.list()
     for lh in lakehouses:
         if (_attr(lh, "displayName") or _attr(lh, "name")) == lakehouse_name:
@@ -206,30 +199,30 @@ def _list_dir_names(mssparkutils, path):
 
 
 def _sanitise_columns(df):
-    for col in df.columns:
-        safe = sanitise(col)
-        if safe != col:
-            df = df.withColumnRenamed(col, safe)
-    return df
+    """Rename odd column names in ONE projection (not N withColumnRenamed)."""
+    renames = {c: sanitise(c) for c in df.columns if sanitise(c) != c}
+    if not renames:
+        return df
+    return df.select(*[F.col(c).alias(renames.get(c, c)) for c in df.columns])
 
 
 def run_file_silver(bronze_lakehouse, bronze_subpath="", *, silver_lakehouse,
                     silver_schema="", tables=None, exclude_prefixes=("$",),
-                    overrides=None, cast=False, file_format="parquet",
-                    prune=True, refresh_endpoint=True, spark=None, mssparkutils=None):
+                    overrides=None, cast=False, flag_duplicates=False,
+                    file_format="parquet", prune=True, refresh_endpoint=True,
+                    max_workers=8, spark=None, mssparkutils=None):
     """Clean every one-folder-per-table dataset under a Bronze Lakehouse Files
-    path into a Silver Lakehouse. Both Lakehouses are resolved by display name.
+    path into a Silver Lakehouse. Both Lakehouses resolved by display name.
 
-    bronze_subpath : folder under Files/ holding the per-table folders ("" = root).
-    silver_schema  : schema folder under Silver Tables/ ("" = root). Needs the
-                     Silver Lakehouse to be schema-enabled to register as schema.table.
-    tables         : limit to these table names (None = all discovered).
-    exclude_prefixes: skip table folders whose name starts with any of these
-                     (case-insensitive), e.g. ("$", "dbo_") for NAV system tables
-                     and SQL-mirror artifacts.
-    overrides      : per-table dict: {"skip", "pk", "no_trim", "no_cast", "cast"}.
-    cast           : default casting for all tables (off). Override per table.
-    prune          : drop Silver tables whose Bronze source folder is gone.
+    bronze_subpath  : folder under Files/ with the per-table folders ("" = root).
+    silver_schema   : schema folder under Silver Tables/ ("" = root).
+    tables          : limit to these (None = all discovered).
+    exclude_prefixes: skip table folders starting with any of these (case-insensitive).
+    overrides       : per-table {"skip","pk","no_trim","no_cast","cast","flag_duplicates"}.
+    cast            : default casting (off). flag_duplicates: default dup flags (off).
+    max_workers     : tables processed concurrently (1 = sequential). The main
+                      speed lever when there are many small tables.
+    prune           : drop Silver tables whose Bronze source folder is gone.
 
     Empty tables are skipped (never written). Returns a list of per-table reports.
     """
@@ -262,11 +255,11 @@ def run_file_silver(bronze_lakehouse, bronze_subpath="", *, silver_lakehouse,
         if excluded:
             logger.info(f"Excluding {len(excluded)} table(s) matching {exclude_prefixes} (e.g. {excluded[:3]})")
 
-    logger.info(f"Discovered {len(discovered)} table(s) under {files_root}")
     to_process = [t for t in (tables or discovered) if not overrides.get(t, {}).get("skip")]
+    logger.info(f"Discovered {len(discovered)} table(s); processing {len(to_process)} "
+                f"with max_workers={max_workers}")
 
-    reports = []
-    for t in to_process:
+    def _one(t):
         ov = overrides.get(t, {})
         try:
             reader = spark.read.format(file_format)
@@ -276,23 +269,33 @@ def run_file_silver(bronze_lakehouse, bronze_subpath="", *, silver_lakehouse,
             clean, report = clean_tabular(
                 df, no_trim=ov.get("no_trim", ()), no_cast=ov.get("no_cast", ()),
                 cast=ov.get("cast", cast), pk=ov.get("pk", ()),
+                flag_duplicates=ov.get("flag_duplicates", flag_duplicates),
             )
             report["table"] = t
             if report["rows"] == 0:
                 report["written"] = False
-                logger.info(f"{t}: 0 rows -- skipped (not written to Silver)")
+                logger.info(f"{t}: 0 rows -- skipped")
             else:
                 out = f"{silver_tables_root}/{sanitise(t)}"
                 clean.write.format("delta").mode("overwrite").option("overwriteSchema", "true").save(out)
                 report["written"] = True
                 report["silver_path"] = out
-                logger.info(f"{t}: {report['rows']} rows -> {out} "
-                            f"(dropped {len(report['dropped_empty_columns'])} empty col(s), "
-                            f"full dup {report['full_duplicates']}, pk dup {report['pk_duplicates']})")
-            reports.append(report)
+                logger.info(f"{t}: {report['rows']} rows -> Silver "
+                            f"(dropped {len(report['dropped_empty_columns'])} empty col(s))")
+            return report
         except Exception as e:
             logger.error(f"{t}: FAILED -- {e}")
-            reports.append({"table": t, "written": False, "error": str(e)})
+            return {"table": t, "written": False, "error": str(e)}
+
+    if max_workers and max_workers > 1 and len(to_process) > 1:
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=max_workers) as ex:
+            reports = list(ex.map(_one, to_process))
+    else:
+        reports = [_one(t) for t in to_process]
+
+    written = sum(1 for r in reports if r.get("written"))
+    logger.info(f"Done: {written} written, {len(reports) - written} skipped/failed")
 
     if prune:
         _prune_silver(msu, silver_tables_root, {sanitise(t) for t in discovered})
@@ -308,8 +311,8 @@ def run_file_silver(bronze_lakehouse, bronze_subpath="", *, silver_lakehouse,
 
 
 def _prune_silver(mssparkutils, silver_tables_root, expected_names):
-    """Drop Silver table folders not in `expected_names` (the current Bronze
-    discovery). Guard: never prune when discovery is empty."""
+    """Drop Silver table folders not in the current Bronze discovery. Guard:
+    never prune when discovery is empty."""
     if not expected_names:
         logger.warning("Prune skipped: Bronze discovery is empty (guard against wiping Silver).")
         return []
