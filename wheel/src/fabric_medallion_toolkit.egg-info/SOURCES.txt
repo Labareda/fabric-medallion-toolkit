@@ -24,6 +24,7 @@ src/fabric_medallion_toolkit/gold/sort_path.py
 src/fabric_medallion_toolkit/gold/unknown.py
 src/fabric_medallion_toolkit/silver/__init__.py
 src/fabric_medallion_toolkit/silver/auto_standardize.py
+src/fabric_medallion_toolkit/silver/clean_tabular.py
 src/fabric_medallion_toolkit/silver/explode.py
 src/fabric_medallion_toolkit/silver/friendly_rename.py
 src/fabric_medallion_toolkit/silver/standardize.py
