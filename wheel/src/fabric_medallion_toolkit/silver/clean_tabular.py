@@ -1,42 +1,54 @@
 """
-Generic cleansing for ALREADY-TABULAR Bronze -- mirrored / copied source tables
-that arrive with real columns, NOT the JSON `raw_data` that auto_standardize and
-explode_nested_array handle. This is the reusable version of the per-source
-"Bronze -> Silver clean" notebooks (e.g. Navision), so adding a new tabular
-source is a few lines rather than a copied notebook.
+Minimal Bronze -> Silver pass for ALREADY-TABULAR sources (mirrored / copied
+tables that arrive with real columns, NOT the JSON `raw_data` that
+auto_standardize / explode_nested_array handle). Reusable across sources so
+adding one is a few lines, not a copied notebook.
 
-Two entry points:
-  * clean_tabular(df, ...)   -- PURE transform, DataFrame in / (DataFrame, report)
-                                out. No I/O, trivial to unit-test and reuse.
-  * run_file_silver(...)     -- discover one-folder-per-table datasets under a
-                                Bronze Lakehouse Files path, cleanse each, write
-                                into a (optionally schema-foldered) Silver
-                                Lakehouse, skip empties, prune removed tables.
+It does ONLY what's needed for a clean Silver mirror -- nothing more:
+  1. SKIP EMPTY TABLES      -- a 0-row table is not written (no empty Silver tables)
+  2. DROP EMPTY COLUMNS     -- a column that is entirely null/blank is dropped
+  3. FABRIC-SAFE DATES      -- the ancient-date rebase is set so reads/writes don't
+                               throw, and any date/timestamp outside Fabric's
+                               representable range (0001-01-01 .. 9999-12-31) is
+                               nulled so the SQL endpoint can sync the table.
 
-BUILT FOR MANY TABLES. A source can have thousands of (mostly small/empty)
-tables, so the defaults are tuned for that:
-  * tables are processed CONCURRENTLY (max_workers) -- one-at-a-time leaves the
-    cluster idle on small tables; concurrent job submission keeps it busy.
-  * per table there are only ~2 Spark actions: ONE agg (row count + per-column
-    null counts together) and the write. Trim + empty->null is a single select.
-  * DUPLICATE FLAGGING IS OFF BY DEFAULT. The full-row duplicate check is a
-    Window.partitionBy over EVERY column -- a full shuffle per table. Turn it on
-    (flag_duplicates=True) only when you actually need the flags.
+Deliberately NOT done (not required): trimming, empty-string->null rewriting,
+type casting, duplicate flags, processed-at columns. Data that stays is written
+through unchanged apart from out-of-range dates being nulled.
 
-CASTING IS ALSO OFF BY DEFAULT. A string that looks numeric is usually a CODE
-(Navision "No." field, postal code, leading-zero id); casting it to a double
-loses leading zeros and breaks joins. Opt in per source/table with cast=True.
+Built for MANY tables: tables are processed CONCURRENTLY (max_workers) and each
+table is ~2 Spark actions (one agg for the row/empty-column check, plus the write).
 """
 
 from pyspark.sql import functions as F
-from pyspark.sql.types import StringType, DateType, DoubleType
-from pyspark.sql.window import Window
+from pyspark.sql.types import StringType, DateType, TimestampType
 
 from fabric_medallion_toolkit.utils.logging_utils import get_logger
 
 logger = get_logger("silver.clean_tabular")
 
-_NUMERIC_RE = r"^-?[\d,]+\.?\d*$"
+# Fabric's SQL endpoint maps Delta date/timestamp to T-SQL date/datetime2, whose
+# range is 0001-01-01 .. 9999-12-31. Values outside it can't sync, so they're nulled.
+_FABRIC_MIN = "0001-01-01"
+_FABRIC_MAX = "9999-12-31"
+
+# Rebase keys so pre-1582 (Julian) dates read/write as-is instead of throwing
+# READ_ANCIENT_DATETIME -- common in data copied from old SQL Server / Navision.
+_REBASE_KEYS = (
+    "spark.sql.parquet.datetimeRebaseModeInRead",
+    "spark.sql.parquet.int96RebaseModeInRead",
+    "spark.sql.parquet.datetimeRebaseModeInWrite",
+    "spark.sql.parquet.int96RebaseModeInWrite",
+)
+
+
+def set_date_rebase(spark):
+    """Set CORRECTED rebase so ancient dates don't error. Safe to call repeatedly."""
+    for k in _REBASE_KEYS:
+        try:
+            spark.conf.set(k, "CORRECTED")
+        except Exception:
+            pass
 
 
 def sanitise(name: str) -> str:
@@ -46,99 +58,56 @@ def sanitise(name: str) -> str:
     return name
 
 
-def _string_cols(df, exclude):
-    return [f.name for f in df.schema.fields
-            if isinstance(f.dataType, StringType) and f.name not in exclude]
+def _fabric_safe_date(col, is_ts):
+    cast = TimestampType() if is_ts else DateType()
+    lo = F.lit(_FABRIC_MIN).cast(cast)
+    hi = F.lit(_FABRIC_MAX + (" 23:59:59" if is_ts else "")).cast(cast)
+    return F.when((col < lo) | (col > hi), None).otherwise(col)
 
 
-def clean_tabular(df, *, no_trim=(), no_cast=(), cast=False, pk=None,
-                  flag_duplicates=False):
-    """Cleanse one already-tabular DataFrame. Returns (clean_df, report).
+def clean_tabular(df, *, fix_dates=True):
+    """Minimal cleanse of one already-tabular DataFrame. Returns (clean_df, report).
 
-    Steps:
-      1. trim string columns (except `no_trim`) AND normalise ""/"   " to null --
-         in a single projection
-      2. drop columns that are 100% null -- using the same agg that counts rows
-      3. OPTIONAL casting (cast=False): numeric-/ISO-date-shaped string columns
-         (off by default; see module note). Exempt columns with `no_cast`.
-      4. OPTIONAL duplicate flags (flag_duplicates=False): `_is_full_duplicate`
-         and `_is_pk_duplicate` (full-row flag is a full shuffle -- opt in).
-      5. add `_silver_processed_at`
+      1. report the row count (caller skips the write when it's 0)
+      2. drop columns that are entirely null or blank (string "" / whitespace)
+      3. null date/timestamp values outside the Fabric-safe range (if fix_dates)
 
-    report keys: rows, dropped_empty_columns, cast_columns, full_duplicates,
-    pk_duplicates (None when flagging off), pk_used.
+    Nothing else is changed. report keys: rows, dropped_empty_columns, date_columns.
     """
-    no_trim = set(no_trim or ())
-    no_cast = set(no_cast or ())
-    pk = list(pk or [])
-    report = {"rows": 0, "dropped_empty_columns": [], "cast_columns": [],
-              "full_duplicates": None, "pk_duplicates": None, "pk_used": pk}
-
-    # 1. trim + empty->null in ONE select (cheap to plan even on wide tables)
-    proj = []
-    for f in df.schema.fields:
-        c = f.name
-        if isinstance(f.dataType, StringType):
-            col = F.col(c) if c in no_trim else F.trim(F.col(c))
-            proj.append(F.when(col == "", None).otherwise(col).alias(c))
-        else:
-            proj.append(F.col(c))
-    df = df.select(*proj)
-
-    # 2. ONE agg: row count + per-column null count together -> empty-table check
-    #    and fully-empty-column drop, in a single pass over the data.
+    report = {"rows": 0, "dropped_empty_columns": [], "date_columns": []}
     data_cols = [c for c in df.columns if not c.startswith("_")]
+
+    # ONE pass: row count + per-column count of MEANINGFUL values (not null, and
+    # for strings not blank). A column with zero meaningful values is "empty".
+    def _nonempty(field):
+        v = F.col(field.name)
+        meaningful = (v.isNotNull() & (F.trim(v) != "")
+                      if isinstance(field.dataType, StringType) else v.isNotNull())
+        return F.sum(F.when(meaningful, 1).otherwise(0)).alias(field.name)
+
     agg = [F.count(F.lit(1)).alias("__rows__")]
-    agg += [F.sum(F.when(F.col(c).isNull(), 1).otherwise(0)).alias(c) for c in data_cols]
+    agg += [_nonempty(f) for f in df.schema.fields if not f.name.startswith("_")]
     row = df.agg(*agg).collect()[0].asDict()
+
     total = int(row["__rows__"] or 0)
     report["rows"] = total
     if total == 0:
         return df, report
 
-    dropped = [c for c in data_cols if (row[c] or 0) == total]
+    dropped = [c for c in data_cols if (row[c] or 0) == 0]
     if dropped:
         df = df.drop(*dropped)
         report["dropped_empty_columns"] = dropped
 
-    # 3. optional casting -- ONE agg computes eligibility for all candidates
-    if cast:
-        candidates = _string_cols(df, no_cast)
-        if candidates:
-            exprs = []
-            for c in candidates:
-                nn = F.col(c).isNotNull()
-                exprs += [
-                    F.sum(F.when(nn, 1).otherwise(0)).alias(f"{c}\x00nn"),
-                    F.sum(F.when(nn & ~F.col(c).rlike(_NUMERIC_RE), 1).otherwise(0)).alias(f"{c}\x00nonnum"),
-                    F.sum(F.when(nn & F.col(c).cast(DateType()).isNull(), 1).otherwise(0)).alias(f"{c}\x00nondate"),
-                ]
-            stats = df.agg(*exprs).collect()[0].asDict()
-            for c in candidates:
-                if (stats[f"{c}\x00nn"] or 0) == 0:
-                    continue
-                if (stats[f"{c}\x00nonnum"] or 0) == 0:
-                    df = df.withColumn(c, F.regexp_replace(F.col(c), ",", "").cast(DoubleType()))
-                    report["cast_columns"].append((c, "double"))
-                elif (stats[f"{c}\x00nondate"] or 0) == 0:
-                    df = df.withColumn(c, F.col(c).cast(DateType()))
-                    report["cast_columns"].append((c, "date"))
+    if fix_dates:
+        for f in df.schema.fields:
+            if isinstance(f.dataType, DateType):
+                df = df.withColumn(f.name, _fabric_safe_date(F.col(f.name), False))
+                report["date_columns"].append(f.name)
+            elif isinstance(f.dataType, TimestampType):
+                df = df.withColumn(f.name, _fabric_safe_date(F.col(f.name), True))
+                report["date_columns"].append(f.name)
 
-    # 4. optional duplicate flags (expensive -- a shuffle per table -- so opt-in)
-    if flag_duplicates:
-        df = df.withColumn("_is_full_duplicate",
-                           F.count("*").over(Window.partitionBy(*df.columns)) > 1)
-        pk_in = [p for p in pk if p in df.columns]
-        df = df.withColumn("_is_pk_duplicate",
-                           (F.count("*").over(Window.partitionBy(*pk_in)) > 1)
-                           if pk_in else F.lit(False))
-        d = df.agg(F.sum(F.col("_is_full_duplicate").cast("int")).alias("f"),
-                   F.sum(F.col("_is_pk_duplicate").cast("int")).alias("p")).collect()[0]
-        report["full_duplicates"] = int(d["f"] or 0)
-        report["pk_duplicates"] = int(d["p"] or 0)
-
-    # 5. processed timestamp
-    df = df.withColumn("_silver_processed_at", F.current_timestamp())
     return df, report
 
 
@@ -199,7 +168,6 @@ def _list_dir_names(mssparkutils, path):
 
 
 def _sanitise_columns(df):
-    """Rename odd column names in ONE projection (not N withColumnRenamed)."""
     renames = {c: sanitise(c) for c in df.columns if sanitise(c) != c}
     if not renames:
         return df
@@ -208,9 +176,9 @@ def _sanitise_columns(df):
 
 def run_file_silver(bronze_lakehouse, bronze_subpath="", *, silver_lakehouse,
                     silver_schema="", tables=None, exclude_prefixes=("$",),
-                    overrides=None, cast=False, flag_duplicates=False,
-                    file_format="parquet", prune=True, refresh_endpoint=True,
-                    max_workers=8, spark=None, mssparkutils=None):
+                    skip=(), fix_dates=True, file_format="parquet",
+                    prune=True, refresh_endpoint=True, max_workers=8,
+                    spark=None, mssparkutils=None):
     """Clean every one-folder-per-table dataset under a Bronze Lakehouse Files
     path into a Silver Lakehouse. Both Lakehouses resolved by display name.
 
@@ -218,18 +186,18 @@ def run_file_silver(bronze_lakehouse, bronze_subpath="", *, silver_lakehouse,
     silver_schema   : schema folder under Silver Tables/ ("" = root).
     tables          : limit to these (None = all discovered).
     exclude_prefixes: skip table folders starting with any of these (case-insensitive).
-    overrides       : per-table {"skip","pk","no_trim","no_cast","cast","flag_duplicates"}.
-    cast            : default casting (off). flag_duplicates: default dup flags (off).
-    max_workers     : tables processed concurrently (1 = sequential). The main
-                      speed lever when there are many small tables.
+    skip            : explicit table names to skip.
+    fix_dates       : null date/timestamp values outside the Fabric-safe range.
+    max_workers     : tables processed concurrently (1 = sequential).
     prune           : drop Silver tables whose Bronze source folder is gone.
 
     Empty tables are skipped (never written). Returns a list of per-table reports.
     """
     spark = _get_spark(spark)
     msu = _get_mssparkutils(mssparkutils)
-    overrides = overrides or {}
+    set_date_rebase(spark)
     prefixes = tuple(p.lower() for p in (exclude_prefixes or ()))
+    skip_set = set(skip or ())
 
     bronze_path = resolve_lakehouse_path(msu, bronze_lakehouse)
     silver_path = resolve_lakehouse_path(msu, silver_lakehouse)
@@ -255,22 +223,17 @@ def run_file_silver(bronze_lakehouse, bronze_subpath="", *, silver_lakehouse,
         if excluded:
             logger.info(f"Excluding {len(excluded)} table(s) matching {exclude_prefixes} (e.g. {excluded[:3]})")
 
-    to_process = [t for t in (tables or discovered) if not overrides.get(t, {}).get("skip")]
+    to_process = [t for t in (tables or discovered) if t not in skip_set]
     logger.info(f"Discovered {len(discovered)} table(s); processing {len(to_process)} "
                 f"with max_workers={max_workers}")
 
     def _one(t):
-        ov = overrides.get(t, {})
         try:
             reader = spark.read.format(file_format)
             if file_format == "csv":
                 reader = reader.option("header", "true")
             df = _sanitise_columns(reader.load(f"{files_root}/{t}"))
-            clean, report = clean_tabular(
-                df, no_trim=ov.get("no_trim", ()), no_cast=ov.get("no_cast", ()),
-                cast=ov.get("cast", cast), pk=ov.get("pk", ()),
-                flag_duplicates=ov.get("flag_duplicates", flag_duplicates),
-            )
+            clean, report = clean_tabular(df, fix_dates=fix_dates)
             report["table"] = t
             if report["rows"] == 0:
                 report["written"] = False
@@ -319,7 +282,7 @@ def _prune_silver(mssparkutils, silver_tables_root, expected_names):
     try:
         entries = mssparkutils.fs.ls(silver_tables_root)
     except Exception:
-        return []  # schema folder doesn't exist yet -> nothing to prune
+        return []
     pruned = []
     for e in entries:
         name = (_attr(e, "name") or "").rstrip("/")
