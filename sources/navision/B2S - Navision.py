@@ -23,7 +23,8 @@ reports = fmt.run_file_silver(
     bronze_subpath="navision_Bronze",      # folder under Files/ (case-sensitive)
     silver_lakehouse="silver",             # shared Silver lakehouse
     silver_schema="navision",              # schema folder -> Tables/navision/<table>
-    exclude_prefixes=("$", "dbo_"),        # NAV system tables + SQL-mirror artifacts
+    exclude_prefixes=("$", "dbo_", "ms", "stg_"),  # NAV system ($ndo$), mirror (dbo_),
+                                                   # SQL replication/system (ms*), staging (stg_)
     max_workers=8,                         # process tables concurrently (~1595 tables)
     # skip=["Some_Big_Table"],             # explicit tables to leave out
 )

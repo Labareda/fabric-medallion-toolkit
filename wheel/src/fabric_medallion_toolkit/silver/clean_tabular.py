@@ -247,6 +247,12 @@ def run_file_silver(bronze_lakehouse, bronze_subpath="", *, silver_lakehouse,
                             f"(dropped {len(report['dropped_empty_columns'])} empty col(s))")
             return report
         except Exception as e:
+            if "UNABLE_TO_INFER_SCHEMA" in str(e):
+                # Parquet folder with no data files (the mirror created the
+                # folder but never populated it) -- effectively an empty table,
+                # so skip it rather than report a failure.
+                logger.info(f"{t}: no data/schema -- skipped")
+                return {"table": t, "written": False, "rows": 0, "no_data": True}
             logger.error(f"{t}: FAILED -- {e}")
             return {"table": t, "written": False, "error": str(e)}
 
