@@ -71,11 +71,13 @@ SILVER_SCHEMA = "navision"
 #   "navision_Bronze"  ->  Files/navision_Bronze/<Table>/<parquet part files>
 BRONZE_FILES_SUBPATH = "navision_Bronze"
 
-# Navision/BC exports its internal metadata tables with a "$ndo$" prefix
-# ($ndo$cachesync, $ndo$dbproperty, schema snapshots, ...). They're system
-# plumbing, not business data, so they're skipped by default. Set False to
-# include them (they'd be cleaned and written to Silver like any other table).
-EXCLUDE_SYSTEM_TABLES = True
+# Table folders whose name starts with any of these prefixes are SKIPPED (not
+# written to Silver). Matched case-insensitively. Defaults:
+#   "$"    -- Navision/BC internal system tables ($ndo$cachesync, $ndo$dbproperty, ...)
+#   "dbo_" -- the SQL mirror's own schema-flattened artifact tables (dbo_xxx),
+#             created by the mirroring, not real Navision business data.
+# Set to () to keep everything.
+EXCLUDE_TABLE_PREFIXES = ("$", "dbo_")
 
 # Blank = process every table folder discovered. Set a list to limit a run.
 TABLES_TO_PROCESS: list[str] = []
@@ -162,17 +164,19 @@ def _list_dir_names(path: str) -> list:
 
 
 def discover_tables(root: str) -> list:
-    """One sub-folder per table under the Bronze Files root. Drops $-prefixed
-    Navision system tables unless EXCLUDE_SYSTEM_TABLES is False. If the root
-    doesn't exist, list what IS under Files/ so BRONZE_FILES_SUBPATH can be set."""
+    """One sub-folder per table under the Bronze Files root. Drops folders whose
+    name starts with any EXCLUDE_TABLE_PREFIXES ($ndo$ system tables, dbo_ mirror
+    artifacts). If the root doesn't exist, list what IS under Files/ so
+    BRONZE_FILES_SUBPATH can be set."""
     try:
         names = _list_dir_names(root)
-        if EXCLUDE_SYSTEM_TABLES:
-            sys_tables = [n for n in names if n.startswith("$")]
-            names = [n for n in names if not n.startswith("$")]
-            if sys_tables:
-                print(f"Excluding {len(sys_tables)} system table(s) ($-prefixed, e.g. "
-                      f"{sys_tables[0]}) -- set EXCLUDE_SYSTEM_TABLES=False to include them")
+        if EXCLUDE_TABLE_PREFIXES:
+            _pref = tuple(p.lower() for p in EXCLUDE_TABLE_PREFIXES)
+            excluded = [n for n in names if n.lower().startswith(_pref)]
+            names    = [n for n in names if not n.lower().startswith(_pref)]
+            if excluded:
+                print(f"Excluding {len(excluded)} table(s) matching {EXCLUDE_TABLE_PREFIXES} "
+                      f"(e.g. {excluded[:3]}) -- set EXCLUDE_TABLE_PREFIXES=() to keep them")
         return names
     except Exception as e:
         if "PathNotFound" not in str(e) and "Not Found" not in str(e) and "FileNotFound" not in str(e):
