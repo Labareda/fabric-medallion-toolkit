@@ -47,6 +47,7 @@ from fabric_medallion_toolkit.bronze import (
 from fabric_medallion_toolkit.silver import (
     run_silver_standardize, flatten_and_standardize, dedup_latest, explode_nested_array,
     auto_standardize, run_auto_silver_standardize, clean_adf_columns, rename_customfield_columns, build_field_id_to_name,
+    clean_tabular, run_file_silver,
 )
 
 # --- gold: merge, keys, lookups, date dimension ---
@@ -68,6 +69,7 @@ __all__ = [
     # silver
     "run_silver_standardize", "flatten_and_standardize", "dedup_latest", "explode_nested_array",
     "auto_standardize", "run_auto_silver_standardize", "clean_adf_columns", "rename_customfield_columns", "build_field_id_to_name",
+    "clean_tabular", "run_file_silver",
     # gold
     "merge", "build_gold_table", "run_gold_model",
     "build_date_dimension", "add_date_dimension_sentinel", "merge_scd2", "add_guid_key", "lookup_key", "lookup_keys", "add_unknown_member", "build_hierarchy_levels", "build_typed_hierarchy_levels", "build_sort_path", "rollup_hierarchy_dates", "enrich_issue_hierarchy", "assert_unique",

@@ -4,10 +4,12 @@ from fabric_medallion_toolkit.silver.standardize import (
 from fabric_medallion_toolkit.silver.explode import explode_nested_array
 from fabric_medallion_toolkit.silver.auto_standardize import auto_standardize, run_auto_silver_standardize, clean_adf_columns
 from fabric_medallion_toolkit.silver.friendly_rename import rename_customfield_columns, build_field_id_to_name
+from fabric_medallion_toolkit.silver.clean_tabular import clean_tabular, run_file_silver
 
 __all__ = [
     "flatten_and_standardize", "dedup_latest", "run_silver_standardize",
     "explode_nested_array",
     "auto_standardize", "run_auto_silver_standardize", "clean_adf_columns",
     "rename_customfield_columns", "build_field_id_to_name",
+    "clean_tabular", "run_file_silver",
 ]
